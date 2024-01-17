@@ -1,10 +1,10 @@
+from __version__ import __version__
 import tkinter as tk
 from tkinter import filedialog
 import subprocess
 import os
 import json
 import shutil
-import shlex
 
 # def convert_to_gif(input_file, output_file, fps, scale):
 #     cmd = [
@@ -15,6 +15,7 @@ import shlex
 #         output_file
 #     ]
 #     subprocess.run(cmd)
+print("Current version:", __version__)
 
 video_data = None
 
@@ -175,7 +176,8 @@ def apply_settings():
 
 # Create the main window
 root = tk.Tk()
-root.title("Video to GIF Converter")
+root.title(f"Video to GIF Converter {__version__}")
+root.geometry("350x200")
 
 # Create a button to choose a file
 choose_button = tk.Button(root, text="Choose Video File", command=choose_file)
@@ -185,6 +187,8 @@ choose_button.pack(pady=30)
 settings_button = tk.Button(root, text="Open Settings", command=open_settings_window)
 settings_button.pack(pady=10)
 
+watermark_label = tk.Label(root, text="by N8VENTURES (github.com/n8ventures)", fg="gray")
+watermark_label.pack(side=tk.BOTTOM, anchor=tk.SW, padx=10, pady=10)
 # Create a button to open the save window
 # save_button = tk.Button(root, text="Save Output", command=open_save_window)
 # save_button.pack(pady=10)
