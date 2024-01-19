@@ -6,10 +6,21 @@ import subprocess
 import os
 import json
 import shutil
+import sys
 
 print("Current version:", __version__)
 
 video_data = None
+
+icon = 'ico.ico'
+ffprobe = 'ffprobe.exe'
+gifski = 'gifski.exe'
+ffmpeg = 'ffmpeg.exe'
+if hasattr(sys, '_MEIPASS'):
+    icon = os.path.join(sys._MEIPASS, icon)
+    ffprobe = os.path.join(sys._MEIPASS, ffprobe)
+    gifski = os.path.join(sys._MEIPASS, gifski)
+    ffmpeg = os.path.join(sys._MEIPASS, ffmpeg)
 
 def convert_and_save(fps, gif_quality, input_file):
     output_file = filedialog.asksaveasfile(
@@ -29,7 +40,7 @@ def convert_and_save(fps, gif_quality, input_file):
 
 def get_video_data(input_file):
     cmd = [
-        "ffprobe",
+        ffprobe,
         "-v", "error",
         "-select_streams", "v:0",
         "-show_entries", "stream=width,height,r_frame_rate,duration",
@@ -51,7 +62,7 @@ def get_video_data(input_file):
 def video_to_frames_seq(input_file):
     os.makedirs('temp', exist_ok=True)
     cmd = [ 
-        "ffmpeg", 
+       ffmpeg, 
         "-i", input_file
         ]
     
@@ -66,7 +77,7 @@ def video_to_frames_seq(input_file):
 
 def vid_to_gif(framerate, gifQuality, output):
     cmd = [
-        "gifski",
+        gifski,
         "-r", str(framerate),
         "-Q", str(gifQuality),
         ]
@@ -108,6 +119,10 @@ def open_finish_window():
     finish_window = tk.Toplevel(root)
     finish_window.title("Done!")
     finish_window.geometry("300x300")
+    finish_window.iconbitmap(icon)
+    
+    watermark_label = tk.Label(finish_window, text="by N8VENTURES (github.com/n8ventures)", fg="gray")
+    watermark_label.pack(side=tk.BOTTOM, anchor=tk.SW, padx=10, pady=10)
 
     finish_close_label = tk.Label(finish_window, text="Conversion Complete!")
     finish_close_label.pack()
@@ -130,6 +145,9 @@ def open_settings_window():
     settings_window = tk.Toplevel(root)
     settings_window.title("User Settings")
     settings_window.geometry("350x400")
+    settings_window.iconbitmap(icon)
+    watermark_label = tk.Label(settings_window, text="by N8VENTURES (github.com/n8ventures)", fg="gray")
+    watermark_label.pack(side=tk.BOTTOM, anchor=tk.SW, padx=10, pady=10)
 
     gif_quality_label = tk.Label(settings_window, text="GIF Quality:")
     gif_quality_label.pack(pady=10)
@@ -226,20 +244,23 @@ def apply_settings():
     
 def drag_enter(event):
     drop_label.config(bg="lightgray")
+    label.config(bg="lightgray")
 
 def drag_leave(event):
     drop_label.config(bg="white")
-    
+    label.config (bg="white")
 def on_drop(event):
     global file_path
     drop_label.config(bg="white")
+    label.config (bg="white")
     file_path = event.data.strip('{}')
     get_and_print_video_data(file_path)
     
 # Create the main window
 root = TkinterDnD.Tk()
 root.title(f"Video to GIF Converter {__version__}")
-root.geometry("350x300")
+root.geometry("350x400")
+root.iconbitmap(icon)
 
 # Create a button to choose a file
 choose_button = tk.Button(root, text="Choose Video File", command=choose_file)
@@ -249,7 +270,7 @@ or_label = tk.Label(root, text="Or")
 or_label.pack(pady=20)
 
 # Create a Canvas with a grey broken-line border
-canvas = tk.Canvas(root, bd=2, relief="ridge", bg="white")
+canvas = tk.Canvas(root, bd=2, relief="ridge")
 canvas.pack(expand=True, fill="both")
 
 # Create a Label for the drop area
@@ -261,6 +282,20 @@ drop_label.bind("<Enter>", drag_enter)
 drop_label.bind("<Leave>", drag_leave)
 drop_label.drop_target_register(DND_FILES)
 drop_label.dnd_bind('<<Drop>>', on_drop)
+
+print("Current working directory:", os.getcwd())
+print("Executable path:", sys.executable)
+
+image_path = 'ico.png' 
+if hasattr(sys, '_MEIPASS'):
+    image_path = os.path.join(sys._MEIPASS, image_path)
+else:
+    image_path = '.\\buildandsign\\ico\\ico.png' 
+
+image = tk.PhotoImage(file=image_path)
+label = tk.Label(canvas, image=image, bd=0, bg="white")
+label.image = image
+label.place(x=175, y=200, anchor=tk.CENTER) 
 
 watermark_label = tk.Label(root, text="by N8VENTURES (github.com/n8ventures)", fg="gray")
 watermark_label.pack(side=tk.BOTTOM, anchor=tk.SW, padx=10, pady=10)
