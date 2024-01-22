@@ -1,0 +1,5 @@
+Gifski
+https://github.com/ImageOptim/gifski/releases
+
+ffmpeg,ffprobe,ffplay
+https://ffmpeg.org/download.html
