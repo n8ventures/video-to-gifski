@@ -111,6 +111,7 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
     cmd = [
         gifski,
+        "-q",
         "-r", str(fps),
         "-Q", str(gifQuality),
         ]
@@ -459,7 +460,7 @@ def open_settings_window():
         file_path
     ]
 
-        result = subprocess.run(cmd)
+        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
     root.withdraw()
