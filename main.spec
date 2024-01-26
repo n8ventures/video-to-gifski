@@ -13,13 +13,14 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[
+        ('.\\buildandsign\\bin\\ffplay.exe', '.'),
         ('.\\buildandsign\\bin\\ffmpeg.exe', '.'),
         ('.\\buildandsign\\bin\\ffprobe.exe', '.'),
         ('.\\buildandsign\\bin\\gifski.exe', '.'),
         
         ],
     datas=datas,
-    hiddenimports=['tkinterdnd2', 'tkinter'],
+    hiddenimports=['tkinterdnd2', 'tkinter', 'PIL'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
