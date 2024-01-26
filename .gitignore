@@ -166,3 +166,5 @@ buildandsign/bin/ffmpeg.exe
 buildandsign/bin/ffplay.exe
 buildandsign/bin/ffprobe.exe
 buildandsign/bin/gifski.exe
+temp/
+temp.gif
