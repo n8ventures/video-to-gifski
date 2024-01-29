@@ -10,6 +10,7 @@ import shutil
 import sys
 import tempfile
 import atexit
+# import requests
 
 print("Current version:", __version__)
 
@@ -28,8 +29,89 @@ if hasattr(sys, '_MEIPASS'):
     ffplay = os.path.join(sys._MEIPASS, ffplay)
     gifski = os.path.join(sys._MEIPASS, gifski)
     ffmpeg = os.path.join(sys._MEIPASS, ffmpeg)
+    
+# def get_latest_release_version(repo_owner, repo_name):
+#     api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
+#     response = requests.get(api_url)
+    
+#     if response.status_code == 200:
+#         release_info = json.loads(response.text)
+#         return release_info.get('tag_name', '0.0.0')
+#     else:
+#         return '0.0.0'
+    
+# def check_for_update():
+#     current_version = __version__  # Replace with your actual version
+#     latest_version = get_latest_release_version("n8ventures", "v2g-con-personal")
+
+#     if current_version == latest_version:
+#         print("You have the latest version.")
+#     else:
+#         print(f"New version {latest_version} is available. Do you want to update?")
+
+#         # Prompt the user to download the update (you can use a save dialog here)
+#         # Example: file_path = asksaveasfilename(defaultextension=".exe")
+
+#         # Download the update and save it to the specified file_path
+
+def create_popup(root, title, width, height):
+    popup = tk.Toplevel(root)
+    popup.title(title)
+    popup.geometry(f"{width}x{height}")
+    popup.iconbitmap(icon)
+    # popup.overrideredirect(True)
+    popup.attributes('-toolwindow', 1)
+    center_window(popup, width, height)
+    
+    popup.bind("<FocusOut>", lambda e: popup.destroy())
+    popup.grab_set()
+    
+    return popup
+
+# def updates():
+#     print('test')
+
+def about():
+    aboutmenu = create_popup(root, "About Us!", 300, 350)
+    make_non_resizable(aboutmenu)
+
+    about_text = (
+        "This program is built for personal use only.\n\n"
+        "Credits:\n"    
+        "- Gif.ski (https://gif.ski/)\n"
+        "- FFmpeg (https://ffmpeg.org/)\n\n"
+    )
+
+    about_label = tk.Label(aboutmenu, text=about_text, justify=tk.LEFT)
+    about_label.pack(pady=10)
+
+    mailto_label = tk.Label(aboutmenu, text="nate@n8ventures.dev", fg="blue", cursor="hand2")
+    mailto_label.pack()
+    mailto_label.bind("<Button-1>", lambda e: open_link("mailto:nate@n8ventures.dev"))
+
+    github_label = tk.Label(aboutmenu, text="https://github.com/n8ventures", fg="blue", cursor="hand2")
+    github_label.pack(pady=5)
+    github_label.bind("<Button-1>", lambda e: open_link("https://github.com/n8ventures"))
+
+    close_button = ttk.Button(aboutmenu, text="Close", command=aboutmenu.destroy)
+    close_button.pack(pady=10)
+
+
+def open_link(url):
+    import webbrowser
+    webbrowser.open(url)
 
 def watermark_label(parent_window):
+    
+    menu_bar = tk.Menu(root)
+    
+    about_menu = tk.Menu (menu_bar, tearoff=0)
+    # about_menu.add_command(label="Check For Updates...", command=updates)
+    about_menu.add_command(label="About Us", command=about)
+    menu_bar.add_cascade(label="Help", menu=about_menu)
+    
+    parent_window.config(menu=menu_bar)
+    
     watermark_label = tk.Label(parent_window, text="by N8VENTURES (github.com/n8ventures)", fg="gray")
     watermark_label.pack(side=tk.BOTTOM, anchor=tk.SW, padx=10, pady=10)
     
@@ -89,19 +171,22 @@ def video_to_frames_seq(input_file, framerate):
 
     cmd = [
         'ffmpeg',
+        "-loglevel", "-8",
         '-i', input_file,
-        "-vf", f"fps={str(framerate)}",
+        "-vf",
     ]
-
+    
+    filtergraph = []
     if scale_widget.get() != 100:
-        cmd.extend([
-            f'scale={scaled_width}:{scaled_height},setsar=1'
-        ])
+        filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
 
+    filtergraph.append(f'fps={str(framerate)}')
+    cmd.append(','.join(filtergraph))
     cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
 
-    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+    # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+    
 def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
     if hasattr(output, 'name'):
@@ -127,8 +212,9 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
         
     cmd.extend(["-o", output_file, "temp/frames*.png"])
 
-    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    
+    # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+
 def get_and_print_video_data(file_path):
     global video_data
     print(f"File dropped: {file_path}")
@@ -177,7 +263,6 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
         # with tempfile.NamedTemporaryFile(suffix=".gif", delete=False) as temp_file:
         #     output_file = temp_file.name
             output_file = 'temp.gif'
-            print(tempfile)
             print(output_file)
             
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
@@ -456,12 +541,12 @@ def open_settings_window():
     def play_gif(file_path):
         cmd = [
         ffplay,
+        "-loglevel", "-8",
         "-loop", "0",
         file_path
     ]
 
-        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+        subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
 
     root.withdraw()
     settings_window.grab_set()
