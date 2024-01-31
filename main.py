@@ -170,7 +170,7 @@ def video_to_frames_seq(input_file, framerate):
     os.makedirs(temp_folder, exist_ok=True)
 
     cmd = [
-        'ffmpeg',
+        ffmpeg,
         "-loglevel", "-8",
         '-i', input_file,
         "-vf",
