@@ -1,6 +1,10 @@
 import os
 import subprocess
 from __version__ import __version__, __appname__
+from generateSpec import generateSpec
+
+# Build main.spec
+generateSpec()
 
 # PyInstaller build command
 # build_command = f'pyinstaller --onefile --add-binary=".\\buildandsign\\bin\\ffmpeg.exe;." --add-binary=".\\buildandsign\\bin\\ffprobe.exe;." --add-binary=".\\buildandsign\\bin\\gifski.exe;." --hidden-import=tkinterdnd2.TkinterDnD --hidden-import=tkinter --collect-data pyinstaller_hooks_contrib.collect --add-data "C:\\python312\\lib\\site-packages\\tkinterdnd2;tkinterdnd2" --add-data ".\\ico.ico;." --noconsole --icon=".\\ico.ico" main.py'
