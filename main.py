@@ -1,4 +1,4 @@
-from __version__ import __version__
+from __version__ import __version__, __appname__
 import tkinter as tk
 from tkinter import filedialog, ttk
 from tkinterdnd2 import TkinterDnD, DND_FILES
@@ -8,17 +8,24 @@ import os
 import json
 import shutil
 import sys
-import tempfile
 import atexit
-# import requests
+from idlelib.tooltip import Hovertip
+import threading
+
 
 print("Current version:", __version__)
 
 video_data = None
 global mode
 
+
+
 # for windows executables, basically makes this readable inside an exe
-icon = 'ico.ico'
+if any(char.isalpha() for char in __version__):
+    icon = 'icoDev.ico'
+else:
+    icon = 'ico.ico'
+    
 ffprobe = 'ffprobe.exe'
 ffplay = 'ffplay.exe'
 gifski = 'gifski.exe'
@@ -29,32 +36,8 @@ if hasattr(sys, '_MEIPASS'):
     ffplay = os.path.join(sys._MEIPASS, ffplay)
     gifski = os.path.join(sys._MEIPASS, gifski)
     ffmpeg = os.path.join(sys._MEIPASS, ffmpeg)
-    
-# def get_latest_release_version(repo_owner, repo_name):
-#     api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
-#     response = requests.get(api_url)
-    
-#     if response.status_code == 200:
-#         release_info = json.loads(response.text)
-#         return release_info.get('tag_name', '0.0.0')
-#     else:
-#         return '0.0.0'
-    
-# def check_for_update():
-#     current_version = __version__  # Replace with your actual version
-#     latest_version = get_latest_release_version("n8ventures", "v2g-con-personal")
 
-#     if current_version == latest_version:
-#         print("You have the latest version.")
-#     else:
-#         print(f"New version {latest_version} is available. Do you want to update?")
-
-#         # Prompt the user to download the update (you can use a save dialog here)
-#         # Example: file_path = asksaveasfilename(defaultextension=".exe")
-
-#         # Download the update and save it to the specified file_path
-
-def create_popup(root, title, width, height):
+def create_popup(root, title, width, height, switch):
     popup = tk.Toplevel(root)
     popup.title(title)
     popup.geometry(f"{width}x{height}")
@@ -63,16 +46,37 @@ def create_popup(root, title, width, height):
     popup.attributes('-toolwindow', 1)
     center_window(popup, width, height)
     
-    popup.bind("<FocusOut>", lambda e: popup.destroy())
+    if switch == 1:
+        popup.bind("<FocusOut>", lambda e: popup.destroy())
+
     popup.grab_set()
     
     return popup
 
-# def updates():
-#     print('test')
+def loading_screen(mode):
+    def load_start():
+        loading_screen = create_popup(root, "Converting...", 350, 100, 0)
+        make_non_resizable(loading_screen)
+        
+        load_text_label = tk.Label(loading_screen, text='Converting...\nPlease wait.')
+        load_text_label.pack()
+
+        progress_bar = ttk.Progressbar(loading_screen, mode='indeterminate')
+        progress_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=4)
+        progress_bar.start()
+
+    def load_stop():
+        loading_screen.destroy()
+
+    if mode == 1:
+        load_start()
+    elif mode == 0:
+        load_stop()
+
 
 def about():
-    aboutmenu = create_popup(root, "About Us!", 300, 350)
+    geo_width = 370
+    aboutmenu = create_popup(root, "About Us!", geo_width, 350, 1)
     make_non_resizable(aboutmenu)
 
     about_text = (
@@ -95,7 +99,18 @@ def about():
 
     close_button = ttk.Button(aboutmenu, text="Close", command=aboutmenu.destroy)
     close_button.pack(pady=10)
+    
+    image_path = 'motionteamph.png' 
+    if hasattr(sys, '_MEIPASS'):
+        image_path = os.path.join(sys._MEIPASS, image_path)
+    else:
+        image_path = '.\\buildandsign\\ico\\motionteamph.png' 
 
+    image = tk.PhotoImage(file=image_path)
+    label = tk.Label(aboutmenu, image=image, bd=0)
+    label.image = image
+    label.place(x=geo_width / 2, y=290, anchor=tk.CENTER)
+    Hovertip(label, "BetMGM Manila Motions Team 2024")
 
 def open_link(url):
     import webbrowser
@@ -106,17 +121,22 @@ def watermark_label(parent_window):
     menu_bar = tk.Menu(root)
     
     about_menu = tk.Menu (menu_bar, tearoff=0)
-    # about_menu.add_command(label="Check For Updates...", command=updates)
     about_menu.add_command(label="About Us", command=about)
     menu_bar.add_cascade(label="Help", menu=about_menu)
     
     parent_window.config(menu=menu_bar)
     
-    watermark_label = tk.Label(parent_window, text="by N8VENTURES (github.com/n8ventures)", fg="gray")
-    watermark_label.pack(side=tk.BOTTOM, anchor=tk.SW, padx=10, pady=10)
+    frame = tk.Frame(parent_window)
+    frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=2)
+
+    separator_wm = ttk.Separator(frame, orient="horizontal")
+    separator_wm.pack(side=tk.BOTTOM, fill=tk.Y, padx=10)
     
-    separator_wm = ttk.Separator(parent_window, orient="horizontal")
-    separator_wm.pack(side=tk.BOTTOM,fill="x", padx=10, pady=10)
+    watermark_label = tk.Label(frame, text="by N8VENTURES (github.com/n8ventures)", fg="gray")
+    watermark_label.pack(side=tk.LEFT, anchor=tk.SW, padx=2)
+    
+    version_label = tk.Label(frame, text=f"version: {__version__}", fg="gray")
+    version_label.pack(side=tk.RIGHT, anchor=tk.SE, padx=2)
 
 def make_non_resizable(window):
     window.resizable(False, False)
@@ -128,17 +148,13 @@ def center_window(window, width, height):
     window_height = height
     x_position = (screen_width - window_width) // 2
     y_position = (screen_height - window_height) // 2  
-    window.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
+    window.geometry(f"{window_width}x{window_height}+{x_position}+{y_position-30}")
 
 def get_filesize(file_path):
     size_bytes = os.path.getsize(file_path)
     size_mb = round(size_bytes / (1024 * 1024), 2)
-    return f'{size_mb} MB'
-
-# # Example usage:
-# file_path = "path/to/your/file.txt"
-# file_size = get_filesize(file_path)
-# print(f"The size of the file is: {file_size}")
+    size_kb = round(size_bytes / 1024, 2)
+    return f'{size_mb} MB ({size_kb} KB)'
 
 def get_video_data(input_file):
     cmd = [
@@ -170,7 +186,7 @@ def video_to_frames_seq(input_file, framerate):
     os.makedirs(temp_folder, exist_ok=True)
 
     cmd = [
-        'ffmpeg',
+        ffmpeg,
         "-loglevel", "-8",
         '-i', input_file,
         "-vf",
@@ -199,6 +215,7 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
         "-q",
         "-r", str(fps),
         "-Q", str(gifQuality),
+        "--repeat", "0",
         ]
 
     if extra_var.get():
@@ -219,8 +236,9 @@ def get_and_print_video_data(file_path):
     global video_data
     print(f"File dropped: {file_path}")
     
-    if file_path:
+    if file_path and is_video_file(file_path):
         video_data = get_video_data(file_path)
+        
         if video_data:
             width_value = video_data['width']
             height_value = video_data['height']
@@ -233,6 +251,30 @@ def get_and_print_video_data(file_path):
         
             if not settings_window_open:
                 open_settings_window()
+    else:
+        notavideo = create_popup(root, "NOT A VIDEO FILE!", 400, 100, 1)
+        make_non_resizable(notavideo)
+
+        errortext = (
+            "Not a video! Please select a video file!"
+        )
+
+        about_label = tk.Label(notavideo, text=errortext, justify=tk.LEFT)
+        about_label.pack(pady=10)
+
+        close_button = ttk.Button(notavideo, text="Close", command=notavideo.destroy)
+        close_button.pack(pady=10)
+                
+def is_video_file(file_path):
+    _, file_extension = os.path.splitext(file_path)
+    video_extensions = [
+    '.3g2', '.3gp', '.amv', '.asf', '.avi', '.drc', '.f4v', '.flv', '.gif', '.gifv', '.m2ts', 
+    '.m2v', '.m4p', '.m4v', '.mkv', '.mng', '.mov', '.mp2', '.mp4', '.mpe', '.mpeg', '.mpg', 
+    '.mpv', '.mts', '.mxf', '.nsv', '.ogg', '.ogv', '.qt', '.rm', '.rmvb', '.roq', '.svi', 
+    '.ts', '.vob', '.webm', '.wmv', '.yuv'
+    ]
+
+    return file_extension.lower() in video_extensions
 
 def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file, mode):
     global output_file
@@ -253,6 +295,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             
             video_to_frames_seq(input_file, framerate)
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
+            
             print("Conversion complete!")
             shutil.rmtree('temp')
             on_settings_window_close()
@@ -367,6 +410,7 @@ def on_settings_window_close():
 def on_configure(event):
     canvas.configure(scrollregion=canvas.bbox("all"))
     
+## let's impliment the hover for info for less GUI clutter.    
 def open_settings_window(): 
     global settings_window_open, fps, gif_quality_scale, scale_widget, extra_var, fast_var, settings_window, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var
     
@@ -399,6 +443,8 @@ def open_settings_window():
     gif_quality_scale = tk.Scale(settings_window, from_=100, to=1, orient=tk.HORIZONTAL, resolution=1, length=300)
     gif_quality_scale.set(90)
     gif_quality_scale.pack()
+    Hovertip(gif_quality_label, "Overall GIF Quality", hover_delay=500)
+    Hovertip(gif_quality_scale, "Overall GIF Quality", hover_delay=500)
     
     # separator2 = ttk.Separator(settings_window, orient="horizontal")
     # separator2.pack(fill="x", padx=20, pady=2)
@@ -424,10 +470,12 @@ def open_settings_window():
     motion_var = tk.IntVar()
     motion_quality_label = tk.Checkbutton(settings_window, text="Motion Quality:", variable=motion_var, command=lambda: update_checkbox_state(motion_var, motion_quality_scale, cmode = 'quality'))
     motion_quality_label.pack()
-    motion_quality_scale = tk.Scale(settings_window, from_=100, to=1, orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat')
+    motion_quality_scale = tk.Scale(settings_window, from_=100, to=1,orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat')
     motion_quality_scale.set(100)
     motion_quality_scale.pack()
     motion_quality_scale['state'] = 'disabled'
+    Hovertip(motion_quality_label, "Lower values reduce motion.", hover_delay=500)
+    Hovertip(motion_quality_scale, "Lower values reduce motion.", hover_delay=500)
     # separator3 = ttk.Separator(settings_window, orient="horizontal")
     # separator3.pack(fill="x", padx=20, pady=2)
     lossy_var = tk.IntVar()
@@ -437,12 +485,14 @@ def open_settings_window():
     lossy_quality_scale.set(100)
     lossy_quality_scale.pack()
     lossy_quality_scale['state'] = 'disabled'
+    Hovertip(lossy_quality_scale, "Lower values introduce noise and streaks.", hover_delay=500)
+    Hovertip(lossy_quality_label, "Lower values introduce noise and streaks.", hover_delay=500)
     # separator4 = ttk.Separator(settings_window, orient="horizontal")
     # separator4.pack(fill="x", padx=20, pady=2)
 
     fps_label = tk.Label(settings_window, text="Frames Per Second:")
     fps_label.pack()
-    fps = tk.Scale(settings_window, label='test', from_=30, to=1, orient=tk.HORIZONTAL, resolution=3, length=300)
+    fps = tk.Scale(settings_window, from_=1, to=30, orient=tk.HORIZONTAL, resolution=1, length=300)
     fps.set(30)
     fps.pack()
 
@@ -467,13 +517,13 @@ def open_settings_window():
     spacer.pack(pady=5)
 
     extra_var = tk.IntVar()
-    extra_checkbox = tk.Checkbutton(settings_window, text="Extra - maximizes quality export but slower encoding.", variable=extra_var, command=lambda: update_checkbox_state(extra_var, extra_checkbox, fast_var, fast_checkbox,  cmode = 'encode'))
+    extra_checkbox = tk.Checkbutton(settings_window, variable=extra_var, text="Extra", command=lambda: update_checkbox_state(extra_var, extra_checkbox, fast_var, fast_checkbox,  cmode = 'encode'))
     extra_checkbox.pack()
-
+    Hovertip(extra_checkbox, "Extra - slower encoding, but 1% better quality.", hover_delay=500)
     fast_var = tk.IntVar()
-    fast_checkbox = tk.Checkbutton(settings_window, text="Fast - does faster enocding but quality is poorer.", variable=fast_var, command=lambda: update_checkbox_state(fast_var, fast_checkbox, extra_var, extra_checkbox,  cmode = 'encode'))
+    fast_checkbox = tk.Checkbutton(settings_window, variable=fast_var, text="Fast", command=lambda: update_checkbox_state(fast_var, fast_checkbox, extra_var, extra_checkbox,  cmode = 'encode'))
     fast_checkbox.pack()
-
+    Hovertip(fast_checkbox, "Fast - faster encoding, but 10% worse quality & larger file size.", hover_delay=500)
     apply_button = tk.Button(settings_window, text="Convert!",width=10, command=lambda: apply_settings(mode='final'))
     apply_button.pack(side=tk.LEFT, pady=5)
     
@@ -516,10 +566,15 @@ def open_settings_window():
         
         apply_settings(mode='temp')
         
-        target_width = 450
         img = Image.open(output_file)
         aspect_ratio = img.width / img.height
-        target_height = int(target_width / aspect_ratio)
+        
+        if img.width > img.height:  # Landscape
+            target_width = min(img.width, 450)
+            target_height = int(target_width / aspect_ratio)
+        else:  # Portrait or square
+            target_height = min(img.height, 300)
+            target_width = int(target_height * aspect_ratio)
         
         img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
         tk_img = ImageTk.PhotoImage(img)
@@ -534,6 +589,7 @@ def open_settings_window():
         
         filesize = get_filesize('temp.gif')
         fileSize_label.config(text=f'GIF Size: {filesize}')
+        
         
     settings_window.protocol("WM_DELETE_WINDOW", lambda: on_settings_window_close())
     
@@ -576,8 +632,15 @@ def on_drop(event):
     
 # Create the main window
 root = TkinterDnD.Tk()
-root.title(f"Video to GIF Converter {__version__}")
-center_window(root, 350, 450)
+
+if any(char.isalpha() for char in __version__):
+    root.title(f"N8's Video to GIF Converter Early Access {__version__}")
+    
+else:
+    root.title(f"N8's Video to GIF Converter {__version__}")
+
+geo_width= 425
+center_window(root, geo_width, 450)
 root.iconbitmap(icon)
 make_non_resizable(root)
 watermark_label(root)
@@ -614,16 +677,17 @@ print("Current working directory:", os.getcwd())
 print("Executable path:", sys.executable)
 
 # logo on drop event area
-image_path = 'ico.png' 
+image_path = 'amor.png' 
 if hasattr(sys, '_MEIPASS'):
     image_path = os.path.join(sys._MEIPASS, image_path)
 else:
-    image_path = '.\\buildandsign\\ico\\ico.png' 
+    image_path = '.\\buildandsign\\ico\\amor.png' 
 
 image = tk.PhotoImage(file=image_path)
-label = tk.Label(canvas, image=image, bd=0, bg="white")
-label.image = image
-label.place(x=175, y=200, anchor=tk.CENTER) 
+resized_image = image.subsample(2)
+label = tk.Label(canvas, image=resized_image, bd=0, bg="white")
+label.image = resized_image
+label.place(x=geo_width / 2, y=200, anchor=tk.CENTER) 
 
 def on_closing():
     if os.path.exists('temp'):
@@ -639,5 +703,7 @@ def on_closing():
 
 root.protocol("WM_DELETE_WINDOW", on_closing)
 atexit.register(on_closing)
+
+# if Updater not found, download on github.
 
 root.mainloop()
