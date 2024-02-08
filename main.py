@@ -53,25 +53,26 @@ def create_popup(root, title, width, height, switch):
     
     return popup
 
-def loading_screen(mode):
-    def load_start():
-        loading_screen = create_popup(root, "Converting...", 350, 100, 0)
-        make_non_resizable(loading_screen)
+# # IDK HOW BUT PLEASE WHAT THE FUCK
+# def loading_screen(mode):
+#     def load_start():
+#         loading_screen = create_popup(root, "Converting...", 350, 100, 0)
+#         make_non_resizable(loading_screen)
         
-        load_text_label = tk.Label(loading_screen, text='Converting...\nPlease wait.')
-        load_text_label.pack()
+#         load_text_label = tk.Label(loading_screen, text='Converting...\nPlease wait.')
+#         load_text_label.pack()
 
-        progress_bar = ttk.Progressbar(loading_screen, mode='indeterminate')
-        progress_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=4)
-        progress_bar.start()
+#         progress_bar = ttk.Progressbar(loading_screen, mode='indeterminate')
+#         progress_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=4)
+#         progress_bar.start()
 
-    def load_stop():
-        loading_screen.destroy()
+#     def load_stop():
+#         loading_screen.destroy()
 
-    if mode == 1:
-        load_start()
-    elif mode == 0:
-        load_stop()
+#     if mode == 1:
+#         load_start()
+#     elif mode == 0:
+#         load_stop()
 
 
 def about():
