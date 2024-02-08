@@ -168,3 +168,6 @@ buildandsign/bin/ffprobe.exe
 buildandsign/bin/gifski.exe
 temp/
 temp.gif
+notes.py
+main-alpha.py
+main-alpha.spec
