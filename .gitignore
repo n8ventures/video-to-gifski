@@ -171,3 +171,6 @@ temp.gif
 notes.py
 main-alpha.py
 main-alpha.spec
+buildandsign/n8cert.cer
+buildandsign/n8cert.pfx
+buildandsign/n8key.pvk
