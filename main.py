@@ -1,4 +1,4 @@
-from __version__ import __version__, __appname__
+from __version__ import __version__, __appname__, __ffmpegversion__, __gifskiversion__, __updatername__, __updaterversion__
 import tkinter as tk
 from tkinter import filedialog, ttk
 from tkinterdnd2 import TkinterDnD, DND_FILES
@@ -77,14 +77,17 @@ def create_popup(root, title, width, height, switch):
 
 def about():
     geo_width = 370
-    aboutmenu = create_popup(root, "About Us!", geo_width, 350, 1)
+    geo_len= 420
+    aboutmenu = create_popup(root, "About Us!", geo_width, geo_len, 1)
     make_non_resizable(aboutmenu)
 
+    gifski_text = f"- Gif.ski (https://gif.ski/)\nVersion: {__gifskiversion__}"
+    ffmpeg_text = f"- FFmpeg (https://ffmpeg.org/)\nVersion: {__ffmpegversion__}"
     about_text = (
-        "This program is built for personal use only.\n\n"
-        "Credits:\n"    
-        "- Gif.ski (https://gif.ski/)\n"
-        "- FFmpeg (https://ffmpeg.org/)\n\n"
+        "\nThis program is built for personal use only.\n\n"
+        "Credits:\n\n"
+        f"{gifski_text}\n\n"
+        f"{ffmpeg_text}\n"
     )
 
     about_label = tk.Label(aboutmenu, text=about_text, justify=tk.LEFT)
@@ -110,7 +113,7 @@ def about():
     image = tk.PhotoImage(file=image_path)
     label = tk.Label(aboutmenu, image=image, bd=0)
     label.image = image
-    label.place(x=geo_width / 2, y=290, anchor=tk.CENTER)
+    label.place(x=geo_width / 2, y=geo_len - 60, anchor=tk.CENTER)
     Hovertip(label, "BetMGM Manila Motions Team 2024")
 
 def open_link(url):
