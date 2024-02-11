@@ -1,3 +1,6 @@
+# before push, check requirements
+    # pip freeze > requirements.txt - on original terminal
+    # pip install -r requirements.txt --upgrade -on new terminals
 # add pop up for invalid file names - Done
 # figure out to unfreeze on drop
 # get update working - Done
