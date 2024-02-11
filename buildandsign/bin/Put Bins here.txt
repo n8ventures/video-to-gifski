@@ -1,5 +1,9 @@
 Gifski
 https://github.com/ImageOptim/gifski/releases
 
-ffmpeg,ffprobe,ffplay
+ffmpeg,ffprobe,ffplay (diy)
 https://ffmpeg.org/download.html
+build:
+https://www.gyan.dev/ffmpeg/builds/
+- Essential builds should be in ./Lite folder
+- Full build should be in ./Full folder
