@@ -81,7 +81,7 @@ def about():
     aboutmenu = create_popup(root, "About Us!", geo_width, geo_len, 1)
     make_non_resizable(aboutmenu)
 
-    gifski_text = f"- Gif.ski (https://gif.ski/)\nVersion: {__gifskiversion__}"
+    gifski_text = f"- Gifski (https://gif.ski/)\nVersion: {__gifskiversion__}"
     ffmpeg_text = f"- FFmpeg (https://ffmpeg.org/)\nVersion: {__ffmpegversion__}"
     about_text = (
         "\nThis program is built for personal use only.\n\n"
@@ -528,7 +528,7 @@ def open_settings_window():
     fast_checkbox = tk.Checkbutton(settings_window, variable=fast_var, text="Fast", command=lambda: update_checkbox_state(fast_var, fast_checkbox, extra_var, extra_checkbox,  cmode = 'encode'))
     fast_checkbox.pack()
     Hovertip(fast_checkbox, "Fast - faster encoding, but 10% worse quality & larger file size.", hover_delay=500)
-    apply_button = tk.Button(settings_window, text="Convert!",width=10, command=lambda: apply_settings(mode='final'))
+    apply_button = tk.Button(settings_window, text="Convert!", width=10, command=lambda: apply_settings(mode='final'))
     apply_button.pack(side=tk.LEFT, pady=5)
     
     test_button = tk.Button(settings_window, text="Test/Preview", width=24, command=lambda: preview_gif_window())
