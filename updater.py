@@ -32,9 +32,6 @@ def get_latest_release_version(repo_owner, repo_name):
     else:
         return '0.0.0'
 
-def runTask(task):
-    task
-
 def threadMeUp(thread):
     threading.Thread(target=thread).start()
 
@@ -191,12 +188,12 @@ version_display.pack(pady=10)
 
 latest_version = get_latest_release_version("n8ventures", "v2g-con-personal")
 latest_version_display = tk.Label(root, text='')
-latest_version_display.pack_forget()
+latest_version_display.pack()
 
-close_button_update = ttk.Button(root, text="Cancel", command=on_closing)
+close_button_update = ttk.Button(root, text="Cancel",width= 10, command=on_closing)
 close_button_update.pack()
 
-update_button = ttk.Button(root, text="Sure!", command=updatenow)
+update_button = ttk.Button(root, text="Sure!",width= 10, command=updatenow)
 update_button.pack_forget()
 
 
@@ -215,10 +212,9 @@ elif current_version >= latest_version:
     latest_version_display.config(text=f'Latest Version: {latest_version}', font=('Helvetica', 10, 'bold'))
     close_button_update.config(text='Close')
     
-    update_button.pack(side=tk.LEFT, pady=10, padx= 50)
-    close_button_update.pack(side=tk.RIGHT, pady=10, padx= 50)
-    
-    latest_version_display.pack() # why does this not work???
+    latest_version_display.pack()
+    update_button.pack(side=tk.LEFT, pady=10, padx= 70)
+    close_button_update.pack(side=tk.RIGHT, pady=10, padx= 70)
     
     root.update()
 elif latest_version == '0.0.0':
