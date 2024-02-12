@@ -101,10 +101,8 @@ def genUpdaterSpec():
     python_directory = sys.prefix
     site_packages_path = os.path.join(python_directory, 'lib', 'site-packages') 
     site_packages_path = site_packages_path.replace('\\', '\\\\')
-    if any(char.isalpha() for char in __version__):
-        icon = 'icoDev.ico'
-    else:
-        icon = 'ico.ico'
+    
+    icon = 'icoUpdater.ico'
 
     a = f'''\
     # -*- mode: python ; coding: utf-8 -*-
@@ -296,7 +294,7 @@ if args.Update:
     if currentFFmpeg == ffmpegRepo:
         print('FFmpeg does not require an update at the moment.')
     elif ffmpegRepo == '0.0.0':
-        print('Internet connection unavailable. Please try again later.')
+        print('Request timed out. Please try again later.')
     else:
         print(f"New version of FFmpeg \'{ffmpegRepo}\' is available.")
         user_agrees = yes_no_prompt("Do you want to download the update?")
@@ -306,6 +304,7 @@ if args.Update:
             latest_file_full = f'ffmpeg-{ffmpegRepo}-full.7z'
             download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-essentials.7z', latest_file_essentials)
             download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z', latest_file_full)
+            print('Download complete! Please extract them in \'.\\bin\'')
         else:
             print("Skipping FFmpeg update...")
     
@@ -313,7 +312,7 @@ if args.Update:
     if currentGifski == gifskiRepo:
         print('FFmpeg does not require an update at the moment.')
     elif gifskiRepo == '0.0.0':
-        print('Internet connection unavailable. Please try again later.')
+        print('Request timed out. Please try again later.')
     else:
         print(f"New version of Gifski \'{gifskiRepo}\' is available.")
         user_agrees = yes_no_prompt("Do you want to download the update?")
