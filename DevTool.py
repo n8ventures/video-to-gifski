@@ -116,18 +116,14 @@ def genUpdaterSpec():
     python_directory = sys.prefix
     site_packages_path = os.path.join(python_directory, 'lib', 'site-packages') 
     site_packages_path = site_packages_path.replace('\\', '\\\\')
-    
-    icon = 'icoUpdater.ico'
 
     a = f'''\
     # -*- mode: python ; coding: utf-8 -*-
     from PyInstaller.utils.hooks import collect_data_files
     
     datas = [ 
-        ('ico.ico', '.'),
-        ('icoDev.ico', '.'),
-        ('.\\\\buildandsign\\\\ico\\\\ico.png', '.'),
-        ('.\\\\buildandsign\\\\ico\\\\motionteamph.png', '.'),
+        ('icoUpdater.ico', '.'),
+        ('.\\\\buildandsign\\\\ico\\\\n8.png', '.'),
         ('{site_packages_path}\\\\requests', 'requests'), 
         ('{site_packages_path}\\\\tqdm', 'tqdm'), 
         
