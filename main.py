@@ -10,6 +10,7 @@ import shutil
 import sys
 import atexit
 from idlelib.tooltip import Hovertip
+import requests
 import threading
 
 
@@ -74,6 +75,28 @@ def create_popup(root, title, width, height, switch):
 #     elif mode == 0:
 #         load_stop()
 
+
+# if Updater not found, download on github.
+def downloadUpdater():
+    api_url = "https://api.github.com/repos/n8ventures/v2g-con-personal/releases/latest"
+    response = requests.get(api_url)
+
+    if response.status_code == 200:
+            release_data = response.json()
+            release_info = json.loads(response.text)
+            latest_version = release_info.get('tag_name', '0.0.0')
+
+            latest_file = f'{__updatername__}-{latest_version}.exe'
+
+            for asset in release_data['assets']:
+                if asset['name'] == latest_file:
+                    download_url = asset['browser_download_url']
+                    updaterURL = requests.get(download_url)
+
+                    with open(latest_file, 'wb') as file:
+                        file.write(updaterURL.content)
+    else:
+        print("Failed to retrieve updater information. Please check your internet connection.")
 
 def about():
     geo_width = 370
@@ -708,6 +731,5 @@ def on_closing():
 root.protocol("WM_DELETE_WINDOW", on_closing)
 atexit.register(on_closing)
 
-# if Updater not found, download on github.
 
 root.mainloop()
