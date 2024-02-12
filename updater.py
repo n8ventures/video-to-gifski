@@ -1,6 +1,6 @@
 from __version__ import __version__, __appname__, __updaterversion__, __updatername__
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import ttk
 import subprocess
 import os
 import json
@@ -13,10 +13,6 @@ import threading
 
 print("Current version:", __version__)
 
-video_data = None
-global mode
-
-# for windows executables, basically makes this readable inside an exe
 icon = 'icoUpdater.ico'
 if hasattr(sys, '_MEIPASS'):
     icon = os.path.join(sys._MEIPASS, icon)
@@ -60,7 +56,6 @@ def download_file(url, destination):
             file.write(data)
             bar.update(len(data))
     #bar.close() 
-    # need to find a way to let the thread close down and update.
     check_for_updates_prompt.config(text='Update downloaded! Restarting...')
     bar._tk_window.destroy()
     return
@@ -97,14 +92,11 @@ def updatenow():
         check_for_updates_prompt.config(text='Updating...')
         update_button.pack_forget()
         close_button_update.pack_forget()
-        # progress_bar = ttk.Progressbar(checkupdates, mode='indeterminate')
-        # progress_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=4)
         current_dir = os.path.dirname(os.path.realpath(__file__))
         app_name = __appname__
         latest = __version__
         for filename in os.listdir(current_dir):
             if filename.startswith(app_name):
-                # Parse current version from file name
                 current = parse_version(filename)
                 if current and latest != current:
                     os.remove(os.path.join(current_dir, filename))
@@ -118,11 +110,9 @@ def updatenow():
         for asset in release_data['assets']:
             if asset['name'] == latest_file:
                 download_url = asset['browser_download_url']
-                # progress_bar.start()
+
                 downloadUpdate = download_file(download_url, latest_file)
                 threadMeUp(downloadUpdate)
-                # progress_bar.stop()
-                # progress_bar.pack_forget()
         root.update()
 
         subprocess.Popen([latest_file])
