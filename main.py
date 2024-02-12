@@ -77,6 +77,7 @@ def create_popup(root, title, width, height, switch):
 
 
 # if Updater not found, download on github.
+
 def downloadUpdater():
     api_url = "https://api.github.com/repos/n8ventures/v2g-con-personal/releases/latest"
     response = requests.get(api_url)
@@ -97,6 +98,10 @@ def downloadUpdater():
                         file.write(updaterURL.content)
     else:
         print("Failed to retrieve updater information. Please check your internet connection.")
+
+def updaterExists():
+    if not os.path.exists(f"{__updatername__}.exe"):
+        downloadUpdater()
 
 def about():
     geo_width = 370
