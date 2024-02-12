@@ -1,13 +1,19 @@
 # before push, check requirements
     # pip freeze > requirements.txt - on original terminal
     # pip install -r requirements.txt --upgrade -on new terminals
-# add pop up for invalid file names - Done
+
 # figure out to unfreeze on drop
-# get update working - Done
+
 # impliment Updater on main -WIP
     # impliment status messages.
 # "loading screen" -WIP
-# latest version on update not displaying properly - DONE
+
 # Batch File process
     # alternative to this is to stop opening a new fucking window after conversion
+
 # impliment icon structure
+
+
+# add pop up for invalid file names - Done
+# get update working - Done
+# latest version on update not displaying properly - DONE
