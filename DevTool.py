@@ -37,10 +37,12 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpForm
 console = 'False'
 ff = 'full'
 
+python_directory = sys.prefix
+site_packages_path = os.path.join(python_directory, 'lib', 'site-packages') 
+site_packages_path = site_packages_path.replace('\\', '\\\\')
+    
 def genMainSpec(ff, console):
-    python_directory = sys.prefix
-    site_packages_path = os.path.join(python_directory, 'lib', 'site-packages') 
-    site_packages_path = site_packages_path.replace('\\', '\\\\')
+
     if any(char.isalpha() for char in __version__):
         icon = 'icoDev.ico'
     else:
@@ -50,10 +52,12 @@ def genMainSpec(ff, console):
     # -*- mode: python ; coding: utf-8 -*-
     from PyInstaller.utils.hooks import collect_data_files
     
+    excludes = ['test.py', 'updater.py', 'DevTool.py']
+    
     datas = [ 
         ('ico.ico', '.'),
         ('icoDev.ico', '.'),
-        ('.\\\\buildandsign\\\\ico\\\\ico.png', '.'),
+        ('.\\\\buildandsign\\\\ico\\\\amor.png', '.'),
         ('.\\\\buildandsign\\\\ico\\\\motionteamph.png', '.'),
         ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2'),
         ('{site_packages_path}\\\\requests', 'requests'), 
@@ -72,11 +76,11 @@ def genMainSpec(ff, console):
         ],\n'''
     b ='''\
         datas=datas,
-        hiddenimports=['tkinterdnd2', 'tkinter', 'PIL'],
+        hiddenimports=['tkinterdnd2', 'tkinter', 'PIL', 'requests'],
         hookspath=[],
         hooksconfig={},
         runtime_hooks=[],
-        excludes=[],
+        excludes=excludes,
         noarchive=False,
     )\n\n
 
@@ -113,17 +117,16 @@ def genMainSpec(ff, console):
         spec_file.write(c.__str__())
 
 def genUpdaterSpec():
-    python_directory = sys.prefix
-    site_packages_path = os.path.join(python_directory, 'lib', 'site-packages') 
-    site_packages_path = site_packages_path.replace('\\', '\\\\')
-
     a = f'''\
     # -*- mode: python ; coding: utf-8 -*-
     from PyInstaller.utils.hooks import collect_data_files
     
+    excludes = ['test.py', 'updater.py', 'DevTool.py']
+    
     datas = [ 
         ('icoUpdater.ico', '.'),
         ('.\\\\buildandsign\\\\ico\\\\n8.png', '.'),
+        ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2'),
         ('{site_packages_path}\\\\requests', 'requests'), 
         ('{site_packages_path}\\\\tqdm', 'tqdm'), 
         
@@ -131,16 +134,16 @@ def genUpdaterSpec():
     datas += collect_data_files('pyinstaller_hooks_contrib.collect')
 
     a = Analysis( # type: ignore
-        ['main.py'],
+        ['updater.py'],
         pathex=[],
         binaries=[],\n'''
     b ='''\
         datas=datas,
-        hiddenimports=['tkinterdnd2', 'tkinter', 'PIL'],
+        hiddenimports=['tkinterdnd2', 'tkinter', 'tqdm'],
         hookspath=[],
         hooksconfig={},
         runtime_hooks=[],
-        excludes=[],
+        excludes=excludes,
         noarchive=False,
     )\n\n
 
@@ -153,7 +156,7 @@ def genUpdaterSpec():
         a.binaries,
         a.datas,
         [],
-        name='main',
+        name='updater',
         debug=False,
         bootloader_ignore_signals=False,
         strip=False,
@@ -181,7 +184,7 @@ def buildAndSign():
     build_updater = 'pyinstaller ./updater.spec'
     printColor(Color.GREEN, 'Building main.exe...')
     subprocess.run(build_main, shell=True)
-    printColor(Color.GREEN, 'Building Updater.exe...')
+    printColor(Color.GREEN, 'Building updater.exe...')
     subprocess.run(build_updater, shell=True)
 
     # Sign the executable using signtool
@@ -203,7 +206,7 @@ def buildAndSign():
     subprocess.run(main_sign_command, shell=True)
     
     main_sign_command = f'{signtool_exe} sign /f "{script_directory}\\buildandsign\\n8cert.pfx" /p n8123 /t http://timestamp.digicert.com /v "{script_directory}\\dist\\Updater.exe"'
-    printColor(Color.GREEN, 'Signing Updater.exe...')
+    printColor(Color.GREEN, 'Signing updater.exe...')
     subprocess.run(main_sign_command, shell=True)
 
 
@@ -212,7 +215,7 @@ def buildAndSign():
     os.chdir('./dist')
 
     old_main = 'main.exe'
-    old_updater = 'Updater.exe'
+    old_updater = 'updater.exe'
     new_main = f'{__appname__}-{__version__}.exe'
     new_updater = f'{__updatername__}.exe'
 
