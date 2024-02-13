@@ -173,4 +173,4 @@ buildandsign/bin/full/ffprobe.exe
 buildandsign/bin/lite/ffmpeg.exe
 buildandsign/bin/lite/ffplay.exe
 buildandsign/bin/lite/ffprobe.exe
-main.spec
+*.spec

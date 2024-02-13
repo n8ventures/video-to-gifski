@@ -4,8 +4,9 @@
 
 # figure out to unfreeze on drop
 
-# impliment Updater on main -WIP
-    # impliment status messages.
+# need to impliment updater updater on main (context: main.exe is the updater for updater.exe)
+    # NEWER WAY TO PARSE DATA FROM EXE TO EXE, CLI commands
+
 # "loading screen" -WIP
 
 # Batch File process
@@ -13,7 +14,9 @@
 
 # impliment icon structure
 
-
+- 2.1.0
 # add pop up for invalid file names - Done
 # get update working - Done
 # latest version on update not displaying properly - DONE
+# impliment Updater on main -Done
+    # impliment status messages. - Done

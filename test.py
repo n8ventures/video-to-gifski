@@ -1,36 +1,44 @@
 import subprocess
 import json
 
-def get_video_data(input_file):
-    cmd = [
-        "ffprobe",
-        "-v", "error",
-        "-select_streams", "v:0",
-        "-show_entries", "stream=width,height,r_frame_rate,duration",
-        "-of", "json",
-        input_file
-    ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+cmd = ('.\\dist\\n8-vid-to-gif-2.1.0.exe')
+result = subprocess.run(cmd, capture_output=True, text=True)
+print(result)
+print('####################')
+print(result.stdout)
+print('###############')
+
+# def get_video_data(input_file):
+#     cmd = [
+#         "ffprobe",
+#         "-v", "error",
+#         "-select_streams", "v:0",
+#         "-show_entries", "stream=width,height,r_frame_rate,duration",
+#         "-of", "json",
+#         input_file
+#     ]
+
+#     result = subprocess.run(cmd, capture_output=True, text=True)
     
-    if result.returncode == 0:
-        # Parse the JSON output
-        video_info = json.loads(result.stdout)
-        return video_info['streams'][0]  # Assuming there is only one video stream
-    else:
-        # Handle error
-        print(f"Error: {result.stderr}")
-        return None
+#     if result.returncode == 0:
+#         # Parse the JSON output
+#         video_info = json.loads(result.stdout)
+#         return video_info['streams'][0]  # Assuming there is only one video stream
+#     else:
+#         # Handle error
+#         print(f"Error: {result.stderr}")
+#         return None
 
-# Example usage
-input_file_path = "D:\ENTAIN\BetMGM\Sports/2022\BTL_1104073\Output\BTL_1104073 PC_Rich Push Image - 1038x600.mov"
-video_data = get_video_data(input_file_path)
+# # Example usage
+# input_file_path = "D:\ENTAIN\BetMGM\Sports/2022\BTL_1104073\Output\BTL_1104073 PC_Rich Push Image - 1038x600.mov"
+# video_data = get_video_data(input_file_path)
 
-if video_data:
-    print("Video width:", video_data['width'])
-    print("Video height:", video_data['height'])
-    print("Frame rate:", round(eval(video_data['r_frame_rate']), 3))
-    print("Duration:", video_data['duration'])
+# if video_data:
+#     print("Video width:", video_data['width'])
+#     print("Video height:", video_data['height'])
+#     print("Frame rate:", round(eval(video_data['r_frame_rate']), 3))
+#     print("Duration:", video_data['duration'])
 
 # import tkinter as tk
 # from tkinter import filedialog

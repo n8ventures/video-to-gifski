@@ -1,13 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
 
-datas = [
-    ('C:\\python312\\lib\\site-packages\\tkinterdnd2', 'tkinterdnd2'), 
+excludes = ['test.py', 'updater.py', 'DevTool.py']
+
+datas = [ 
     ('ico.ico', '.'),
     ('icoDev.ico', '.'),
-    ('.\\buildandsign\\ico\\ico.png', '.'),
-    ('C:\\python312\\lib\\site-packages\\requests', 'requests'), 
-    ('.\\buildandsign\\ico\\motionteamph.png', '.')
+    ('.\\buildandsign\\ico\\amor.png', '.'),
+    ('.\\buildandsign\\ico\\motionteamph.png', '.'),
+    ('C:\\Python312\\lib\\site-packages\\tkinterdnd2', 'tkinterdnd2'),
+    ('C:\\Python312\\lib\\site-packages\\requests', 'requests'), 
+    ('C:\\Python312\\lib\\site-packages\\PIL', 'PIL')
 ]
 datas += collect_data_files('pyinstaller_hooks_contrib.collect')
 
@@ -15,17 +18,17 @@ a = Analysis( # type: ignore
     ['main.py'],
     pathex=[],
     binaries=[
-        ('.\\buildandsign\\bin\\ffplay.exe', '.'),
-        ('.\\buildandsign\\bin\\ffmpeg.exe', '.'),
-        ('.\\buildandsign\\bin\\ffprobe.exe', '.'),
+        ('.\\buildandsign\\bin\\full\\ffplay.exe', '.'),
+        ('.\\buildandsign\\bin\\full\\ffmpeg.exe', '.'),
+        ('.\\buildandsign\\bin\\full\\ffprobe.exe', '.'),
         ('.\\buildandsign\\bin\\gifski.exe', '.'),
     ],
     datas=datas,
-    hiddenimports=['tkinterdnd2', 'tkinter', 'PIL'],
+    hiddenimports=['tkinterdnd2', 'tkinter', 'PIL', 'requests'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=excludes,
     noarchive=False,
 )
 
@@ -52,5 +55,5 @@ argv_emulation=False,
 target_arch=None,
 codesign_identity=None,
 entitlements_file=None,
-icon=['icoDev.ico'],
+icon=['ico.ico'],
 )
