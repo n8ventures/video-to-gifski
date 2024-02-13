@@ -1,4 +1,4 @@
-from __version__ import __version__, __appname__, __updaterversion__, __updatername__
+from __version__ import __appname__, __updaterversion__, __updatername__
 import tkinter as tk
 from tkinter import ttk
 import subprocess
@@ -11,11 +11,28 @@ import requests
 from tqdm.tk import tqdm
 import threading
 
-print("Current version:", __version__)
-
+import argparse
+parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument('-v', '--version', action='version', version = __updaterversion__)
+args = parser.parse_args()
+# NEED TO MAKE A BUILD FIRST
+app_exe = 'n8-vid-to-gif-2.1.0.exe'
 icon = 'icoUpdater.ico'
 if hasattr(sys, '_MEIPASS'):
     icon = os.path.join(sys._MEIPASS, icon)
+    app_exe=os.path.join(sys._MEIPASS, app_exe)
+    
+def check_appVer():
+    global appversion
+    
+    cmd = (app_exe, '-v')
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    appversion = result.stdout
+check_appVer()
+
+print("Current version:", appversion)
+print('hi')
+
     
 def get_latest_release_version(repo_owner, repo_name):
     global api_url
@@ -94,7 +111,7 @@ def updatenow():
         close_button_update.pack_forget()
         current_dir = os.path.dirname(os.path.realpath(__file__))
         app_name = __appname__
-        latest = __version__
+        latest = appversion
         for filename in os.listdir(current_dir):
             if filename.startswith(app_name):
                 current = parse_version(filename)
@@ -152,7 +169,7 @@ make_non_resizable(root)
 
 global check_for_updates_prompt, update_button, close_button_update, latest_version, checkupdates
 
-current_version = __version__ 
+current_version = appversion 
 switch = 0
 make_non_resizable(root)
 
@@ -173,7 +190,7 @@ spacer.pack(pady=5)
 check_for_updates_prompt = tk.Label(root, text='Checking for updates...')
 check_for_updates_prompt.pack(pady=10)
 
-version_display = tk.Label(root, text=f'(Current Version: {__version__})', font=('Helvetica', 10, 'italic'))
+version_display = tk.Label(root, text=f'(Current Version: {appversion})', font=('Helvetica', 10, 'italic'))
 version_display.pack(pady=10)
 
 latest_version = get_latest_release_version("n8ventures", "v2g-con-personal")

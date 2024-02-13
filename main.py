@@ -13,6 +13,10 @@ from idlelib.tooltip import Hovertip
 import requests
 import threading
 
+import argparse
+parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument('-v', '--version', action='version', version = __version__)
+args = parser.parse_args()
 
 print("Current version:", __version__)
 
@@ -81,27 +85,63 @@ def create_popup(root, title, width, height, switch):
 def downloadUpdater():
     api_url = "https://api.github.com/repos/n8ventures/v2g-con-personal/releases/latest"
     response = requests.get(api_url)
-
     if response.status_code == 200:
-            release_data = response.json()
-            release_info = json.loads(response.text)
-            latest_version = release_info.get('tag_name', '0.0.0')
+        release_data = response.json()
+        release_info = json.loads(response.text)
+        latest_version = release_info.get('tag_name', '0.0.0')
 
-            latest_file = f'{__updatername__}-{latest_version}.exe'
+        latest_file = f'{__updatername__}-{latest_version}.exe'
+        
+        for asset in release_data['assets']:
+            
+            if asset['name'] == latest_file:
+                download_url = asset['browser_download_url']
+                updaterURL = requests.get(download_url)
 
-            for asset in release_data['assets']:
-                if asset['name'] == latest_file:
-                    download_url = asset['browser_download_url']
-                    updaterURL = requests.get(download_url)
-
-                    with open(latest_file, 'wb') as file:
-                        file.write(updaterURL.content)
+                with open(latest_file, 'wb') as file:
+                    file.write(updaterURL.content)
+                    return 'UPDR_DONE'
+        else:
+            print('File not found!')
+            return 'ERR_NOT_FOUND'
     else:
         print("Failed to retrieve updater information. Please check your internet connection.")
+        return 'ERR_NO_CONNECTION'
+
+
+def UPDATER_POPUP(title, msg):
+    updaterMenu = create_popup(root, title, 400, 120, 1)
+    make_non_resizable(updaterMenu)
+    
+    txt_msg = msg
+    
+    txt_label = tk.Label(updaterMenu, text=txt_msg)
+    txt_label.pack()
+    
+    close_button = ttk.Button(updaterMenu, text="Close", command=updaterMenu.destroy)
+    
+    close_button.pack(pady=10)
+    
+    root.update()
 
 def updaterExists():
     if not os.path.exists(f"{__updatername__}.exe"):
         downloadUpdater()
+
+threading.Thread(target=updaterExists).start()
+
+def CheckUpdates():
+    if not os.path.exists(f"{__updatername__}.exe"):
+        UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
+        update_result = downloadUpdater()
+        if update_result == 'ERR_NO_CONNECTION':
+            UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
+        elif update_result == 'ERR_NOT_FOUND':
+            UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
+        elif update_result == 'UPDR_DONE':
+            subprocess.Popen(f'{__updatername__}.exe')
+    else:
+        subprocess.Popen(f'{__updatername__}.exe')
 
 def about():
     geo_width = 370
@@ -154,6 +194,7 @@ def watermark_label(parent_window):
     
     about_menu = tk.Menu (menu_bar, tearoff=0)
     about_menu.add_command(label="About Us", command=about)
+    about_menu.add_command(label="Check for Updates", command=CheckUpdates)
     menu_bar.add_cascade(label="Help", menu=about_menu)
     
     parent_window.config(menu=menu_bar)
@@ -308,12 +349,21 @@ def is_video_file(file_path):
 
     return file_extension.lower() in video_extensions
 
+def is_folder_open(path):
+    # Get a list of all open file explorer windows
+    open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
+    # Check if the folder path is in any of the open windows
+    return path in open_folders
+
 def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file, mode):
     global output_file
     framerate = fps.get()
     gifQ = gif_quality.get()
     motionQ= motion_quality.get()
     lossyQ = lossy_quality.get()
+    def openOutputFolder():
+        if not is_folder_open(output_folder):
+            subprocess.run(fr'explorer /select,"{output_folder}"')
     
     if mode == 'final':
         output_file = filedialog.asksaveasfile(
@@ -331,7 +381,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             print("Conversion complete!")
             shutil.rmtree('temp')
             on_settings_window_close()
-            subprocess.run(fr'explorer /select,"{output_folder}"')
+            openOutputFolder()
             # open_finish_window()
             
     elif mode == 'temp':
@@ -356,7 +406,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             print("Conversion complete!")
             shutil.rmtree('temp')
             on_settings_window_close()
-            subprocess.run(fr'explorer /select,"{output_folder}"')
+            openOutputFolder()
 
 
 def apply_settings(mode):
@@ -735,6 +785,5 @@ def on_closing():
 
 root.protocol("WM_DELETE_WINDOW", on_closing)
 atexit.register(on_closing)
-
 
 root.mainloop()
