@@ -28,10 +28,10 @@ def check_appVer():
     cmd = (app_exe, '-v')
     result = subprocess.run(cmd, capture_output=True, text=True)
     appversion = result.stdout
+
 check_appVer()
 
 print("Current version:", appversion)
-print('hi')
 
     
 def get_latest_release_version(repo_owner, repo_name):
