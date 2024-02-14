@@ -83,14 +83,15 @@ def create_popup(root, title, width, height, switch):
 # if Updater not found, download on github.
 
 def downloadUpdater():
+    global latest_release_version
     api_url = "https://api.github.com/repos/n8ventures/v2g-con-personal/releases/latest"
     response = requests.get(api_url)
     if response.status_code == 200:
         release_data = response.json()
         release_info = json.loads(response.text)
-        latest_version = release_info.get('tag_name', '0.0.0')
+        latest_release_version = release_info.get('tag_name', '0.0.0')
 
-        latest_file = f'{__updatername__}-{latest_version}.exe'
+        latest_file = f'{__updatername__}.exe'
         
         for asset in release_data['assets']:
             
@@ -131,7 +132,8 @@ def updaterExists():
 threading.Thread(target=updaterExists).start()
 
 def CheckUpdates():
-    if not os.path.exists(f"{__updatername__}.exe"):
+    
+    def execute_download_updater():
         UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
         update_result = downloadUpdater()
         if update_result == 'ERR_NO_CONNECTION':
@@ -140,8 +142,14 @@ def CheckUpdates():
             UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
         elif update_result == 'UPDR_DONE':
             subprocess.Popen(f'{__updatername__}.exe')
+            
+    if not os.path.exists(f"{__updatername__}.exe"):
+        execute_download_updater()
     else:
-        subprocess.Popen(f'{__updatername__}.exe')
+        if __version__ <= latest_release_version:
+            execute_download_updater()
+        else:
+            subprocess.Popen(f'{__updatername__}.exe')
 
 def about():
     geo_width = 370
