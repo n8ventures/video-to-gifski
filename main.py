@@ -234,7 +234,7 @@ def get_video_data(input_file):
         ffprobe,
         "-v", "error",
         "-select_streams", "v:0",
-        "-show_entries", "stream=width,height,r_frame_rate,duration",
+        "-show_entries", "stream=width,height,r_frame_rate,duration,pix_fmt",
         "-of", "json",
         input_file
     ]
@@ -249,6 +249,15 @@ def get_video_data(input_file):
         # Handle error
         print(f"Error: {result.stderr}")
         return None
+
+alpha_formats = [
+    'rgba', 'abgr', 'argb', 'bgra', 'yuva420p', 'yuva422p', 'yuva444p',
+    'rgba64be', 'rgba64le', 'bgra64be', 'bgra64le',
+    'yuva422p9be', 'yuva422p9le', 'yuva444p9be', 'yuva444p9le',
+    'yuva420p10be', 'yuva420p10le', 'yuva422p10be', 'yuva422p10le',
+    'yuva444p10be', 'yuva444p10le', 'yuva420p16be', 'yuva420p16le',
+    'yuva422p16be', 'yuva422p16le', 'yuva444p16be', 'yuva444p16le'
+]
 
 def video_to_frames_seq(input_file, framerate):
     temp_folder = 'temp'
@@ -266,13 +275,17 @@ def video_to_frames_seq(input_file, framerate):
     ]
     
     filtergraph = []
+    
+    filtergraph.append(f'fps={str(framerate)}')
+    
     if scale_widget.get() != 100:
         filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
+    
+    if video_data['pix_fmt'] in alpha_formats:
+        filtergraph.append('unpremultiply=inplace=1')
 
-    filtergraph.append(f'fps={str(framerate)}')
     cmd.append(','.join(filtergraph))
     cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
-
     # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
     
@@ -317,10 +330,12 @@ def get_and_print_video_data(file_path):
             height_value = video_data['height']
             fps_value = round(eval(video_data['r_frame_rate']), 3)
             duration_value = video_data['duration']
+            pix_fmt = video_data['pix_fmt']
             print("Video width:", width_value)
             print("Video height:", height_value)
             print("Frame rate:", fps_value)
             print("Duration:", duration_value)
+            print("pixel format:", pix_fmt)
         
             if not settings_window_open:
                 open_settings_window()
@@ -353,6 +368,7 @@ def is_folder_open(path):
     # Get a list of all open file explorer windows
     open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
     # Check if the folder path is in any of the open windows
+    print(path)
     return path in open_folders
 
 def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file, mode):
@@ -362,8 +378,12 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     motionQ= motion_quality.get()
     lossyQ = lossy_quality.get()
     def openOutputFolder():
+        print('checking if window is open...')
         if not is_folder_open(output_folder):
+            print('window not found, opening window.')
             subprocess.run(fr'explorer /select,"{output_folder}"')
+        else:
+            print('window found!')
     
     if mode == 'final':
         output_file = filedialog.asksaveasfile(
