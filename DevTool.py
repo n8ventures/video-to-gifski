@@ -6,7 +6,6 @@ import subprocess
 import requests
 import json
 from tqdm import tqdm
-import time
 import re
 from __version__ import __version__,__ffmpegversion__, __gifskiversion__, __updaterversion__, __appname__, __updatername__
 
@@ -216,7 +215,7 @@ def buildAndSign():
 
     old_main = 'main.exe'
     old_updater = 'updater.exe'
-    new_main = f'{__appname__}-{__version__}.exe'
+    new_main = f'{__appname__}.exe'
     new_updater = f'{__updatername__}.exe'
 
     if os.path.exists(new_main):
