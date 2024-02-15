@@ -20,7 +20,7 @@ app_exe = f'{__appname__}.exe'
 icon = 'icoUpdater.ico'
 if hasattr(sys, '_MEIPASS'):
     icon = os.path.join(sys._MEIPASS, icon)
-    app_exe=os.path.join(sys._MEIPASS, app_exe)
+    #  app_exe=os.path.join(sys._MEIPASS, app_exe)
 
 def create_popup(root, title, width, height, switch):
     popup = tk.Toplevel(root)
@@ -45,7 +45,7 @@ def check_appVer():
     if os.path.exists(app_exe):
         result = subprocess.run(cmd, capture_output=True, text=True)
 
-        appversion = result.stdout
+        appversion = result.stdout.strip()
     
     else:
         missing_app_menu = create_popup(root, 'Main App Missing!', 300,100, 1)

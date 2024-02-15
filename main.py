@@ -81,30 +81,41 @@ def create_popup(root, title, width, height, switch):
 
 
 # if Updater not found, download on github.
+def get_latest_release_version():
+    global n8_gif_repo
+
+    n8_gif_repo = "https://api.github.com/repos/n8ventures/v2g-con-personal/releases/latest"
+    response = requests.get(n8_gif_repo)
+    if response.status_code == 200:
+        release_info = json.loads(response.text)
+        return release_info.get('tag_name', '0.0.0')
+    else:
+        return '0.0.0'
 
 def downloadUpdater():
     global latest_release_version
-    api_url = "https://api.github.com/repos/n8ventures/v2g-con-personal/releases/latest"
-    response = requests.get(api_url)
+
+    response = requests.get(n8_gif_repo)
     if response.status_code == 200:
         release_data = response.json()
-        release_info = json.loads(response.text)
-        latest_release_version = release_info.get('tag_name', '0.0.0')
-
-        latest_file = f'{__updatername__}.exe'
-        
-        for asset in release_data['assets']:
-            
-            if asset['name'] == latest_file:
-                download_url = asset['browser_download_url']
-                updaterURL = requests.get(download_url)
-
-                with open(latest_file, 'wb') as file:
-                    file.write(updaterURL.content)
-                    return 'UPDR_DONE'
+        latest_release_version = get_latest_release_version()
+        if latest_release_version == '0.0.0':
+            return 'ERR_NO_CONNECTION'
         else:
-            print('File not found!')
-            return 'ERR_NOT_FOUND'
+            latest_file = f'{__updatername__}.exe'
+            
+            for asset in release_data['assets']:
+                
+                if asset['name'] == latest_file:
+                    download_url = asset['browser_download_url']
+                    updaterURL = requests.get(download_url)
+
+                    with open(latest_file, 'wb') as file:
+                        file.write(updaterURL.content)
+                        return 'UPDR_DONE'
+            else:
+                print('File not found!')
+                return 'ERR_NOT_FOUND'
     else:
         print("Failed to retrieve updater information. Please check your internet connection.")
         return 'ERR_NO_CONNECTION'
@@ -126,10 +137,14 @@ def UPDATER_POPUP(title, msg):
     root.update()
 
 def updaterExists():
+    get_latest_release_version()
     if not os.path.exists(f"{__updatername__}.exe"):
         downloadUpdater()
+        print('latest release:', latest_release_version)
 
-threading.Thread(target=updaterExists).start()
+
+# threading.Thread(target=updaterExists).start()
+updaterExists()
 
 def CheckUpdates():
     
@@ -144,11 +159,14 @@ def CheckUpdates():
             subprocess.Popen(f'{__updatername__}.exe')
             
     if not os.path.exists(f"{__updatername__}.exe"):
+        print('updater not found')
         execute_download_updater()
     else:
-        if __version__ <= latest_release_version:
+        if __version__ <= get_latest_release_version():
+            print('downloading updater')
             execute_download_updater()
         else:
+            print('opening updater')
             subprocess.Popen(f'{__updatername__}.exe')
 
 def about():
@@ -247,7 +265,7 @@ def get_video_data(input_file):
         input_file
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
     
     if result.returncode == 0:
         # Parse the JSON output
@@ -372,12 +390,13 @@ def is_video_file(file_path):
 
     return file_extension.lower() in video_extensions
 
-def is_folder_open(path):
-    # Get a list of all open file explorer windows
-    open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
-    # Check if the folder path is in any of the open windows
-    print(path)
-    return path in open_folders
+# Does not work as intended...
+
+# def is_folder_open(path):
+#     # Get a list of all open file explorer windows
+#     open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
+#     # Check if the folder path is in any of the open windows
+#     return path in open_folders
 
 def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file, mode):
     global output_file
@@ -385,13 +404,16 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     gifQ = gif_quality.get()
     motionQ= motion_quality.get()
     lossyQ = lossy_quality.get()
+
     def openOutputFolder():
-        print('checking if window is open...')
-        if not is_folder_open(output_folder):
-            print('window not found, opening window.')
-            subprocess.run(fr'explorer /select,"{output_folder}"')
-        else:
-            print('window found!')
+        #see Line 393
+        # print('checking if window is open...')
+        # if not is_folder_open(output_folder):
+        #     print('window not found, opening window.')
+        #     subprocess.run(fr'explorer /select,"{output_folder}"')
+        # else:
+        #     print('window found!')
+        subprocess.run(fr'explorer /select,"{output_folder}"')
     
     if mode == 'final':
         output_file = filedialog.asksaveasfile(
