@@ -162,7 +162,7 @@ def CheckUpdates():
         print('updater not found')
         execute_download_updater()
     else:
-        if __version__ <= get_latest_release_version():
+        if __version__ < get_latest_release_version():
             print('downloading updater')
             execute_download_updater()
         else:

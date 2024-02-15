@@ -4,15 +4,14 @@
 
 # figure out to unfreeze on drop
 
-# need to impliment updater updater on main (context: main.exe is the updater for updater.exe)
-    # NEWER WAY TO PARSE DATA FROM EXE TO EXE, CLI commands
+
 
 # "loading screen" -WIP
 
 # Batch File process
     # alternative to this is to stop opening a new fucking window after conversion
 
-# impliment icon structure
+# ensure file is video if ever they just renamed the extension
 
 - 2.1.0
 # add pop up for invalid file names - Done
@@ -20,3 +19,5 @@
 # latest version on update not displaying properly - DONE
 # impliment Updater on main -Done
     # impliment status messages. - Done
+# need to impliment updater updater on main (context: main.exe is the updater for updater.exe) 
+    # NEWER WAY TO PARSE DATA FROM EXE TO EXE, CLI commands - Done
