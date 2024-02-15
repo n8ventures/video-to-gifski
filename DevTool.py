@@ -192,8 +192,8 @@ def buildAndSign():
     output_str = where_result.stdout.decode('utf-8')
     output_lines = output_str.split('\r\n')
 
-    if os.path.exists("C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit"):
-        os.chdir("C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit")
+    if os.path.exists("C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.19041.0\\x64\\"):
+        os.chdir("C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.19041.0\\x64\\")
         signtool_exe = 'signtool.exe'
     else:
         signtool_exe = output_lines[0]
