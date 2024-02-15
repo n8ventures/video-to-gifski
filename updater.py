@@ -15,25 +15,49 @@ import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('-v', '--version', action='version', version = __updaterversion__)
 args = parser.parse_args()
-# NEED TO MAKE A BUILD FIRST
-app_exe = 'n8-vid-to-gif-2.1.0.exe'
+
+app_exe = f'{__appname__}.exe'
 icon = 'icoUpdater.ico'
 if hasattr(sys, '_MEIPASS'):
     icon = os.path.join(sys._MEIPASS, icon)
     app_exe=os.path.join(sys._MEIPASS, app_exe)
+
+def create_popup(root, title, width, height, switch):
+    popup = tk.Toplevel(root)
+    popup.title(title)
+    popup.geometry(f"{width}x{height}")
+    popup.iconbitmap(icon)
+    # popup.overrideredirect(True)
+    popup.attributes('-toolwindow', 1)
+    center_window(popup, width, height)
     
+    if switch == 1:
+        popup.bind("<FocusOut>", lambda e: popup.destroy())
+
+    popup.grab_set()
+    
+    return popup
+
 def check_appVer():
     global appversion
     
     cmd = (app_exe, '-v')
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    appversion = result.stdout
+    if os.path.exists(app_exe):
+        result = subprocess.run(cmd, capture_output=True, text=True)
 
-check_appVer()
-
-print("Current version:", appversion)
-
+        appversion = result.stdout
     
+    else:
+        missing_app_menu = create_popup(root, 'Main App Missing!', 300,100, 1)
+        make_non_resizable(missing_app_menu)
+
+        txt_label = tk.Label(missing_app_menu, text='You don\'t have the main app!\nDownloading it for you now...')
+        txt_label.pack(pady=20)
+
+        appversion = 'unknown'
+
+        updatenow()
+
 def get_latest_release_version(repo_owner, repo_name):
     global api_url
     api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
@@ -77,29 +101,13 @@ def download_file(url, destination):
     bar._tk_window.destroy()
     return
 
-def create_popup(root, title, width, height, switch):
-    popup = tk.Toplevel(root)
-    popup.title(title)
-    popup.geometry(f"{width}x{height}")
-    popup.iconbitmap(icon)
-    # popup.overrideredirect(True)
-    popup.attributes('-toolwindow', 1)
-    center_window(popup, width, height)
-    
-    if switch == 1:
-        popup.bind("<FocusOut>", lambda e: popup.destroy())
-
-    popup.grab_set()
-    
-    return popup
-
-def parse_version(filename):
-    pattern = r'-(\d+\.\d+\.\d+)\.exe$'
-    match = re.search(pattern, filename)
-    if match:
-        return match.group(1)
-    else:
-        return None
+# def parse_version(filename):
+#     pattern = r'-(\d+\.\d+\.\d+)\.exe$'
+#     match = re.search(pattern, filename)
+#     if match:
+#         return match.group(1)
+#     else:
+#         return None
 
 def updatenow():
     # root.withdraw()
@@ -110,16 +118,15 @@ def updatenow():
         update_button.pack_forget()
         close_button_update.pack_forget()
         current_dir = os.path.dirname(os.path.realpath(__file__))
-        app_name = __appname__
-        latest = appversion
-        for filename in os.listdir(current_dir):
-            if filename.startswith(app_name):
-                current = parse_version(filename)
-                if current and latest != current:
-                    os.remove(os.path.join(current_dir, filename))
-                    print(f"Removed: {filename}")
+        latest = latest_version
 
-        latest_file = f'{__appname__}-{latest_version}.exe'
+        for filename in os.listdir(current_dir):
+            if filename.startswith(__appname__):
+                os.remove(os.path.join(current_dir, filename))
+                print(f"Removed: {filename}")
+            
+
+        latest_file = f'{__appname__}.exe'
         
         response = requests.get(api_url)
         release_data = response.json()
@@ -130,6 +137,13 @@ def updatenow():
 
                 downloadUpdate = download_file(download_url, latest_file)
                 threadMeUp(downloadUpdate)
+
+            elif asset['name'] == f'{__appname__}-{latest_version}.exe':
+                download_url = asset['browser_download_url']
+
+                downloadUpdate = download_file(download_url, latest_file)
+                threadMeUp(downloadUpdate)
+
         root.update()
 
         subprocess.Popen([latest_file])
@@ -168,6 +182,10 @@ root.iconbitmap(icon)
 make_non_resizable(root)
 
 global check_for_updates_prompt, update_button, close_button_update, latest_version, checkupdates
+
+check_appVer()
+
+print("Current version:", appversion)
 
 current_version = appversion 
 switch = 0
