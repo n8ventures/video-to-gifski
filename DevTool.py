@@ -60,7 +60,8 @@ def genMainSpec(ff, console):
         ('.\\\\buildandsign\\\\ico\\\\motionteamph.png', '.'),
         ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2'),
         ('{site_packages_path}\\\\requests', 'requests'), 
-        ('{site_packages_path}\\\\PIL', 'PIL')
+        ('{site_packages_path}\\\\PIL', 'PIL'),
+        ('{site_packages_path}\\\\pywinctl', 'pywinctl'),
     ]
     datas += collect_data_files('pyinstaller_hooks_contrib.collect')
 
