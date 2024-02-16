@@ -1,4 +1,4 @@
-__version__ = "2.1.0"
+__version__ = "2.1.1a"
 __appname__ = "n8-vid-to-gif"
 
 __updaterversion__ = "1.0.0"
