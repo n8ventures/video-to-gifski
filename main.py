@@ -12,6 +12,7 @@ import atexit
 from idlelib.tooltip import Hovertip
 import requests
 import threading
+import pywinctl as pwc
 
 import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -58,27 +59,31 @@ def create_popup(root, title, width, height, switch):
     
     return popup
 
-# # IDK HOW BUT PLEASE WHAT THE FUCK
-# def loading_screen(mode):
-#     def load_start():
-#         loading_screen = create_popup(root, "Converting...", 350, 100, 0)
-#         make_non_resizable(loading_screen)
+# IDK HOW BUT PLEASE WHAT THE FUCK
+def loading(mode):
+    global loading_screen
+    def load_start():
+
+        loading_screen = create_popup(root, "Converting...", 350, 120, 0)
+        make_non_resizable(loading_screen)
         
-#         load_text_label = tk.Label(loading_screen, text='Converting...\nPlease wait.')
-#         load_text_label.pack()
+        load_text_label = tk.Label(loading_screen, text='Converting...\nPlease wait.')
+        load_text_label.pack(pady=20)
 
-#         progress_bar = ttk.Progressbar(loading_screen, mode='indeterminate')
-#         progress_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=4)
-#         progress_bar.start()
+        progress_bar = ttk.Progressbar(loading_screen, mode='indeterminate')
+        progress_bar.pack(fill=tk.X, padx=10, pady=0)
+        progress_bar.start()
 
-#     def load_stop():
-#         loading_screen.destroy()
+    def load_stop():
+        loading_screen.destroy()
 
-#     if mode == 1:
-#         load_start()
-#     elif mode == 0:
-#         load_stop()
+    if mode == 1:
+        load_start()
+    elif mode == 0:
+        load_stop()
 
+def run_loading():
+    threading.Thread(target=loading, args=(1,),  daemon=True).start()
 
 # if Updater not found, download on github.
 def get_latest_release_version():
@@ -380,6 +385,8 @@ def get_and_print_video_data(file_path):
         close_button.pack(pady=10)
                 
 def is_video_file(file_path):
+    # might need this later for the file dialog on importing it...
+    global video_extensions
     _, file_extension = os.path.splitext(file_path)
     video_extensions = [
     '.3g2', '.3gp', '.amv', '.asf', '.avi', '.drc', '.f4v', '.flv', '.gif', '.gifv', '.m2ts', 
@@ -390,13 +397,10 @@ def is_video_file(file_path):
 
     return file_extension.lower() in video_extensions
 
-# Does not work as intended...
-
-# def is_folder_open(path):
-#     # Get a list of all open file explorer windows
-#     open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
-#     # Check if the folder path is in any of the open windows
-#     return path in open_folders
+def is_folder_open(path):
+    open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
+    folder_name = os.path.basename(path)
+    return folder_name in open_folders
 
 def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file, mode):
     global output_file
@@ -405,15 +409,18 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     motionQ= motion_quality.get()
     lossyQ = lossy_quality.get()
 
-    def openOutputFolder():
-        #see Line 393
-        # print('checking if window is open...')
-        # if not is_folder_open(output_folder):
-        #     print('window not found, opening window.')
-        #     subprocess.run(fr'explorer /select,"{output_folder}"')
-        # else:
-        #     print('window found!')
-        subprocess.run(fr'explorer /select,"{output_folder}"')
+    def openOutputFolder(path):
+        print('checking if window is open...')
+        if not is_folder_open(path):
+            print('window not found, opening window.')
+            subprocess.run(fr'explorer /select,"{path}"')
+        else:
+            print('window found!')
+            windows = pwc.getWindowsWithTitle(os.path.basename(path))
+            if windows:
+                windows[0].activate(True)
+            else:
+                print('Window not found with specified title.')
     
     if mode == 'final':
         output_file = filedialog.asksaveasfile(
@@ -422,8 +429,9 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
         filetypes=[("GIF files", "*.gif")]
         )
         if output_file:
+            output_file.close()
             output_folder = os.path.abspath(output_file.name)
-            print (output_folder)
+            output_dir = os.path.dirname(output_file.name)
             
             video_to_frames_seq(input_file, framerate)
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
@@ -431,17 +439,18 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             print("Conversion complete!")
             shutil.rmtree('temp')
             on_settings_window_close()
-            openOutputFolder()
+            openOutputFolder(output_dir)
             # open_finish_window()
             
     elif mode == 'temp':
-        # with tempfile.NamedTemporaryFile(suffix=".gif", delete=False) as temp_file:
-        #     output_file = temp_file.name
             output_file = 'temp.gif'
             print(output_file)
-            
+            # run_loading()
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
+            # loading(0)
             print("Conversion complete!")
+            
+            
     elif mode == 'temp-final':
         output_file = filedialog.asksaveasfile(
         defaultextension=".gif",
@@ -450,13 +459,15 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
         )
         
         if output_file:
+            output_file.close()
             output_folder = os.path.abspath(output_file.name)
+            output_dir = os.path.dirname(output_file.name)
             
-            shutil.copy('temp.gif', output_file.name)
+            shutil.copy2('temp.gif', output_file.name)
             print("Conversion complete!")
             shutil.rmtree('temp')
             on_settings_window_close()
-            openOutputFolder()
+            openOutputFolder(output_dir)
 
 
 def apply_settings(mode):
@@ -495,7 +506,6 @@ def apply_settings(mode):
     print("Extra:", extra_value)
     print("Fast:", fast_value)
     
-    
     convert_and_save(fps, gif_quality_scale, motion_quality_scale, lossy_quality_scale, file_path, mode)
 
 def choose_file():
@@ -506,6 +516,7 @@ def choose_file():
     )
     get_and_print_video_data(file_path)
 
+# Unused (Might need to figure this one out sooner or later...)
 def open_finish_window():
     global finish_window
     finish_window = tk.Toplevel(root)
@@ -819,8 +830,7 @@ image = tk.PhotoImage(file=image_path)
 resized_image = image.subsample(2)
 label = tk.Label(canvas, image=resized_image, bd=0, bg="white")
 label.image = resized_image
-label.place(x=geo_width / 2, y=200, anchor=tk.CENTER) 
-
+label.place(x=geo_width / 2, y=200, anchor=tk.CENTER)
 def on_closing():
     if os.path.exists('temp'):
         shutil.rmtree('temp')
