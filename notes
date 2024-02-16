@@ -4,15 +4,16 @@
 
 # figure out to unfreeze on drop
 
-
-
 # "loading screen" -WIP
 
 # Batch File process
     # alternative to this is to stop opening a new fucking window after conversion
 
-# ensure file is video if ever they just renamed the extension
+# Preview then Save causes file incompletion, I need to tell python to let go of the file after copying.
+# updater bugs... Noticed that sometimes it wont start the download... Need to replicate
 
+- 2.1.1
+# fixed Open Output folder... Will open if its not present, will bring it to top if it's not active
 - 2.1.0
 # add pop up for invalid file names - Done
 # get update working - Done
@@ -21,3 +22,4 @@
     # impliment status messages. - Done
 # need to impliment updater updater on main (context: main.exe is the updater for updater.exe) 
     # NEWER WAY TO PARSE DATA FROM EXE TO EXE, CLI commands - Done
+# ensure file is video if ever they just renamed the extension - Done
