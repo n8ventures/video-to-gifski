@@ -174,3 +174,5 @@ buildandsign/bin/lite/ffmpeg.exe
 buildandsign/bin/lite/ffplay.exe
 buildandsign/bin/lite/ffprobe.exe
 *.spec
+n8-gif-updater.exe
+n8-vid-to-gif.exe
