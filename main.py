@@ -13,18 +13,33 @@ from idlelib.tooltip import Hovertip
 import requests
 import threading
 import pywinctl as pwc
+import time
+import math
 
 import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('-v', '--version', action='version', version = __version__)
+parser.add_argument('-D', '--debug', action='store_true', help=f'Debug mode. use cmd \' {__appname__}.exe | MORE\'. But, you already knew that, don\'t cha?')
+parser.add_argument('-ct', '--checkthreads', action='store_true', help='Checks threads. (Will not work without [-D])')
 args = parser.parse_args()
+
+if args.debug:
+    if args.checkthreads:
+        def list_current_threads():
+            while True:
+                print("-" * 20)
+                print("Current threads:")
+                for thread in threading.enumerate():
+                    print(thread.name)
+                print("-" * 20)
+                time.sleep(3)
+
+        threading.Thread(name='thread checker', target=list_current_threads, daemon=True).start()
 
 print("Current version:", __version__)
 
 video_data = None
 global mode
-
-
 
 # for windows executables, basically makes this readable inside an exe
 if any(char.isalpha() for char in __version__):
@@ -59,11 +74,9 @@ def create_popup(root, title, width, height, switch):
     
     return popup
 
-# IDK HOW BUT PLEASE WHAT THE FUCK
-def loading(mode):
-    global loading_screen
-    def load_start():
-
+def loading():
+    if loading_event.is_set():
+        global loading_screen
         loading_screen = create_popup(root, "Converting...", 350, 120, 0)
         make_non_resizable(loading_screen)
         
@@ -73,17 +86,13 @@ def loading(mode):
         progress_bar = ttk.Progressbar(loading_screen, mode='indeterminate')
         progress_bar.pack(fill=tk.X, padx=10, pady=0)
         progress_bar.start()
-
-    def load_stop():
+        root.update_idletasks()
+        print('starting loading popup')
+    else:
         loading_screen.destroy()
-
-    if mode == 1:
-        load_start()
-    elif mode == 0:
-        load_stop()
-
-def run_loading():
-    threading.Thread(target=loading, args=(1,),  daemon=True).start()
+        print('loading popup dead')
+        
+loading_event = threading.Event()
 
 # if Updater not found, download on github.
 def get_latest_release_version():
@@ -127,52 +136,64 @@ def downloadUpdater():
 
 
 def UPDATER_POPUP(title, msg):
-    updaterMenu = create_popup(root, title, 400, 120, 1)
+    if os.path.exists(f"{__updatername__}.exe"):
+        win_height = 250
+    else:
+        win_height = 140
+    updaterMenu = create_popup(root, title, 400, win_height, 1)
     make_non_resizable(updaterMenu)
     
     txt_msg = msg
     
+    if os.path.exists(f"{__updatername__}.exe"):
+        NR_label1= tk.Label(updaterMenu, text='New release detected!', font=('Helvetica', 10, 'bold'))
+        NR_label2= tk.Label(updaterMenu, text=f'Updating {__updatername__}.exe...', font=('Helvetica', 10, 'italic'))
+        NR_label1.pack(pady=10)
+        NR_label2.pack(pady=10)
+
     txt_label = tk.Label(updaterMenu, text=txt_msg)
-    txt_label.pack()
+    txt_label.pack(pady=10)
     
     close_button = ttk.Button(updaterMenu, text="Close", command=updaterMenu.destroy)
     
     close_button.pack(pady=10)
     
-    root.update()
+    root.update_idletasks()
 
-def updaterExists():
-    get_latest_release_version()
-    if not os.path.exists(f"{__updatername__}.exe"):
-        downloadUpdater()
-        print('latest release:', latest_release_version)
-
-
-# threading.Thread(target=updaterExists).start()
-updaterExists()
+    if downloadUpdater() == 'UPDR_DONE':
+        updaterMenu.destroy()
 
 def CheckUpdates():
     
     def execute_download_updater():
-        UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
+        menu = UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
+        menu
         update_result = downloadUpdater()
         if update_result == 'ERR_NO_CONNECTION':
             UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
         elif update_result == 'ERR_NOT_FOUND':
             UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
         elif update_result == 'UPDR_DONE':
+            time.sleep(3)
             subprocess.Popen(f'{__updatername__}.exe')
             
     if not os.path.exists(f"{__updatername__}.exe"):
         print('updater not found')
         execute_download_updater()
     else:
+        print('Updater exists!')
+        if args.debug:
+            result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
+            print(f'Updater version: {result.stdout.strip()}')
         if __version__ < get_latest_release_version():
-            print('downloading updater')
+            print('New release! Downloading updated updater. (yeah I know...)')
             execute_download_updater()
         else:
             print('opening updater')
             subprocess.Popen(f'{__updatername__}.exe')
+
+def updaterExists():
+    CheckUpdates()
 
 def about():
     geo_width = 370
@@ -319,6 +340,8 @@ def video_to_frames_seq(input_file, framerate):
     cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
     # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+    if args.debug:
+        print(cmd)
     
 def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
@@ -330,8 +353,10 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
     cmd = [
         gifski,
         "-q",
-        "-r", str(fps),
+        "-r", str(int(fps)),
         "-Q", str(gifQuality),
+        "-W", str(scaled_width),
+        "-H", str(scaled_height),
         "--repeat", "0",
         ]
 
@@ -348,6 +373,9 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
     # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+    if args.debug:
+        print(cmd)
+
 
 def get_and_print_video_data(file_path):
     global video_data
@@ -362,10 +390,23 @@ def get_and_print_video_data(file_path):
             fps_value = round(eval(video_data['r_frame_rate']), 3)
             duration_value = video_data['duration']
             pix_fmt = video_data['pix_fmt']
+
+            fps_int = round(fps_value)
+            total_frames = int(float(duration_value) *fps_int)
+            hours = total_frames // (3600 * fps_int)
+            remaining_frames = total_frames % (3600 * fps_int)
+            minutes = remaining_frames // (60 * fps_int)
+            remaining_frames %= (60 * fps_int)
+            seconds = remaining_frames // fps_int
+            frames = remaining_frames % fps_int
+            timecode = f"{hours:02}:{minutes:02}:{seconds:02}:{frames:02}"
+            
             print("Video width:", width_value)
             print("Video height:", height_value)
             print("Frame rate:", fps_value)
             print("Duration:", duration_value)
+            print("Frames:", total_frames)
+            print(f"Timecode: {timecode}")
             print("pixel format:", pix_fmt)
         
             if not settings_window_open:
@@ -409,18 +450,34 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     motionQ= motion_quality.get()
     lossyQ = lossy_quality.get()
 
-    def openOutputFolder(path):
+    def openOutputFolder(path, path2):
         print('checking if window is open...')
         if not is_folder_open(path):
             print('window not found, opening window.')
-            subprocess.run(fr'explorer /select,"{path}"')
+            subprocess.run(fr'explorer /select,"{path2}"')
         else:
             print('window found!')
             windows = pwc.getWindowsWithTitle(os.path.basename(path))
             if windows:
-                windows[0].activate(True)
+                win = windows[0]
+                if win.minimize():
+                    win.restore(True)
+                win.activate(True)
+                
             else:
                 print('Window not found with specified title.')
+    def loading_thread():
+        loading_event.set()
+        print('starting thread')
+        loading()
+
+    def loading_thread_switch(switch):
+        if switch == True:
+            threading.Thread(target=loading_thread, daemon=True).start()
+        if switch == False:
+            print('killing loading popup')
+            loading_event.clear()
+            loading()
     
     if mode == 'final':
         output_file = filedialog.asksaveasfile(
@@ -432,22 +489,26 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             output_file.close()
             output_folder = os.path.abspath(output_file.name)
             output_dir = os.path.dirname(output_file.name)
-            
+
+            loading_thread_switch(True)
             video_to_frames_seq(input_file, framerate)
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
-            
+            loading_thread_switch(False)
+
             print("Conversion complete!")
             shutil.rmtree('temp')
             on_settings_window_close()
-            openOutputFolder(output_dir)
+            openOutputFolder(output_dir, output_folder)
             # open_finish_window()
             
     elif mode == 'temp':
-            output_file = 'temp.gif'
+            output_file = 'temp/temp.gif'
             print(output_file)
-            # run_loading()
+
+            loading_thread_switch(True)
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
-            # loading(0)
+            loading_thread_switch(False)
+
             print("Conversion complete!")
             
             
@@ -463,15 +524,15 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             output_folder = os.path.abspath(output_file.name)
             output_dir = os.path.dirname(output_file.name)
             
-            shutil.copy2('temp.gif', output_file.name)
+            shutil.copy2('temp/temp.gif', output_file.name)
             print("Conversion complete!")
             shutil.rmtree('temp')
             on_settings_window_close()
-            openOutputFolder(output_dir)
+            openOutputFolder(output_dir, output_folder)
 
 
 def apply_settings(mode):
-    global fps, gif_quality_scale, scale_widget, extra_var, fast_var, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var
+    global fps, gif_quality_scale, scale_widget, extra_var, fast_var, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, scaled_width, scaled_height
     fps_value = fps.get()
     scale_value = scale_widget.get()
     extra_value = extra_var.get()
@@ -572,12 +633,21 @@ def open_settings_window():
     preview_label.pack(pady=5)
     
     fileSize_label =tk.Label(settings_window, text = '')
-    fileSize_label.pack(pady=5)
+    fileDimension_label = tk.Label(settings_window, text='')
+    fileSize_label.pack()
+    fileDimension_label.pack(pady=5)
     
-    play_gif_button = tk.Button(settings_window, text='Play GIF', command=lambda: play_gif('temp.gif'))
+    play_gif_button = tk.Button(settings_window, text='Play GIF', command=lambda: play_gif('temp/temp.gif'))
     play_gif_button.pack(pady=10)
     play_gif_button.config(state="disabled")
-    
+    if args.debug:
+        play_gif_button.pack(pady=10)
+        play_gif_button.config(state="disabled")
+
+        debug_gif_button = tk.Button(settings_window, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
+        debug_gif_button.pack(pady=10)
+        debug_gif_button.config(state="disabled")
+
     separator1 = ttk.Separator(settings_window, orient="horizontal")
     separator1.pack(fill="x", padx=20, pady=4)
     
@@ -644,7 +714,7 @@ def open_settings_window():
 
     scale_label_0 = tk.Label(settings_window, text="Scale:")
     scale_label_0.pack()
-    scale_widget = tk.Scale(settings_window, from_=25, to=100, orient=tk.HORIZONTAL, resolution=5, length=200)
+    scale_widget = tk.Scale(settings_window, from_=25, to=100, orient=tk.HORIZONTAL, length=300)
     scale_widget.set(100)
     scale_widget.pack()    
     scale_label_var = tk.StringVar()
@@ -667,10 +737,10 @@ def open_settings_window():
     fast_checkbox = tk.Checkbutton(settings_window, variable=fast_var, text="Fast", command=lambda: update_checkbox_state(fast_var, fast_checkbox, extra_var, extra_checkbox,  cmode = 'encode'))
     fast_checkbox.pack()
     Hovertip(fast_checkbox, "Fast - faster encoding, but 10% worse quality & larger file size.", hover_delay=500)
-    apply_button = tk.Button(settings_window, text="Convert!", width=10, command=lambda: apply_settings(mode='final'))
+    apply_button = tk.Button(settings_window, text="Convert!", width=10, command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
     apply_button.pack(side=tk.LEFT, pady=5)
     
-    test_button = tk.Button(settings_window, text="Test/Preview", width=24, command=lambda: preview_gif_window())
+    test_button = tk.Button(settings_window, text="Test/Preview", width=24, command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start())
     test_button.pack(side=tk.RIGHT, pady=5)
     
     width = max(apply_button.winfo_reqwidth(), test_button.winfo_reqwidth())
@@ -704,13 +774,18 @@ def open_settings_window():
         # preview_gif_window.iconbitmap(icon)
         # watermark_label(preview_gif_window)
         play_gif_button.config(state="normal")
+        if args.debug:
+            debug_gif_button.config(state="normal")
         
         video_to_frames_seq(file_path, fps.get())
         
-        apply_settings(mode='temp')
+        apply_settings('temp')
         
         img = Image.open(output_file)
         aspect_ratio = img.width / img.height
+        imgW, imgH = img.size
+        gcd = math.gcd(imgW, imgH)
+        aspect_ratio_simplified = f'{imgW // gcd}:{imgH // gcd}'
         
         if img.width > img.height:  # Landscape
             target_width = min(img.width, 450)
@@ -728,11 +803,11 @@ def open_settings_window():
         preview_label.img = tk_img
         preview_label.config(image=tk_img)
         
-        apply_button.config(text='Save', command=lambda: apply_settings(mode='temp-final'))
+        apply_button.config(text='Save', command=lambda: apply_settings('temp-final'))
         
-        filesize = get_filesize('temp.gif')
+        filesize = get_filesize('temp/temp.gif')
         fileSize_label.config(text=f'GIF Size: {filesize}')
-        
+        fileDimension_label.config(text=f'Dimensions: {imgW}x{imgH} ({aspect_ratio_simplified})')
         
     settings_window.protocol("WM_DELETE_WINDOW", lambda: on_settings_window_close())
     
@@ -752,7 +827,7 @@ def open_settings_window():
     settings_window.wait_window(settings_window)
     if os.path.exists('temp'):
         shutil.rmtree('temp')
-        os.remove('temp.gif')
+        #  os.remove('temp.gif')
         print("temp removed successfully.")
     else:
         print("temp does not exist.")
@@ -771,7 +846,7 @@ def on_drop(event):
     drop_label.config(bg="white")
     label.config (bg="white")
     file_path = event.data.strip('{}')
-    get_and_print_video_data(file_path)
+    threading.Thread(target=get_and_print_video_data, args=(file_path, )).start()
     
 # Create the main window
 root = TkinterDnD.Tk()
@@ -846,4 +921,6 @@ def on_closing():
 root.protocol("WM_DELETE_WINDOW", on_closing)
 atexit.register(on_closing)
 
+threading.Thread(target=updaterExists).start()
 root.mainloop()
+
