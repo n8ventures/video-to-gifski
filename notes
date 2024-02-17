@@ -2,18 +2,32 @@
     # pip freeze > requirements.txt - on original terminal
     # pip install -r requirements.txt --upgrade -on new terminals
 
-# figure out to unfreeze on drop
 
-# "loading screen" -WIP
+
+
 
 # Batch File process
     # alternative to this is to stop opening a new fucking window after conversion
 
-# Preview then Save causes file incompletion, I need to tell python to let go of the file after copying.
+
 # updater bugs... Noticed that sometimes it wont start the download... Need to replicate
 
-- 2.1.1
+- 2.2.0
+# added file dimension label
+#temp gif now also in temp folder
 # fixed Open Output folder... Will open if its not present, will bring it to top if it's not active
+# Preview then Save causes file incompletion, I need to tell python to let go of the file after copying.
+# "loading screen"
+#scale fix - sometimes max size doesnt work. tested on 1280x720
+# scale widget now does incriments of 1
+# debug access (need special instructions)
+# figure out to unfreeze on drop
+# auto check update on main
+# updater 1.1.0
+    # close main.exe to update successfully
+    # Changed gui.update to update_idletasks()
+
+
 - 2.1.0
 # add pop up for invalid file names - Done
 # get update working - Done
