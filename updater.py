@@ -10,6 +10,7 @@ import atexit
 import requests
 from tqdm.tk import tqdm
 import threading
+import pywinctl as pwc
 
 import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -40,12 +41,13 @@ def create_popup(root, title, width, height, switch):
 
 def check_appVer():
     global appversion
-    
     cmd = (app_exe, '-v')
     if os.path.exists(app_exe):
         result = subprocess.run(cmd, capture_output=True, text=True)
 
         appversion = result.stdout.strip()
+
+
     
     else:
         missing_app_menu = create_popup(root, 'Main App Missing!', 300,100, 1)
@@ -54,7 +56,7 @@ def check_appVer():
         txt_label = tk.Label(missing_app_menu, text='You don\'t have the main app!\nDownloading it for you now...')
         txt_label.pack(pady=20)
 
-        appversion = 'unknown'
+        appversion = 'N/A'
 
         updatenow()
 
@@ -71,9 +73,6 @@ def get_latest_release_version(repo_owner, repo_name):
 
 def threadMeUp(thread):
     threading.Thread(target=thread).start()
-
-def threadJoin(thread):
-    threading.Thread(target=thread).join()
 
 def download_file(url, destination):
     response = requests.get(url, stream=True)
@@ -111,6 +110,13 @@ def download_file(url, destination):
 
 def updatenow():
     # root.withdraw()
+    windows = pwc.getWindowsWithTitle('N8\'s Video', condition=pwc.Re.CONTAINS, flags=pwc.Re.IGNORECASE)
+    print(windows)
+    for window in windows:
+        if window.getAppName() == f'{__appname__}.exe':
+            print(f'closing {window.getAppName()}')
+            window.close()
+
     def updatenow_function():
         spacer=tk.Label(root, text='')
         spacer.pack()
@@ -126,7 +132,7 @@ def updatenow():
                 print(f"Removed: {filename}")
             
 
-        latest_file = f'{__appname__}.exe'
+        latest_file = app_exe
         
         response = requests.get(api_url)
         release_data = response.json()
@@ -144,7 +150,7 @@ def updatenow():
                 downloadUpdate = download_file(download_url, latest_file)
                 threadMeUp(downloadUpdate)
 
-        root.update()
+        root.update_idletasks()
 
         subprocess.Popen([latest_file])
         root.quit()
@@ -175,7 +181,7 @@ def on_closing():
     
 # Create the main window
 root = tk.Tk()
-root.title(f"V-2-G Converter Updater {__updaterversion__}")
+root.title(f"N8's V2GC Updater {__updaterversion__}")
 geo_width = 425
 center_window(root, geo_width, 300)
 root.iconbitmap(icon)
@@ -223,14 +229,14 @@ update_button.pack_forget()
 
 
 
-root.update()
+root.update_idletasks()
 
 if current_version == latest_version:
     switch = 1
     # root.after(2000, check_for_updates_prompt.config(text='You have the latest version!'))
     check_for_updates_prompt.config(text='You have the latest version!')
     close_button_update.config(text='Close')
-    root.update()
+    root.update_idletasks()
 elif current_version >= latest_version:
     # root.after(2000, check_for_updates_prompt.config(text='looks like you\'re using an unreleased version. heh.'))
     check_for_updates_prompt.config(text='looks like you\'re using an unreleased version. heh.\nDo you still want to download the stable release version?')
@@ -241,12 +247,12 @@ elif current_version >= latest_version:
     update_button.pack(side=tk.LEFT, pady=10, padx= 70)
     close_button_update.pack(side=tk.RIGHT, pady=10, padx= 70)
     
-    root.update()
+    root.update_idletasks()
 elif latest_version == '0.0.0':
     check_for_updates_prompt.config(text=f"Internet connection unavailable.\nPlease try again later.")
     close_button_update.config(text='Close')
     close_button_update.pack()
-    root.update()
+    root.update_idletasks()
 else:
     # root.after(2000, check_for_updates_prompt.config(text=f"New version {latest_version} is available.\n\nDo you want to update?"))
     check_for_updates_prompt.config(text=f"New version {latest_version} is available.\n\nDo you want to update?")
@@ -260,7 +266,7 @@ else:
     # close_button_update.pack_configure(padx=(5, x_position - 5))
     
     close_button_update.config(text='Maybe later')
-    root.update()
+    root.update_idletasks()
 
 
 root.protocol("WM_DELETE_WINDOW", on_closing)
