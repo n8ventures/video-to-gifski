@@ -184,10 +184,14 @@ def genUpdaterSpec():
 def buildAndSign():
     build_main = 'pyinstaller ./main.spec'
     build_updater = 'pyinstaller ./updater.spec'
-    printColor(Color.GREEN, 'Building main.exe...')
+    
+    printColor(Color.CYAN, 'Building main.exe...')
     subprocess.run(build_main, shell=True)
-    printColor(Color.GREEN, 'Building updater.exe...')
+    printColor(Color.GREEN, 'main.exe Built!')
+    
+    printColor(Color.CYAN, 'Building updater.exe...')
     subprocess.run(build_updater, shell=True)
+    printColor(Color.GREEN, 'updater.exe Built!')
 
     # Sign the executable using signtool
     where_command= 'where /R "C:\\Program Files (x86)" signtool.*'
@@ -201,15 +205,29 @@ def buildAndSign():
     else:
         signtool_exe = output_lines[0]
 
-    
+    def cert_pass():
+        while True:
+            response = input(Color.YELLOW + 'Enter certificate password: ' + Color.END)
+            if response:
+                return response
+            else:
+                print("No input. Please enter the password: ")
+        
     # Construct the sign_command
-    main_sign_command = f'{signtool_exe} sign /f "{script_directory}\\buildandsign\\n8cert.pfx" /p n8123 /t http://timestamp.digicert.com /v "{script_directory}\\dist\\main.exe"'
-    printColor(Color.GREEN, 'Signing main.exe...')
-    subprocess.run(main_sign_command, shell=True)
-    
-    main_sign_command = f'{signtool_exe} sign /f "{script_directory}\\buildandsign\\n8cert.pfx" /p n8123 /t http://timestamp.digicert.com /v "{script_directory}\\dist\\Updater.exe"'
-    printColor(Color.GREEN, 'Signing updater.exe...')
-    subprocess.run(main_sign_command, shell=True)
+    try:
+        password = cert_pass()
+        main_sign_command = f'{signtool_exe} sign /f "{script_directory}\\buildandsign\\certificate.pfx" /p {password} /tr http://timestamp.digicert.com /td sha256 /v "{script_directory}\\dist\\main.exe"'
+        printColor(Color.CYAN, 'Signing main.exe...')
+        subprocess.run(main_sign_command, shell=True)
+        printColor(Color.GREEN, 'main.exe signed!')
+        
+        Updater_sign_command = f'{signtool_exe} sign /f "{script_directory}\\buildandsign\\certificate.pfx" /p {password} /tr http://timestamp.digicert.com /td sha256 /v "{script_directory}\\dist\\Updater.exe"'
+        printColor(Color.CYAN, 'Signing updater.exe...')
+        subprocess.run(Updater_sign_command, shell=True)
+        printColor(Color.GREEN, 'updater.exe signed!')
+
+    except Exception as e:
+        print("An error occurred while signing:", e)
 
 
     # rename newly built main.exe
@@ -352,9 +370,17 @@ if args.console:
         printColor(Color.YELLOW, 'You can\'t use this arguement alone. Use it with \'-f\'.(ex. DevTool.py -c -f)')
 
 if args.build:
+    printColor(Color.CYAN, 'Checking local versions...')
     check_and_update_local()
+    printColor(Color.GREEN, 'Versions up to date!')
+    
+    printColor(Color.CYAN, 'Generating main.spec...')
     genMainSpec(ff, console)
+    printColor(Color.GREEN, 'main.spec generated!')
+    
+    printColor(Color.CYAN, 'Generating updater.spec...')
     genUpdaterSpec()
+    printColor(Color.GREEN, 'updater.spec generated!')
     buildAndSign()
 
 if args.Update:

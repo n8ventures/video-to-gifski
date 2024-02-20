@@ -158,21 +158,19 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
-buildandsign/bin/gifski.exe
 temp/
 temp.gif
 notes.py
 main-alpha.py
 main-alpha.spec
-buildandsign/n8cert.cer
-buildandsign/n8cert.pfx
-buildandsign/n8key.pvk
-buildandsign/bin/full/ffmpeg.exe
-buildandsign/bin/full/ffplay.exe
-buildandsign/bin/full/ffprobe.exe
-buildandsign/bin/lite/ffmpeg.exe
-buildandsign/bin/lite/ffplay.exe
-buildandsign/bin/lite/ffprobe.exe
+buildandsign/*.cer
+buildandsign/*.pfx
+buildandsign/*.pvk
+buildandsign/*.crt
+buildandsign/*.pem
+buildandsign/*.key
+buildandsign/bin/*.exe
+buildandsign/bin/full/*.exe
+buildandsign/bin/lite/*.exe
 *.spec
-n8-gif-updater.exe
-n8-vid-to-gif.exe
+*.exe
