@@ -164,10 +164,10 @@ def UPDATER_POPUP(title, msg):
         updaterMenu.destroy()
 
 def CheckUpdates():
+    get_latest_release_version()
     
     def execute_download_updater():
-        menu = UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
-        menu
+        UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
         update_result = downloadUpdater()
         if update_result == 'ERR_NO_CONNECTION':
             UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
