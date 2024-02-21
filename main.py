@@ -188,9 +188,9 @@ def CheckUpdates():
         if __version__ < get_latest_release_version():
             print('New release! Downloading updated updater. (yeah I know...)')
             execute_download_updater()
-        else:
-            print('opening updater')
-            subprocess.Popen(f'{__updatername__}.exe')
+        # else:
+        #     print('opening updater')
+        #     subprocess.Popen(f'{__updatername__}.exe')
 
 def updaterExists():
     CheckUpdates()
@@ -333,8 +333,8 @@ def video_to_frames_seq(input_file, framerate):
     if scale_widget.get() != 100:
         filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
     
-    if video_data['pix_fmt'] in alpha_formats:
-        filtergraph.append('unpremultiply=inplace=1')
+    # if video_data['pix_fmt'] in alpha_formats:
+    #     filtergraph.append('unpremultiply=inplace=1')
 
     cmd.append(','.join(filtergraph))
     cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
