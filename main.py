@@ -188,12 +188,38 @@ def CheckUpdates():
         if __version__ < get_latest_release_version():
             print('New release! Downloading updated updater. (yeah I know...)')
             execute_download_updater()
-        # else:
-        #     print('opening updater')
-        #     subprocess.Popen(f'{__updatername__}.exe')
+        else:
+            print('opening updater')
+            subprocess.Popen(f'{__updatername__}.exe')
+
+def CheckUpdates_bg():
+    get_latest_release_version()
+    
+    def execute_download_updater():
+        UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
+        update_result = downloadUpdater()
+        if update_result == 'ERR_NO_CONNECTION':
+            UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
+        elif update_result == 'ERR_NOT_FOUND':
+            UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
+        elif update_result == 'UPDR_DONE':
+            time.sleep(3)
+            subprocess.Popen(f'{__updatername__}.exe')
+            
+    if not os.path.exists(f"{__updatername__}.exe"):
+        print('updater not found')
+        execute_download_updater()
+    else:
+        print('Updater exists!')
+        if args.debug:
+            result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
+            print(f'Updater version: {result.stdout.strip()}')
+        if __version__ < get_latest_release_version():
+            print('New release! Downloading updated updater. (yeah I know...)')
+            execute_download_updater()
 
 def updaterExists():
-    CheckUpdates()
+    CheckUpdates_bg()
 
 def about():
     geo_width = 370
