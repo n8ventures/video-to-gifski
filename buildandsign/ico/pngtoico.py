@@ -3,6 +3,7 @@ import os
 import shutil
 def resize_image(image_path, output_path, size):
     with Image(filename=image_path) as img:
+        # img.alpha = True
         img.resize(size[0], size[1])
         img.save(filename=output_path)
 
@@ -33,7 +34,7 @@ def main(png):
     else:
         output_ico = f'{mainDir}{png[:png.rfind('.')]}.ico'
         
-    cmd = ["magick", "convert"] + resized_images + ["-colors", "256", output_ico]
+    cmd = ["magick"] + resized_images + ['-type','TrueColorAlpha', output_ico]
     import subprocess
     subprocess.run(cmd, check=True)
     shutil.rmtree('resize')
