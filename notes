@@ -11,6 +11,16 @@
 
 
 # updater bugs... Noticed that sometimes it wont start the download... Need to replicate
+# add unpremultiply option
+# update video options on button
+# for devtool, activate pngtoico script (or just transfer the damn thing to devtool)
+
+- 2.2.2
+# Disabled auto-running updater
+# Disabled unpremultiply filter (for now)
+
+- 2.2.1
+# Fixed auto checking of updates on main. 
 
 - 2.2.0
 # added file dimension label
