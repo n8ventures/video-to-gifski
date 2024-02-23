@@ -23,7 +23,10 @@ parser.add_argument('-D', '--debug', action='store_true', help=f'Debug mode. use
 parser.add_argument('-ct', '--checkthreads', action='store_true', help='Checks threads. (Will not work without [-D])')
 args = parser.parse_args()
 
+debug = ''
+
 if args.debug:
+    debug = '(Debug Mode)'
     if args.checkthreads:
         def list_current_threads():
             while True:
@@ -286,7 +289,7 @@ def watermark_label(parent_window):
     watermark_label = tk.Label(frame, text="by N8VENTURES (github.com/n8ventures)", fg="gray")
     watermark_label.pack(side=tk.LEFT, anchor=tk.SW, padx=2)
     
-    version_label = tk.Label(frame, text=f"version: {__version__}", fg="gray")
+    version_label = tk.Label(frame, text=f"version: {__version__} {debug}", fg="gray")
     version_label.pack(side=tk.RIGHT, anchor=tk.SE, padx=2)
 
 def make_non_resizable(window):
@@ -299,7 +302,7 @@ def center_window(window, width, height):
     window_height = height
     x_position = (screen_width - window_width) // 2
     y_position = (screen_height - window_height) // 2  
-    window.geometry(f"{window_width}x{window_height}+{x_position}+{y_position-30}")
+    window.geometry(f"{window_width}x{window_height}+{x_position}+{y_position-35}")
 
 def get_filesize(file_path):
     size_bytes = os.path.getsize(file_path)
@@ -822,7 +825,7 @@ def open_settings_window():
         
         img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
         tk_img = ImageTk.PhotoImage(img)
-        center_window(settings_window, 480, 950)
+        center_window(settings_window, 480, 970)
         settings_window.update_idletasks()
 
         preview_label.config(text="")
