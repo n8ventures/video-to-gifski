@@ -14,6 +14,8 @@
 # add unpremultiply option
 # update video options on button
 # for devtool, activate pngtoico script (or just transfer the damn thing to devtool)
+# if media file not selected, dont send message
+# add pop up when commiting vid to png seq
 
 - 2.2.2
 # Disabled auto-running updater
