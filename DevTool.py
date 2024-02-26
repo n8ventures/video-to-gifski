@@ -8,7 +8,8 @@ import json
 from tqdm import tqdm
 import re
 from __version__ import __version__,__ffmpegversion__, __gifskiversion__, __updaterversion__, __appname__, __updatername__
-
+from PIL import Image
+import shutil
 class Color:
     PURPLE = '\033[95m'
     CYAN = '\033[96m'
@@ -351,10 +352,49 @@ def check_and_update_local():
     
     update__version__()
     print('Checking and updating local versions on __version__.py...')
+
+icoFolder = '.\\buildandsign\\ico\\'
+
+def pngtoico(png):
+    def resize_image(image_path, output_path, size):
+        with Image.open(image_path) as img:
+            resized_img = img.resize(size)
+            resized_img.save(output_path)
+            
+    mainDir = '.\\'
+
+    image = png
+    sizes = [(16, 16), (32, 32), (48, 48), (128, 128), (256, 256)]
+
+    resize_folder = "resize"
+    os.makedirs(resize_folder, exist_ok=True)
+
+    for size in sizes:
+        output_path = os.path.join(resize_folder, f"resized_{size[0]}x{size[1]}.png")
+        resize_image(image, output_path, size)
+
+    resized_images = [os.path.join(resize_folder, f"resized_{size[0]}x{size[1]}.png") for size in sizes]
+    print(resized_images)
+    
+    if png == f'{icoFolder}ico2.png':
+        output_ico = f'{mainDir}ico.ico'
+    elif png == f'{icoFolder}icobeta.png':
+        output_ico = f'{mainDir}icoDev.ico'
+    else:
+        output_ico = f'{mainDir}{os.path.splitext(os.path.basename(png))[0]}.ico'
+        print(output_ico)
+    
+    cmd = ["magick"] + resized_images + ['-type','TrueColorAlpha', output_ico]
+    subprocess.run(cmd, check=True)
+    shutil.rmtree('resize')
+
 parser.add_argument("-B", "--build",action='store_true', help = "build the app.")
 parser.add_argument("-c", "--console",action='store_true', help = 'Enable console window. (for testing purposes. Please don\'t use the argument for final export.)')
-parser.add_argument("-U","--Update", action ='store_true', help ='[Checks updates on binaries and will ask you to update.')
-parser.add_argument('-v', '--version', action='version', help='checks all the version the app uses including the app and updater itself.',
+parser.add_argument("-U","--Update", action ='store_true', help ='Checks updates on binaries and will ask you to update.')
+parser.add_argument("-i","--icon", action ='store_true', help ='Updates and generates .ico files for the executables.')
+
+
+parser.add_argument('-v', '--version', action='version', help='Checks all the version the app uses including the app and updater itself.',
                     version = textwrap.dedent(f"""\
                     App Proper: {__version__}
                     Updater version: {__updaterversion__}
@@ -362,7 +402,6 @@ parser.add_argument('-v', '--version', action='version', help='checks all the ve
                     Gifski: {__gifskiversion__}
                     """))
 args = parser.parse_args()
-
 
 if args.console:
     console = 'True'
@@ -455,3 +494,10 @@ if args.Update:
 
     check_and_update_local()
 
+if args.icon:
+    if shutil.which('magick') is None:
+        print('Install ImageMagick please: https://imagemagick.org/script/download.php')
+    else:
+        pngtoico(f'{icoFolder}ico2.png')
+        pngtoico(f'{icoFolder}icobeta.png')
+        pngtoico(f'{icoFolder}icoUpdater.png')
