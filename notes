@@ -11,12 +11,18 @@
 
 
 # updater bugs... Noticed that sometimes it wont start the download... Need to replicate
-# add unpremultiply option
-# update video options on button
-# for devtool, activate pngtoico script (or just transfer the damn thing to devtool)
-# if media file not selected, dont send message
-# add pop up when commiting vid to png seq
 
+
+
+- 2.3.0
+# add loading pop up when commiting vid to png seq
+# update video options on button
+# main app now detects if updater is old, will attempt to download newest version of updater.
+# if media file not selected, dont send message
+# add unpremultiply option
+    # I gotta make the check boxes cleaner so it doesnt get too cluttered.
+# for devtool, activate pngtoico script (or just transfer the damn thing to devtool)
+    #in addition to this, I improved the PNGs. Magick is weird, so now we're using Pillow.
 - 2.2.2
 # Disabled auto-running updater
 # Disabled unpremultiply filter (for now)
@@ -41,11 +47,11 @@
 
 
 - 2.1.0
-# add pop up for invalid file names - Done
-# get update working - Done
-# latest version on update not displaying properly - DONE
-# impliment Updater on main -Done
-    # impliment status messages. - Done
+# add pop up for invalid file names
+# get update working 
+# latest version on update not displaying properly 
+# impliment Updater on main 
+    # impliment status messages. 
 # need to impliment updater updater on main (context: main.exe is the updater for updater.exe) 
-    # NEWER WAY TO PARSE DATA FROM EXE TO EXE, CLI commands - Done
-# ensure file is video if ever they just renamed the extension - Done
+    # NEWER WAY TO PARSE DATA FROM EXE TO EXE, CLI commands 
+# ensure file is video if ever they just renamed the extension 
