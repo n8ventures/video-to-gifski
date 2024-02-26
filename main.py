@@ -97,6 +97,19 @@ def loading():
         
 loading_event = threading.Event()
 
+def loading_thread():
+    loading_event.set()
+    print('starting thread')
+    loading()
+
+def loading_thread_switch(switch):
+    if switch == True:
+        threading.Thread(target=loading_thread, daemon=True).start()
+    if switch == False:
+        print('killing loading popup')
+        loading_event.clear()
+        loading()
+
 # if Updater not found, download on github.
 def get_latest_release_version():
     global n8_gif_repo
@@ -137,7 +150,6 @@ def downloadUpdater():
         print("Failed to retrieve updater information. Please check your internet connection.")
         return 'ERR_NO_CONNECTION'
 
-
 def UPDATER_POPUP(title, msg):
     if os.path.exists(f"{__updatername__}.exe"):
         win_height = 250
@@ -166,28 +178,25 @@ def UPDATER_POPUP(title, msg):
     if downloadUpdater() == 'UPDR_DONE':
         updaterMenu.destroy()
 
+def execute_download_updater():
+    UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
+    update_result = downloadUpdater()
+    if update_result == 'ERR_NO_CONNECTION':
+        UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
+    elif update_result == 'ERR_NOT_FOUND':
+        UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
+    elif update_result == 'UPDR_DONE':
+        time.sleep(3)
+        subprocess.Popen(f'{__updatername__}.exe')
+
 def CheckUpdates():
     get_latest_release_version()
     
-    def execute_download_updater():
-        UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
-        update_result = downloadUpdater()
-        if update_result == 'ERR_NO_CONNECTION':
-            UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
-        elif update_result == 'ERR_NOT_FOUND':
-            UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
-        elif update_result == 'UPDR_DONE':
-            time.sleep(3)
-            subprocess.Popen(f'{__updatername__}.exe')
-            
     if not os.path.exists(f"{__updatername__}.exe"):
         print('updater not found')
         execute_download_updater()
     else:
         print('Updater exists!')
-        if args.debug:
-            result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
-            print(f'Updater version: {result.stdout.strip()}')
         if __version__ < get_latest_release_version():
             print('New release! Downloading updated updater. (yeah I know...)')
             execute_download_updater()
@@ -198,27 +207,22 @@ def CheckUpdates():
 def CheckUpdates_bg():
     get_latest_release_version()
     
-    def execute_download_updater():
-        UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
-        update_result = downloadUpdater()
-        if update_result == 'ERR_NO_CONNECTION':
-            UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
-        elif update_result == 'ERR_NOT_FOUND':
-            UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
-        elif update_result == 'UPDR_DONE':
-            time.sleep(3)
-            subprocess.Popen(f'{__updatername__}.exe')
-            
     if not os.path.exists(f"{__updatername__}.exe"):
         print('updater not found')
         execute_download_updater()
     else:
         print('Updater exists!')
+        
+        result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
         if args.debug:
-            result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
             print(f'Updater version: {result.stdout.strip()}')
+
         if __version__ < get_latest_release_version():
             print('New release! Downloading updated updater. (yeah I know...)')
+            execute_download_updater()
+
+        if result.stdout.strip() < __updaterversion__:
+            print('new Updater version detected. Downloading updater!')
             execute_download_updater()
 
 def updaterExists():
@@ -362,8 +366,8 @@ def video_to_frames_seq(input_file, framerate):
     if scale_widget.get() != 100:
         filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
     
-    # if video_data['pix_fmt'] in alpha_formats:
-    #     filtergraph.append('unpremultiply=inplace=1')
+    if safeAlpha.get():
+        filtergraph.append('unpremultiply=inplace=1')
 
     cmd.append(','.join(filtergraph))
     cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
@@ -408,7 +412,7 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
 def get_and_print_video_data(file_path):
     global video_data
-    print(f"File dropped: {file_path}")
+    print(f"File: {file_path}")
     
     if file_path and is_video_file(file_path):
         video_data = get_video_data(file_path)
@@ -440,8 +444,10 @@ def get_and_print_video_data(file_path):
         
             if not settings_window_open:
                 open_settings_window()
+    elif file_path == '':
+        print('No video File dropped.')
     else:
-        notavideo = create_popup(root, "NOT A VIDEO FILE!", 400, 100, 1)
+        notavideo = create_popup(root, "Not a video!", 400, 100, 1)
         make_non_resizable(notavideo)
 
         errortext = (
@@ -453,18 +459,16 @@ def get_and_print_video_data(file_path):
 
         close_button = ttk.Button(notavideo, text="Close", command=notavideo.destroy)
         close_button.pack(pady=10)
-                
-def is_video_file(file_path):
-    # might need this later for the file dialog on importing it...
-    global video_extensions
-    _, file_extension = os.path.splitext(file_path)
-    video_extensions = [
-    '.3g2', '.3gp', '.amv', '.asf', '.avi', '.drc', '.f4v', '.flv', '.gif', '.gifv', '.m2ts', 
-    '.m2v', '.m4p', '.m4v', '.mkv', '.mng', '.mov', '.mp2', '.mp4', '.mpe', '.mpeg', '.mpg', 
-    '.mpv', '.mts', '.mxf', '.nsv', '.ogg', '.ogv', '.qt', '.rm', '.rmvb', '.roq', '.svi', 
-    '.ts', '.vob', '.webm', '.wmv', '.yuv'
-    ]
+        
+video_extensions = [
+'.3g2', '.3gp', '.amv', '.asf', '.avi', '.drc', '.f4v', '.flv', '.gif', '.gifv', '.m2ts', 
+'.m2v', '.m4p', '.m4v', '.mkv', '.mng', '.mov', '.mp2', '.mp4', '.mpe', '.mpeg', '.mpg', 
+'.mpv', '.mts', '.mxf', '.nsv', '.ogg', '.ogv', '.qt', '.rm', '.rmvb', '.roq', '.svi', 
+'.ts', '.vob', '.webm', '.wmv', '.yuv'
+]
 
+def is_video_file(file_path):
+    _, file_extension = os.path.splitext(file_path)
     return file_extension.lower() in video_extensions
 
 def is_folder_open(path):
@@ -495,19 +499,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
                 
             else:
                 print('Window not found with specified title.')
-    def loading_thread():
-        loading_event.set()
-        print('starting thread')
-        loading()
 
-    def loading_thread_switch(switch):
-        if switch == True:
-            threading.Thread(target=loading_thread, daemon=True).start()
-        if switch == False:
-            print('killing loading popup')
-            loading_event.clear()
-            loading()
-    
     if mode == 'final':
         output_file = filedialog.asksaveasfile(
             defaultextension=".gif",
@@ -561,7 +553,8 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
 
 
 def apply_settings(mode):
-    global fps, gif_quality_scale, scale_widget, extra_var, fast_var, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, scaled_width, scaled_height
+    global fps, gif_quality_scale, scale_widget, extra_var, fast_var, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, scaled_width, scaled_height, safeAlpha
+
     fps_value = fps.get()
     scale_value = scale_widget.get()
     extra_value = extra_var.get()
@@ -573,6 +566,7 @@ def apply_settings(mode):
     lossy_quality =lossy_quality_scale.get()
     width_value = video_data['width']
     height_value = video_data['height']
+    unpremultiply_value = safeAlpha.get()
         
 
     if width_value and height_value:
@@ -595,6 +589,7 @@ def apply_settings(mode):
     
     print("Extra:", extra_value)
     print("Fast:", fast_value)
+    print('unpremultiply:', unpremultiply_value)
     
     convert_and_save(fps, gif_quality_scale, motion_quality_scale, lossy_quality_scale, file_path, mode)
 
@@ -602,35 +597,9 @@ def choose_file():
     global file_path
     file_path = filedialog.askopenfilename(
         title="Select Video File",
-        filetypes=(("Video files", "*.mp4;*.avi;*.mkv;*.mov"), ("All files", "*.*"))
+        filetypes=(("Video files", "*" + " *".join(video_extensions)), ("All files", "*.*"))
     )
     get_and_print_video_data(file_path)
-
-# Unused (Might need to figure this one out sooner or later...)
-def open_finish_window():
-    global finish_window
-    finish_window = tk.Toplevel(root)
-    finish_window.title("Done!")
-    center_window(finish_window, 300, 300)
-    finish_window.iconbitmap(icon)
-    watermark_label(finish_window)
-    make_non_resizable(finish_window)
-
-    finish_close_label = tk.Label(finish_window, text="Conversion Complete!")
-    finish_close_label.pack()
-
-    finish_close_button = tk.Button(finish_window, text="Close", command=lambda: finish_window.destroy())
-    finish_close_button.pack(pady=30)
-
-    # Disable the root window
-    root.withdraw()
-
-    # Make the finish_window modal (only interactable) and wait for it to be closed
-    finish_window.grab_set()
-    finish_window.wait_window(finish_window)
-
-    # Re-enable the root window when finish_window is closed
-    root.deiconify()
 
 settings_window_open = False
 
@@ -645,7 +614,7 @@ def on_configure(event):
     
 ## let's impliment the hover for info for less GUI clutter.    
 def open_settings_window(): 
-    global settings_window_open, fps, gif_quality_scale, scale_widget, extra_var, fast_var, settings_window, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var
+    global settings_window_open, fps, gif_quality_scale, scale_widget, extra_var, fast_var, settings_window, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, safeAlpha
     
     if not settings_window_open:
         settings_window_open = True
@@ -688,9 +657,6 @@ def open_settings_window():
     Hovertip(gif_quality_label, "Overall GIF Quality", hover_delay=500)
     Hovertip(gif_quality_scale, "Overall GIF Quality", hover_delay=500)
     
-    # separator2 = ttk.Separator(settings_window, orient="horizontal")
-    # separator2.pack(fill="x", padx=20, pady=2)
-    
     def update_checkbox_state(var, widget, other_var=None, other_widget=None, cmode=None):
         if cmode == 'encode':
             if var.get() == 1:
@@ -716,7 +682,7 @@ def open_settings_window():
     motion_quality_scale.set(100)
     motion_quality_scale.pack()
     motion_quality_scale['state'] = 'disabled'
-    Hovertip(motion_quality_label, "Lower values reduce motion.", hover_delay=500)
+    Hovertip(motion_quality_label, "Turn this on to fine-tune the Motion Quality (affects overall Quality.)", hover_delay=500)
     Hovertip(motion_quality_scale, "Lower values reduce motion.", hover_delay=500)
     # separator3 = ttk.Separator(settings_window, orient="horizontal")
     # separator3.pack(fill="x", padx=20, pady=2)
@@ -727,7 +693,7 @@ def open_settings_window():
     lossy_quality_scale.set(100)
     lossy_quality_scale.pack()
     lossy_quality_scale['state'] = 'disabled'
-    Hovertip(lossy_quality_scale, "Lower values introduce noise and streaks.", hover_delay=500)
+    Hovertip(lossy_quality_scale, "Turn this on to fine-tune the Lossy Quality (affects overall Quality.)", hover_delay=500)
     Hovertip(lossy_quality_label, "Lower values introduce noise and streaks.", hover_delay=500)
     # separator4 = ttk.Separator(settings_window, orient="horizontal")
     # separator4.pack(fill="x", padx=20, pady=2)
@@ -757,25 +723,46 @@ def open_settings_window():
     
     spacer = tk.Label(settings_window, text="Encode Quality:")
     spacer.pack(pady=5)
-
+    
+    checkboxFrame = tk.Frame(settings_window)
+    checkboxFrame.pack(pady=5)
+    
     extra_var = tk.IntVar()
-    extra_checkbox = tk.Checkbutton(settings_window, variable=extra_var, text="Extra", command=lambda: update_checkbox_state(extra_var, extra_checkbox, fast_var, fast_checkbox,  cmode = 'encode'))
-    extra_checkbox.pack()
-    Hovertip(extra_checkbox, "Extra - slower encoding, but 1% better quality.", hover_delay=500)
+    extra_checkbox = tk.Checkbutton(checkboxFrame, variable=extra_var, text="Extra Quality", command=lambda: update_checkbox_state(extra_var, extra_checkbox, fast_var, fast_checkbox,  cmode = 'encode'))
+    extra_checkbox.pack(side=tk.LEFT)
+    Hovertip(extra_checkbox, "Slower encoding, but 1% better quality.", hover_delay=500)
+    
     fast_var = tk.IntVar()
-    fast_checkbox = tk.Checkbutton(settings_window, variable=fast_var, text="Fast", command=lambda: update_checkbox_state(fast_var, fast_checkbox, extra_var, extra_checkbox,  cmode = 'encode'))
-    fast_checkbox.pack()
-    Hovertip(fast_checkbox, "Fast - faster encoding, but 10% worse quality & larger file size.", hover_delay=500)
-    apply_button = tk.Button(settings_window, text="Convert!", width=10, command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
-    apply_button.pack(side=tk.LEFT, pady=5)
+    fast_checkbox = tk.Checkbutton(checkboxFrame, variable=fast_var, text="Fast Quality", command=lambda: update_checkbox_state(fast_var, fast_checkbox, extra_var, extra_checkbox,  cmode = 'encode'))
+    fast_checkbox.pack(side=tk.RIGHT)
+    Hovertip(fast_checkbox, "Faster encoding, but 10% worse quality & larger file size.", hover_delay=500)
     
-    test_button = tk.Button(settings_window, text="Test/Preview", width=24, command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start())
-    test_button.pack(side=tk.RIGHT, pady=5)
+    # insert unpremultiply option here
     
-    width = max(apply_button.winfo_reqwidth(), test_button.winfo_reqwidth())
-    x_position = (settings_window.winfo_width() - width) // 2
-    apply_button.pack_configure(padx=(x_position - 5, 5))
-    test_button.pack_configure(padx=(5, x_position - 5))
+    alphaFrame = tk.Frame(settings_window)
+    separator2 = ttk.Separator(settings_window, orient="horizontal")
+    alphaLabel = tk.Label(alphaFrame, text='Alpha Options:')
+    
+    safeAlpha = tk.IntVar()
+    unprenmult_checkbox = tk.Checkbutton(alphaFrame, variable=safeAlpha, text="Unpremultiply")
+    if video_data['pix_fmt'] in alpha_formats:
+        separator2.pack(fill="x", padx=20, pady=2)
+        
+        alphaFrame.pack()
+        alphaLabel.pack()
+        unprenmult_checkbox.pack(pady=5)
+        
+        Hovertip(unprenmult_checkbox, "It\'s like unmult but more precise.\nEnable this if your GIF has outlines.", hover_delay=500)
+        root.update_idletasks()
+    
+    buttonsFrame = tk.Frame(settings_window)
+    buttonsFrame.pack(pady=10)
+    
+    apply_button = tk.Button(buttonsFrame, text="Convert!", command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
+    apply_button.pack(side=tk.LEFT, padx=5)
+    
+    test_button = tk.Button(buttonsFrame, text="Test/Preview", command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start())
+    test_button.pack(side=tk.RIGHT, padx=5)
     
     def update_scale_label(value):
         global scaled_width, scaled_height
@@ -796,17 +783,13 @@ def open_settings_window():
     scale_widget.bind("<B1-Motion>", lambda event: update_scale_label(scale_widget.get()))
     
     def preview_gif_window():
-        # global preview_gif_window
-        # preview_gif_window = tk.Toplevel(root)
-        # preview_gif_window.title("Check the gif")
-        # preview_gif_window.geometry("500x500")
-        # preview_gif_window.iconbitmap(icon)
-        # watermark_label(preview_gif_window)
         play_gif_button.config(state="normal")
         if args.debug:
             debug_gif_button.config(state="normal")
-        
+            
+        loading_thread_switch(True)
         video_to_frames_seq(file_path, fps.get())
+        loading_thread_switch(False)
         
         apply_settings('temp')
         
@@ -844,6 +827,7 @@ def open_settings_window():
     def play_gif(file_path):
         cmd = [
         ffplay,
+        "-window_title", "Playing GIF Preview",
         "-loglevel", "-8",
         "-loop", "0",
         file_path
@@ -856,13 +840,12 @@ def open_settings_window():
     settings_window.wait_window(settings_window)
     if os.path.exists('temp'):
         shutil.rmtree('temp')
-        #  os.remove('temp.gif')
         print("temp removed successfully.")
     else:
         print("temp does not exist.")
     root.deiconify()
 
-    
+
 def drag_enter(event):
     drop_label.config(bg="lightgray")
     label.config(bg="lightgray")
