@@ -622,7 +622,7 @@ def open_settings_window():
     
     settings_window = tk.Toplevel(root)
     settings_window.title("User Settings")
-    center_window(settings_window, 350, 800)
+    center_window(settings_window, 350, 720)
     settings_window.iconbitmap(icon)
     watermark_label(settings_window)
     make_non_resizable(settings_window)
