@@ -59,6 +59,7 @@ def genMainSpec(ff, console):
         ('ico.ico', '.'),
         ('icoDev.ico', '.'),
         ('.\\\\buildandsign\\\\ico\\\\amor.png', '.'),
+        ('.\\\\buildandsign\\\\ico\\\\ico3.png', '.'),
         ('.\\\\buildandsign\\\\ico\\\\motionteamph.png', '.'),
         ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2'),
         ('{site_packages_path}\\\\requests', 'requests'), 
@@ -109,6 +110,7 @@ def genMainSpec(ff, console):
         codesign_identity=None,
         entitlements_file=None,
         icon=['{icon}'],
+        version='__mainVersion.rc',
         )'''
     a = textwrap.dedent(a)
     b = textwrap.dedent(b)
@@ -128,6 +130,7 @@ def genUpdaterSpec():
     datas = [ 
         ('icoUpdater.ico', '.'),
         ('.\\\\buildandsign\\\\ico\\\\n8.png', '.'),
+        ('.\\\\buildandsign\\\\ico\\\\ico3Updater.png', '.'),
         ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2'),
         ('{site_packages_path}\\\\requests', 'requests'), 
         ('{site_packages_path}\\\\tqdm', 'tqdm'),
@@ -173,6 +176,7 @@ def genUpdaterSpec():
         codesign_identity=None,
         entitlements_file=None,
         icon=['icoUpdater.ico'],
+        version='__updaterVersion.rc',
         )'''
     a = textwrap.dedent(a)
     b = textwrap.dedent(b)
@@ -377,9 +381,17 @@ def pngtoico(png):
     print(resized_images)
     
     if png == f'{icoFolder}ico2.png':
-        output_ico = f'{mainDir}ico.ico'
+        output_ico = f'{mainDir}EE\\ico.ico'
     elif png == f'{icoFolder}icobeta.png':
+        output_ico = f'{mainDir}EE\\icoDev.ico'
+        
+    elif png == f'{icoFolder}ico3.png':
+        output_ico = f'{mainDir}ico.ico'
+    elif png == f'{icoFolder}ico3beta.png':
         output_ico = f'{mainDir}icoDev.ico'
+    elif png == f'{icoFolder}ico3Updater.png':
+        output_ico = f'{mainDir}icoUpdater.ico'
+        
     else:
         output_ico = f'{mainDir}{os.path.splitext(os.path.basename(png))[0]}.ico'
         print(output_ico)
@@ -428,6 +440,13 @@ if args.Update:
     
     currentFFmpeg = __ffmpegversion__
     currentGifski = __gifskiversion__
+    
+    # sevenZip = 'C:\\Program Files\\7-Zip\\7z.exe'
+    # if not os.exists(sevenZip):
+    #     sevenZip = '.\\buildandsign\\bins\\7z.exe'
+        
+    #     if not os.exists(sevenZip):
+    #         print('Download and install: 7zip!')
     
     print('Checking FFmpeg version...')
     if currentFFmpeg == ffmpegRepo:
@@ -498,6 +517,9 @@ if args.icon:
     if shutil.which('magick') is None:
         print('Install ImageMagick please: https://imagemagick.org/script/download.php')
     else:
-        pngtoico(f'{icoFolder}ico2.png')
-        pngtoico(f'{icoFolder}icobeta.png')
-        pngtoico(f'{icoFolder}icoUpdater.png')
+        # pngtoico(f'{icoFolder}ico2.png')
+        # pngtoico(f'{icoFolder}icobeta.png')
+        # pngtoico(f'{icoFolder}icoUpdater.png')
+        pngtoico(f'{icoFolder}ico3Updater.png')
+        pngtoico(f'{icoFolder}ico3.png')
+        pngtoico(f'{icoFolder}ico3beta.png')
