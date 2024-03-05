@@ -14,6 +14,7 @@ import pywinctl as pwc
 
 import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument("-E", "--Egg",action='store_true', help = "Egg, mi amor")
 parser.add_argument('-v', '--version', action='version', version = __updaterversion__)
 args = parser.parse_args()
 
@@ -47,8 +48,6 @@ def check_appVer():
 
         appversion = result.stdout.strip()
 
-
-    
     else:
         missing_app_menu = create_popup(root, 'Main App Missing!', 300,100, 1)
         make_non_resizable(missing_app_menu)
@@ -155,7 +154,6 @@ def updatenow():
         subprocess.Popen([latest_file])
         root.quit()
         # root.destroy()
-        print('lol1')
         return
     
     threadMeUp(updatenow_function)
@@ -197,17 +195,26 @@ current_version = appversion
 switch = 0
 make_non_resizable(root)
 
-image_path = 'n8.png' 
+image_path = 'ico3Updater.png' 
 if hasattr(sys, '_MEIPASS'):
     image_path = os.path.join(sys._MEIPASS, image_path)
 else:
-    image_path = '.\\buildandsign\\ico\\n8.png' 
+    image_path = '.\\buildandsign\\ico\\ico3Updater.png'
+imgYPos = 225
+
+if args.Egg: 
+    image_path = 'n8.png' 
+    if hasattr(sys, '_MEIPASS'):
+        image_path = os.path.join(sys._MEIPASS, image_path)
+    else:
+        image_path = '.\\buildandsign\\ico\\n8.png'
+    imgYPos = 250
 
 image = tk.PhotoImage(file=image_path)
 resized_image = image.subsample(2)
 label = tk.Label(root, image=resized_image, bd=0)
 label.image = resized_image
-label.place(x=geo_width / 2, y=250, anchor=tk.CENTER) 
+label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
 
 spacer = tk.Label(root, text='')
 spacer.pack(pady=5)
@@ -221,10 +228,12 @@ latest_version = get_latest_release_version("n8ventures", "v2g-con-personal")
 latest_version_display = tk.Label(root, text='')
 latest_version_display.pack()
 
-close_button_update = ttk.Button(root, text="Cancel",width= 10, command=on_closing)
+buttonFrame = tk.Frame(root)
+buttonFrame.pack()
+close_button_update = ttk.Button(buttonFrame, text="Cancel", command=on_closing)
 close_button_update.pack()
 
-update_button = ttk.Button(root, text="Sure!",width= 10, command=updatenow)
+update_button = ttk.Button(buttonFrame, text="Sure!", command=updatenow)
 update_button.pack_forget()
 
 

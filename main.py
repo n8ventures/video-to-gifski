@@ -18,6 +18,7 @@ import math
 
 import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument("-E", "--Egg",action='store_true', help = "Egg, mi amor")
 parser.add_argument('-v', '--version', action='version', version = __version__)
 parser.add_argument('-D', '--debug', action='store_true', help=f'Debug mode. use cmd \' {__appname__}.exe | MORE\'. But, you already knew that, don\'t cha?')
 parser.add_argument('-ct', '--checkthreads', action='store_true', help='Checks threads. (Will not work without [-D])')
@@ -40,6 +41,8 @@ if args.debug:
         threading.Thread(name='thread checker', target=list_current_threads, daemon=True).start()
 
 print("Current version:", __version__)
+
+
 
 video_data = None
 global mode
@@ -257,13 +260,13 @@ def about():
     close_button = ttk.Button(aboutmenu, text="Close", command=aboutmenu.destroy)
     close_button.pack(pady=10)
     
-    image_path = 'motionteamph.png' 
+    mograph = 'motionteamph.png' 
     if hasattr(sys, '_MEIPASS'):
-        image_path = os.path.join(sys._MEIPASS, image_path)
+        mograph = os.path.join(sys._MEIPASS, mograph)
     else:
-        image_path = '.\\buildandsign\\ico\\motionteamph.png' 
+        mograph = '.\\buildandsign\\ico\\motionteamph.png' 
 
-    image = tk.PhotoImage(file=image_path)
+    image = tk.PhotoImage(file=mograph)
     label = tk.Label(aboutmenu, image=image, bd=0)
     label.image = image
     label.place(x=geo_width / 2, y=geo_len - 60, anchor=tk.CENTER)
@@ -907,17 +910,28 @@ print("Current working directory:", os.getcwd())
 print("Executable path:", sys.executable)
 
 # logo on drop event area
-image_path = 'amor.png' 
+DnDLogo = 'ico3.png' 
 if hasattr(sys, '_MEIPASS'):
-    image_path = os.path.join(sys._MEIPASS, image_path)
+    DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
 else:
-    image_path = '.\\buildandsign\\ico\\amor.png' 
+    DnDLogo = '.\\buildandsign\\ico\\ico3.png'
+imgYPos = 225
 
-image = tk.PhotoImage(file=image_path)
+
+if args.Egg:
+    DnDLogo = 'amor.png' 
+    if hasattr(sys, '_MEIPASS'):
+        DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
+    else:
+        DnDLogo = '.\\buildandsign\\ico\\amor.png'
+    
+    imgYPos = 200
+
+image = tk.PhotoImage(file=DnDLogo)
 resized_image = image.subsample(2)
 label = tk.Label(canvas, image=resized_image, bd=0, bg="white")
 label.image = resized_image
-label.place(x=geo_width / 2, y=200, anchor=tk.CENTER)
+label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
 def on_closing():
     if os.path.exists('temp'):
         shutil.rmtree('temp')
