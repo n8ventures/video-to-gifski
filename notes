@@ -14,12 +14,17 @@
 
 # Improve debug mode.
 
-# add Splash Screen
+# Improve Splash Screen / Loading times
+    # Explore --one-dir option
 
-- 2.3.1
+# Write rc settings on DevTool
+
+- 2.4.0
 # Updated icons 
 # added RC Versions.
 # Easter Egg args.
+# add Splash Screen
+
 # Updater ver 1.1.1
     # added button framing (still need to test this out)
 
