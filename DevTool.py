@@ -58,6 +58,8 @@ def genMainSpec(ff, console):
     datas = [ 
         ('ico.ico', '.'),
         ('icoDev.ico', '.'),
+        ('.\\\\splash\\\\splash.gif','.'),
+        ('.\\\\splash\\\\splashEE.gif','.'),
         ('.\\\\buildandsign\\\\ico\\\\amor.png', '.'),
         ('.\\\\buildandsign\\\\ico\\\\ico3.png', '.'),
         ('.\\\\buildandsign\\\\ico\\\\motionteamph.png', '.'),
@@ -404,8 +406,6 @@ parser.add_argument("-B", "--build",action='store_true', help = "build the app."
 parser.add_argument("-c", "--console",action='store_true', help = 'Enable console window. (for testing purposes. Please don\'t use the argument for final export.)')
 parser.add_argument("-U","--Update", action ='store_true', help ='Checks updates on binaries and will ask you to update.')
 parser.add_argument("-i","--icon", action ='store_true', help ='Updates and generates .ico files for the executables.')
-
-
 parser.add_argument('-v', '--version', action='version', help='Checks all the version the app uses including the app and updater itself.',
                     version = textwrap.dedent(f"""\
                     App Proper: {__version__}
@@ -413,6 +413,7 @@ parser.add_argument('-v', '--version', action='version', help='Checks all the ve
                     FFMPEG: {__ffmpegversion__}
                     Gifski: {__gifskiversion__}
                     """))
+
 args = parser.parse_args()
 
 if args.console:
