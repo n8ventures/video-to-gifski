@@ -16,6 +16,7 @@ import pywinctl as pwc
 import time
 import math
 
+
 import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("-E", "--Egg",action='store_true', help = "Egg, mi amor")
@@ -39,7 +40,8 @@ if args.debug:
                 time.sleep(3)
 
         threading.Thread(name='thread checker', target=list_current_threads, daemon=True).start()
-
+if args.Egg:
+    debug = '(Egg me up)'
 print("Current version:", __version__)
 
 
@@ -611,9 +613,6 @@ def on_settings_window_close():
     settings_window_open = False
     settings_window.destroy()
     print(settings_window_open)
-
-def on_configure(event):
-    canvas.configure(scrollregion=canvas.bbox("all"))
     
 ## let's impliment the hover for info for less GUI clutter.    
 def open_settings_window(): 
@@ -842,96 +841,161 @@ def open_settings_window():
     settings_window.grab_set()
     settings_window.wait_window(settings_window)
     if os.path.exists('temp'):
-        shutil.rmtree('temp')
+        shutil.rmtree('temp') 
         print("temp removed successfully.")
     else:
         print("temp does not exist.")
     root.deiconify()
 
 
-def drag_enter(event):
-    drop_label.config(bg="lightgray")
-    label.config(bg="lightgray")
-
-def drag_leave(event):
-    drop_label.config(bg="white")
-    label.config (bg="white")
-def on_drop(event):
-    global file_path
-    drop_label.config(bg="white")
-    label.config (bg="white")
-    file_path = event.data.strip('{}')
-    threading.Thread(target=get_and_print_video_data, args=(file_path, )).start()
-    
 # Create the main window
 root = TkinterDnD.Tk()
+root.withdraw()
 
-if any(char.isalpha() for char in __version__):
-    root.title(f"N8's Video to GIF Converter Early Access {__version__}")
-    
-else:
-    root.title(f"N8's Video to GIF Converter {__version__}")
+splash_screen = tk.Toplevel(root)
+splash_screen.overrideredirect(1) 
+splash_screen.attributes('-topmost', True)  # Keep the window on top
+splash_screen.attributes("-transparentcolor", "white")
+splash_geo_x = 350
+splash_geo_y = 550
+if args.Egg:
+    splash_geo_x = 300
+    splash_geo_y = 300
+center_window(splash_screen, splash_geo_x, splash_geo_y)
 
-geo_width= 425
-center_window(root, geo_width, 450)
-root.iconbitmap(icon)
-make_non_resizable(root)
-watermark_label(root)
 
-spacer = tk.Label(root, text="")
-spacer.pack(pady=10)
 
-# Create a button to choose a file
-choose_button = tk.Button(root, text="Choose Video File", command=choose_file)
-choose_button.pack(pady=20)
 
-or_label = tk.Label(root, text="Or")
-or_label.pack(pady=20)
-
-# Create a Canvas with a grey broken-line border - doesnt work lol
-canvas = tk.Canvas(root, bd=2, relief="ridge")
-canvas.pack(expand=True, fill="both")
-
-# Create a Label for the drop area
-drop_label = tk.Label(canvas, text="Drag and Drop Video Files Here", padx=20, pady=20, bg="white")
-drop_label.pack(expand=True, fill="both")
-
-# Bind the drop event to the on_drop function
-drop_label.bind("<Enter>", drag_enter)
-drop_label.bind("<Leave>", drag_leave)
-drop_label.drop_target_register(DND_FILES)
-drop_label.dnd_bind('<<Drop>>', on_drop)
-canvas.bind("<Enter>", drag_enter)
-canvas.bind("<Leave>", drag_leave)
-canvas.dnd_bind('<<Drop>>', on_drop)
-canvas.drop_target_register(DND_FILES)
-
-print("Current working directory:", os.getcwd())
-print("Executable path:", sys.executable)
-
-# logo on drop event area
-DnDLogo = 'ico3.png' 
+gif_path = 'splash.gif'
 if hasattr(sys, '_MEIPASS'):
-    DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
+    gif_path = os.path.join(sys._MEIPASS, gif_path)
 else:
-    DnDLogo = '.\\buildandsign\\ico\\ico3.png'
-imgYPos = 225
-
+    gif_path = './/splash//splash.gif'
 
 if args.Egg:
-    DnDLogo = 'amor.png' 
+    gif_path = 'splashEE.gif'
+    if hasattr(sys, '_MEIPASS'):
+        gif_path = os.path.join(sys._MEIPASS, gif_path)
+    else:
+        gif_path = './/splash//splashEE.gif'
+
+gif_img = Image.open(gif_path)
+gif_frames_rgba = [frame.convert("RGBA") for frame in ImageSequence.Iterator(gif_img)]
+
+splash_label = tk.Label(splash_screen, bg='white')
+splash_label.pack()
+
+# Function to animate GIF frames
+def animate(frame_num, loop):
+    frame = gif_frames_rgba[frame_num]
+    photo = ImageTk.PhotoImage(frame)
+    splash_label.config(image=photo, bg='white')
+    splash_label.image = photo
+    
+    if loop:
+        frame_num = (frame_num + 1) % len(gif_frames_rgba)
+        splash_screen.after(25, animate, frame_num, True)
+    elif frame_num < len(gif_frames_rgba) - 1:
+        frame_num += 1
+        splash_screen.after(25, animate, frame_num, False)
+
+loop_switch = False
+if args.Egg:
+    loop_switch = True
+
+animate(0, loop_switch)
+
+def show_main():    
+    def on_configure(event):
+        canvas.configure(scrollregion=canvas.bbox("all"))
+        
+    def drag_enter(event):
+        drop_label.config(bg="lightgray")
+        label.config(bg="lightgray")
+
+    def drag_leave(event):
+        drop_label.config(bg="white")
+        label.config (bg="white")
+        
+    def on_drop(event):
+        global file_path
+        drop_label.config(bg="white")
+        label.config (bg="white")
+        file_path = event.data.strip('{}')
+        threading.Thread(target=get_and_print_video_data, args=(file_path, )).start()
+    
+    if any(char.isalpha() for char in __version__):
+        root.title(f"N8's Video to GIF Converter Early Access {__version__}")
+        
+    else:
+        root.title(f"N8's Video to GIF Converter {__version__}")
+
+    geo_width= 425
+    center_window(root, geo_width, 450)
+    root.iconbitmap(icon)
+    make_non_resizable(root)
+    watermark_label(root)
+
+    spacer = tk.Label(root, text="")
+    spacer.pack(pady=10)
+
+    # Create a button to choose a file
+    choose_button = tk.Button(root, text="Choose Video File", command=choose_file)
+    choose_button.pack(pady=20)
+
+    or_label = tk.Label(root, text="Or")
+    or_label.pack(pady=20)
+
+    # Create a Canvas with a grey broken-line border - doesnt work lol
+    canvas = tk.Canvas(root, bd=2, relief="ridge")
+    canvas.pack(expand=True, fill="both")
+
+    # Create a Label for the drop area
+    drop_label = tk.Label(canvas, text="Drag and Drop Video Files Here", padx=20, pady=20, bg="white")
+    drop_label.pack(expand=True, fill="both")
+
+    # Bind the drop event to the on_drop function
+    drop_label.bind("<Enter>", drag_enter)
+    drop_label.bind("<Leave>", drag_leave)
+    drop_label.drop_target_register(DND_FILES)
+    drop_label.dnd_bind('<<Drop>>', on_drop)
+    canvas.bind("<Enter>", drag_enter)
+    canvas.bind("<Leave>", drag_leave)
+    canvas.dnd_bind('<<Drop>>', on_drop)
+    canvas.drop_target_register(DND_FILES)
+
+    print("Current working directory:", os.getcwd())
+    print("Executable path:", sys.executable)
+
+    # logo on drop event area
+    DnDLogo = 'ico3.png' 
     if hasattr(sys, '_MEIPASS'):
         DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
     else:
-        DnDLogo = '.\\buildandsign\\ico\\amor.png'
-    
-    imgYPos = 200
+        DnDLogo = '.\\buildandsign\\ico\\ico3.png'
+    imgYPos = 225
 
-image = tk.PhotoImage(file=DnDLogo)
-resized_image = image.subsample(2)
-label = tk.Label(canvas, image=resized_image, bd=0, bg="white")
-label.image = resized_image
-label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
+
+    if args.Egg:
+        DnDLogo = 'amor.png' 
+        if hasattr(sys, '_MEIPASS'):
+            DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
+        else:
+            DnDLogo = '.\\buildandsign\\ico\\amor.png'
+        
+        imgYPos = 200
+
+    image = tk.PhotoImage(file=DnDLogo)
+    resized_image = image.subsample(2)
+    label = tk.Label(canvas, image=resized_image, bd=0, bg="white")
+    label.image = resized_image
+    label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
+    
+    threading.Thread(target=updaterExists).start()
+    
+    splash_screen.destroy()
+    root.deiconify()
+
 def on_closing():
     if os.path.exists('temp'):
         shutil.rmtree('temp')
@@ -947,6 +1011,8 @@ def on_closing():
 root.protocol("WM_DELETE_WINDOW", on_closing)
 atexit.register(on_closing)
 
-threading.Thread(target=updaterExists).start()
+# threading.Thread(target=show_main).start()
+splash_screen.after(5000, show_main)
+
 root.mainloop()
 
