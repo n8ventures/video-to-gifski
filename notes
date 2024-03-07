@@ -7,23 +7,24 @@
 
 
 # Batch File process
-    # alternative to this is to stop opening a new fucking window after conversion
+    # alternative to this is to stop opening a new fucking window after conversion - this is done on 2.2.0
 
 
-# updater bugs... Noticed that sometimes it wont start the download... Need to replicate
+# 2.2.1 updater bugs... Noticed that sometimes it wont start the download... Need to replicate
 
 # Improve debug mode.
 
 # Improve Splash Screen / Loading times
     # Explore --one-dir option
 
-# Write rc settings on DevTool
+
 
 - 2.4.0
 # Updated icons 
 # added RC Versions.
 # Easter Egg args.
 # add Splash Screen
+# Write rc settings on DevTool
 
 # Updater ver 1.1.1
     # added button framing (still need to test this out)

@@ -188,6 +188,108 @@ def genUpdaterSpec():
         spec_file.write(b.__str__())
         spec_file.write(c.__str__())
 
+def genMainRC():
+    version = __version__.split('.')
+    a = f'''
+    # UTF-8
+    # Please refer to __version__.py
+    # For more details about fixed file info 'ffi' see:
+    # http://msdn.microsoft.com/en-us/library/ms646997.aspx
+    VSVersionInfo(
+      ffi=FixedFileInfo(
+        # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
+        # Set not needed items to zero 0.
+        filevers=({version[0]}, {version[1]}, {version[2]}, 0),
+        prodvers=({version[0]}, {version[1]}, {version[2]}, 0),
+        # Contains a bitmask that specifies the valid bits 'flags'r
+        mask=0x3f,
+        # Contains a bitmask that specifies the Boolean attributes of the file.
+        flags=0x0,
+        # The operating system for which this file was designed.
+        # 0x4 - NT and there is no need to change it.
+        OS=0x4,
+        # The general type of file.
+        # 0x1 - the file is an application.
+        fileType=0x1,
+        # The function of the file.
+        # 0x0 - the function is not defined for this fileType
+        subtype=0x0,
+        # Creation date and time stamp.
+        date=(0, 0)
+        ),
+      kids=[
+        StringFileInfo(
+          [
+          StringTable(
+            '040904e4',
+            [StringStruct('CompanyName', 'N8VENTURES'),
+            StringStruct('FileDescription', 'N8\\'s Video to GIF Converter'),
+            StringStruct('FileVersion', '{__version__}'),
+            StringStruct('InternalName', '{__appname__}'),
+            StringStruct('LegalCopyright', '© 2024 N8VENTURES. All rights reserved.'),
+            StringStruct('OriginalFilename', '{__appname__}.exe'),
+            StringStruct('ProductName', 'N8\\'s Video to GIF Converter'),
+            StringStruct('ProductVersion', '{__version__}')])
+          ]), 
+        VarFileInfo([VarStruct('Translation', [1033, 1252])])
+      ]
+    )
+    '''
+    a = textwrap.dedent(a)
+    with open('__mainVersion.rc', 'w', encoding='utf-8') as rc_file:
+        rc_file.write(a.__str__())
+
+def genUpdaterRC():
+    version = __updaterversion__.split('.')
+    a = f'''
+    # UTF-8
+    # Please refer to __version__.py
+    # For more details about fixed file info 'ffi' see:
+    # http://msdn.microsoft.com/en-us/library/ms646997.aspx
+    VSVersionInfo(
+      ffi=FixedFileInfo(
+        # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
+        # Set not needed items to zero 0.
+        filevers=({version[0]}, {version[1]}, {version[2]}, 0),
+        prodvers=({version[0]}, {version[1]}, {version[2]}, 0),
+        # Contains a bitmask that specifies the valid bits 'flags'r
+        mask=0x3f,
+        # Contains a bitmask that specifies the Boolean attributes of the file.
+        flags=0x0,
+        # The operating system for which this file was designed.
+        # 0x4 - NT and there is no need to change it.
+        OS=0x4,
+        # The general type of file.
+        # 0x1 - the file is an application.
+        fileType=0x1,
+        # The function of the file.
+        # 0x0 - the function is not defined for this fileType
+        subtype=0x0,
+        # Creation date and time stamp.
+        date=(0, 0)
+        ),
+      kids=[
+        StringFileInfo(
+          [
+          StringTable(
+            '040904e4',
+            [StringStruct('CompanyName', 'N8VENTURES'),
+            StringStruct('FileDescription', 'N8\\'s Video to GIF Converter'),
+            StringStruct('FileVersion', '{__updaterversion__}'),
+            StringStruct('InternalName', '{__updatername__}'),
+            StringStruct('LegalCopyright', '© 2024 N8VENTURES. All rights reserved.'),
+            StringStruct('OriginalFilename', '{__updatername__}.exe'),
+            StringStruct('ProductName', 'N8\\'s Video to GIF Converter'),
+            StringStruct('ProductVersion', '{__updaterversion__}')])
+          ]), 
+        VarFileInfo([VarStruct('Translation', [1033, 1252])])
+      ]
+    )
+    '''
+    a = textwrap.dedent(a)
+    with open('__updaterVersion.rc', 'w', encoding='utf-8') as rc_file:
+        rc_file.write(a.__str__())
+
 def buildAndSign():
     build_main = 'pyinstaller ./main.spec'
     build_updater = 'pyinstaller ./updater.spec'
@@ -402,6 +504,7 @@ def pngtoico(png):
     subprocess.run(cmd, check=True)
     shutil.rmtree('resize')
 
+parser.add_argument("-T", "--Test",action='store_true', help = "test modules.")
 parser.add_argument("-B", "--build",action='store_true', help = "build the app.")
 parser.add_argument("-c", "--console",action='store_true', help = 'Enable console window. (for testing purposes. Please don\'t use the argument for final export.)')
 parser.add_argument("-U","--Update", action ='store_true', help ='Checks updates on binaries and will ask you to update.')
@@ -416,16 +519,93 @@ parser.add_argument('-v', '--version', action='version', help='Checks all the ve
 
 args = parser.parse_args()
 
+if args.Test:
+    printColor(Color.CYAN, 'Generating mainVersion.rc...')
+    genMainRC()
+    printColor(Color.GREEN, 'mainVersion.rc Generated!')
+
+    printColor(Color.CYAN, 'Generating updaterVersion.rc...')
+    genUpdaterRC()
+    printColor(Color.GREEN, 'UpdaterVersion.rc Generated!')
+
 if args.console:
     console = 'True'
-    if not args.full:
-        printColor(Color.YELLOW, 'You can\'t use this arguement alone. Use it with \'-f\'.(ex. DevTool.py -c -f)')
+    if not args.build:
+        printColor(Color.YELLOW, 'You can\'t use this arguement alone. Use it with \'-b\'.(DevTool.py -c -b)')
+
+ffmpegRepo = ffmpeg_GyanDev()
+gifskiRepo = get_latest_release_version('ImageOptim', 'gifski')
+ffmpeg_dir = '.\\buildandsign\\bin\\full\\'
+gifski_dir = f'.\\buildandsign\\bin\\'
 
 if args.build:
-    printColor(Color.CYAN, 'Checking local versions...')
+    print('############ V E R I F Y I N G ############')
+    
+    if not os.path.exists(f'{gifski_dir}gifski.exe'):
+        latest_file = f'gifski-{gifskiRepo}'
+        gifski_exe = 'gifski.exe'
+        
+        printColor(Color.YELLOW, 'gifski.exe NOT FOUND!')
+        printColor(Color.CYAN, 'downloading gifski.exe...')
+        if gifskiRepo == '0.0.0':
+            printColor(Color.RED,'Request timed out. Please try again later.')
+            print('Exiting Build process.')
+            sys.exit()
+        else:
+            download_file(f'https://gif.ski/gifski-{gifskiRepo}.zip', f'{gifski_dir}\\{latest_file}.zip')
+            printColor(Color.GREEN, 'Gifski Download complete!')
+            
+            printColor(Color.CYAN, f'Extracting {latest_file}.zip...')
+            subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {gifski_dir}\\{latest_file}.zip -o{gifski_dir} win\\{gifski_exe}')
+            printColor(Color.GREEN, 'Latest Gifski binaries extracted!')
+            os.remove(os.path.join(gifski_dir, f'{latest_file}.zip'))
+    else:
+        printColor(Color.GREEN, 'gifski.exe Found!')
+        
+    required_ffbins = ['ffmpeg.exe', 'ffplay.exe', 'ffprobe.exe']
+    if not all(os.path.exists(os.path.join(ffmpeg_dir, bin)) for bin in required_ffbins):
+        latest_file_full = f'ffmpeg-{ffmpegRepo}-full_build'
+        
+        if ffmpegRepo == '0.0.0':
+            printColor(Color.RED,'Request timed out. Please try again later.')
+            print('Exiting Build process.')
+            sys.exit()
+        else:
+            download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z', os.path.join(ffmpeg_dir, f'{latest_file_full}.7z'))
+            printColor(Color.GREEN, 'FFMPEG Download complete!')
+            
+            printColor(Color.CYAN, f'Extracting {latest_file_full}.7z...')
+            subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {ffmpeg_dir}\\{latest_file_full}.7z -o{ffmpeg_dir} {latest_file_full}\\bin\\*')
+            printColor(Color.GREEN, 'Latest FFmpeg binaries extracted!')
+            os.remove(os.path.join(ffmpeg_dir, f'{latest_file_full}.7z'))
+    else:
+        for bin in required_ffbins:
+            printColor(Color.GREEN, f'{bin} Found!')
+        
+    printColor(Color.CYAN, 'Updating local versions...')
     check_and_update_local()
     printColor(Color.GREEN, 'Versions up to date!')
     
+    printColor(Color.CYAN, 'Checking icons and files...')
+    
+    if not os.path.exists('ico.ico'):
+        printColor(Color.YELLOW, 'ico.ico NOT FOUND!')
+        printColor(Color.CYAN, 'building ico.ico...')
+        pngtoico(f'{icoFolder}ico3.png')
+        printColor(Color.GREEN, 'ico.ico Ready!')
+    else:
+        printColor(Color.GREEN, 'ico.ico Found!')
+        
+    if not os.path.exists('icoUpdater.ico'):
+        printColor(Color.YELLOW, 'ico.ico NOT FOUND!')
+        printColor(Color.CYAN, 'building icoUpdater.ico...')
+        pngtoico(f'{icoFolder}ico3Updater.png')
+        printColor(Color.GREEN, 'icoUpdater.ico Ready!')
+    else:
+        printColor(Color.GREEN, 'icoUpdater.ico Found!')
+        
+
+    print('############ S P E C  F I L E S ############')
     printColor(Color.CYAN, 'Generating main.spec...')
     genMainSpec(ff, console)
     printColor(Color.GREEN, 'main.spec generated!')
@@ -433,11 +613,22 @@ if args.build:
     printColor(Color.CYAN, 'Generating updater.spec...')
     genUpdaterSpec()
     printColor(Color.GREEN, 'updater.spec generated!')
+
+    print('############ V E R S I O N  R C  F I L E S ############')
+    printColor(Color.CYAN, 'Generating mainVersion.rc...')
+    genMainRC()
+    printColor(Color.GREEN, 'mainVersion.rc Generated!')
+
+    printColor(Color.CYAN, 'Generating updaterVersion.rc...')
+    genUpdaterRC()
+    printColor(Color.GREEN, 'UpdaterVersion.rc Generated!')
+
+    print('############ B U I L D  &  S I G N ############')
     buildAndSign()
 
+
 if args.Update:
-    ffmpegRepo = ffmpeg_GyanDev()
-    gifskiRepo = get_latest_release_version('ImageOptim', 'gifski')
+
     
     currentFFmpeg = __ffmpegversion__
     currentGifski = __gifskiversion__
@@ -459,12 +650,11 @@ if args.Update:
         user_agrees = yes_no_prompt(Color.YELLOW + "Do you want to download the FFmpeg update?" + Color.END)
         if user_agrees:
             print("Downloading FFmpeg...")
-            ffmpeg_dir = f'{script_directory}\\buildandsign\\bin\\full\\'
             # latest_file_essentials = f'ffmpeg-{ffmpegRepo}-essentials_build.7z'
             latest_file_full = f'ffmpeg-{ffmpegRepo}-full_build'
             # download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-essentials.7z', latest_file_essentials)
             download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z', os.path.join(ffmpeg_dir, f'{latest_file_full}.7z'))
-            printColor(Color.GREEN, 'Download complete!')
+            printColor(Color.GREEN, 'FFmpeg Download complete!')
             
             
             ffmpeg_list = ['ffmpeg.exe', 'ffplay.exe', 'ffprobe.exe']
@@ -493,10 +683,9 @@ if args.Update:
         printColor(Color.GREEN, f"New version of Gifski \'{gifskiRepo}\' is available.")
         user_agrees = yes_no_prompt(Color.YELLOW + "Do you want to download the Gifski update?" + Color.END)
         if user_agrees:
-            gifski_dir = f'{script_directory}\\buildandsign\\bin\\'
             latest_file = f'gifski-{gifskiRepo}'
             download_file(f'https://gif.ski/gifski-{gifskiRepo}.zip', f'{gifski_dir}\\{latest_file}.zip')
-            
+            printColor(Color.GREEN, 'Gifski Download complete!')
             gifski_exe = 'gifski.exe'
             if os.path.exists(f'{gifski_dir}\\{gifski_exe}'):
                 printColor(Color.YELLOW, f'Removing {gifski_exe}...')
@@ -506,7 +695,7 @@ if args.Update:
             
             printColor(Color.CYAN, f'Extracting {latest_file}.zip...')
             subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {gifski_dir}\\{latest_file}.zip -o{gifski_dir} win\\{gifski_exe}')
-            printColor(Color.GREEN, 'Latest FFmpeg binaries extracted!')
+            printColor(Color.GREEN, 'Latest Gifski binary extracted!')
             os.remove(os.path.join(gifski_dir, f'{latest_file}.zip'))
 
         else:
