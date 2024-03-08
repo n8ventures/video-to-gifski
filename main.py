@@ -235,32 +235,35 @@ def updaterExists():
 
 def about():
     geo_width = 370
-    geo_len= 420
+    geo_len= 410
     aboutmenu = create_popup(root, "About Us!", geo_width, geo_len, 1)
     make_non_resizable(aboutmenu)
 
     gifski_text = f"- Gifski (https://gif.ski/)\nVersion: {__gifskiversion__}"
     ffmpeg_text = f"- FFmpeg (https://ffmpeg.org/)\nVersion: {__ffmpegversion__}"
-    about_text = (
-        "\nThis program is built for personal use only.\n\n"
-        "Credits:\n\n"
+    copyright_text = (
+    "This program is distributed under the MIT License.\n"
+    "Copyright (c) 2024 John Nathaniel Calvara"
+    )
+    credits_text = (
+        "\nCredits:\n"
         f"{gifski_text}\n\n"
-        f"{ffmpeg_text}\n"
+        f"{ffmpeg_text}"
     )
 
-    about_label = tk.Label(aboutmenu, text=about_text, justify=tk.LEFT)
-    about_label.pack(pady=10)
+    credits_label = tk.Label(aboutmenu, text=credits_text, justify=tk.LEFT)
+    credits_label.pack(pady=10)
+    
+    copyright_label = tk.Label(aboutmenu, text=copyright_text, justify=tk.CENTER)
+    copyright_label.pack(pady=5)
 
     mailto_label = tk.Label(aboutmenu, text="nate@n8ventures.dev", fg="blue", cursor="hand2")
     mailto_label.pack()
     mailto_label.bind("<Button-1>", lambda e: open_link("mailto:nate@n8ventures.dev"))
 
     github_label = tk.Label(aboutmenu, text="https://github.com/n8ventures", fg="blue", cursor="hand2")
-    github_label.pack(pady=5)
+    github_label.pack()
     github_label.bind("<Button-1>", lambda e: open_link("https://github.com/n8ventures"))
-
-    close_button = ttk.Button(aboutmenu, text="Close", command=aboutmenu.destroy)
-    close_button.pack(pady=10)
     
     mograph = 'motionteamph.png' 
     if hasattr(sys, '_MEIPASS'):
@@ -273,6 +276,9 @@ def about():
     label.image = image
     label.place(x=geo_width / 2, y=geo_len - 60, anchor=tk.CENTER)
     Hovertip(label, "BetMGM Manila Motions Team 2024")
+    
+    close_button = ttk.Button(aboutmenu, text="Close", command=aboutmenu.destroy)
+    close_button.pack(pady=10)
 
 def open_link(url):
     import webbrowser
@@ -295,11 +301,11 @@ def watermark_label(parent_window):
     separator_wm = ttk.Separator(frame, orient="horizontal")
     separator_wm.pack(side=tk.BOTTOM, fill=tk.Y, padx=10)
     
-    watermark_label = tk.Label(frame, text="by N8VENTURES (github.com/n8ventures)", fg="gray")
-    watermark_label.pack(side=tk.LEFT, anchor=tk.SW, padx=2)
+    watermark_label = tk.Label(frame, text="by N8VENTURES", fg="gray")
+    watermark_label.pack(side=tk.LEFT, anchor=tk.SW)
     
     version_label = tk.Label(frame, text=f"version: {__version__} {debug}", fg="gray")
-    version_label.pack(side=tk.RIGHT, anchor=tk.SE, padx=2)
+    version_label.pack(side=tk.RIGHT, anchor=tk.SE)
 
 def make_non_resizable(window):
     window.resizable(False, False)
@@ -417,9 +423,10 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
 def get_and_print_video_data(file_path):
     global video_data
-    print(f"File: {file_path}")
+    if not file_path == 'temp/temp.gif':
+        print(f"File: {file_path}")
     
-    if file_path and is_video_file(file_path):
+    if file_path and is_video_file(file_path) and not file_path == 'temp/temp.gif':
         video_data = get_video_data(file_path)
         
         if video_data:
@@ -449,8 +456,51 @@ def get_and_print_video_data(file_path):
         
             if not settings_window_open:
                 open_settings_window()
+                
+    elif file_path and is_video_file(file_path) and file_path == 'temp/temp.gif':
+        temp_data = get_video_data(file_path)
+        
+        if temp_data:
+            width_value = temp_data['width']
+            height_value = temp_data['height']
+            fps_value = round(eval(temp_data['r_frame_rate']), 3)
+            duration_value = temp_data['duration']
+            pix_fmt = temp_data['pix_fmt']
+
+            fps_int = round(fps_value)
+            total_frames = int(float(duration_value) *fps_int)
+            hours = total_frames // (3600 * fps_int)
+            remaining_frames = total_frames % (3600 * fps_int)
+            minutes = remaining_frames // (60 * fps_int)
+            remaining_frames %= (60 * fps_int)
+            seconds = remaining_frames // fps_int
+            frames = remaining_frames % fps_int
+            timecode = f"{hours:02}:{minutes:02}:{seconds:02}:{frames:02}"
+
+            debug_gif_window = create_popup(root, 'Debugging GIF', 200, 200, 1)
+            make_non_resizable(debug_gif_window)
+            
+            debug_gif_text= f'''
+        Video width: {width_value}
+        Video height: {height_value}
+        Framerate: {fps_value}
+        Duration: {duration_value}
+        Frames: {total_frames}
+        Timecode: {timecode}
+        pixel format: {pix_fmt}'''
+            
+            debug_gif_label = tk.Label(debug_gif_window, text=debug_gif_text, justify=tk.LEFT)
+            debug_gif_label.pack()
+            
+            close_button = ttk.Button(debug_gif_window, text="Close", command=debug_gif_window.destroy)
+            close_button.pack(pady=10)
+            
+            if not settings_window_open:
+                open_settings_window()
+    
     elif file_path == '':
         print('No video File dropped.')
+        
     else:
         notavideo = create_popup(root, "Not a video!", 400, 100, 1)
         make_non_resizable(notavideo)
@@ -637,15 +687,16 @@ def open_settings_window():
     fileSize_label.pack()
     fileDimension_label.pack(pady=5)
     
-    play_gif_button = tk.Button(settings_window, text='Play GIF', command=lambda: play_gif('temp/temp.gif'))
+    playframe = tk.Frame(settings_window)
+    playframe.pack()
+    play_gif_button = tk.Button(playframe, text='Play GIF', command=lambda: play_gif('temp/temp.gif'))
     play_gif_button.pack(pady=10)
     play_gif_button.config(state="disabled")
+    
     if args.debug:
-        play_gif_button.pack(pady=10)
-        play_gif_button.config(state="disabled")
-
-        debug_gif_button = tk.Button(settings_window, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
-        debug_gif_button.pack(pady=10)
+        play_gif_button.pack(side=tk.LEFT, pady=10)
+        debug_gif_button = tk.Button(playframe, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
+        debug_gif_button.pack(side=tk.RIGHT, pady=10)
         debug_gif_button.config(state="disabled")
 
     separator1 = ttk.Separator(settings_window, orient="horizontal")
@@ -859,8 +910,8 @@ splash_screen.attributes("-transparentcolor", "white")
 splash_geo_x = 350
 splash_geo_y = 550
 if args.Egg:
-    splash_geo_x = 300
-    splash_geo_y = 300
+    splash_geo_x = 400
+    splash_geo_y = 400
 center_window(splash_screen, splash_geo_x, splash_geo_y)
 
 

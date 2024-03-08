@@ -3,7 +3,8 @@
     # pip install -r requirements.txt --upgrade -on new terminals
 
 
-
+# Guide
+    # For small Transparent GIFs, please double or triple the resolution then scale down to the intended solution in the program to prevent the dither/aliased edges
 
 
 # Batch File process
@@ -24,6 +25,7 @@
 # added RC Versions.
 # Easter Egg args.
 # add Splash Screen
+# Improve debug mode.
 # Write rc settings on DevTool
 
 # Updater ver 1.1.1
@@ -38,6 +40,7 @@
     # I gotta make the check boxes cleaner so it doesnt get too cluttered.
 # for devtool, activate pngtoico script (or just transfer the damn thing to devtool)
     #in addition to this, I improved the PNGs. Magick is weird, so now we're using Pillow.
+
 - 2.2.2
 # Disabled auto-running updater
 # Disabled unpremultiply filter (for now)
