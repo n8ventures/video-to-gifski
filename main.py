@@ -121,50 +121,47 @@ def get_latest_release_version():
 
     n8_gif_repo = "https://api.github.com/repos/n8ventures/v2g-con-personal/releases/latest"
     response = requests.get(n8_gif_repo)
-    if response.status_code == 200:
-        release_info = json.loads(response.text)
-        return release_info.get('tag_name', '0.0.0')
-    else:
+    if response.status_code != 200:
         return '0.0.0'
+    release_info = json.loads(response.text)
+    return release_info.get('tag_name', '0.0.0')
 
 def downloadUpdater():
     global latest_release_version
 
     response = requests.get(n8_gif_repo)
     if response.status_code == 200:
-        release_data = response.json()
-        latest_release_version = get_latest_release_version()
-        if latest_release_version == '0.0.0':
-            return 'ERR_NO_CONNECTION'
-        else:
-            latest_file = f'{__updatername__}.exe'
-            
-            for asset in release_data['assets']:
-                
-                if asset['name'] == latest_file:
-                    download_url = asset['browser_download_url']
-                    updaterURL = requests.get(download_url)
+        return downloadUpdaterUpdate(response)
+    print("Failed to retrieve updater information. Please check your internet connection.")
+    return 'ERR_NO_CONNECTION'
 
-                    with open(latest_file, 'wb') as file:
-                        file.write(updaterURL.content)
-                        return 'UPDR_DONE'
-            else:
-                print('File not found!')
-                return 'ERR_NOT_FOUND'
-    else:
-        print("Failed to retrieve updater information. Please check your internet connection.")
+
+
+def downloadUpdaterUpdate(response):
+    release_data = response.json()
+    latest_release_version = get_latest_release_version()
+    if latest_release_version == '0.0.0':
         return 'ERR_NO_CONNECTION'
+    latest_file = f'{__updatername__}.exe'
+
+    for asset in release_data['assets']:
+        if asset['name'] == latest_file:
+            download_url = asset['browser_download_url']
+            updaterURL = requests.get(download_url)
+
+            with open(latest_file, 'wb') as file:
+                file.write(updaterURL.content)
+                return 'UPDR_DONE'
+    print('File not found!')
+    return 'ERR_NOT_FOUND'
 
 def UPDATER_POPUP(title, msg):
-    if os.path.exists(f"{__updatername__}.exe"):
-        win_height = 250
-    else:
-        win_height = 140
+    win_height = 250 if os.path.exists(f"{__updatername__}.exe") else 140
     updaterMenu = create_popup(root, title, 400, win_height, 1)
     make_non_resizable(updaterMenu)
-    
+
     txt_msg = msg
-    
+
     if os.path.exists(f"{__updatername__}.exe"):
         NR_label1= tk.Label(updaterMenu, text='New release detected!', font=('Helvetica', 10, 'bold'))
         NR_label2= tk.Label(updaterMenu, text=f'Updating {__updatername__}.exe...', font=('Helvetica', 10, 'italic'))
@@ -173,11 +170,11 @@ def UPDATER_POPUP(title, msg):
 
     txt_label = tk.Label(updaterMenu, text=txt_msg)
     txt_label.pack(pady=10)
-    
+
     close_button = ttk.Button(updaterMenu, text="Close", command=updaterMenu.destroy)
-    
+
     close_button.pack(pady=10)
-    
+
     root.update_idletasks()
 
     if downloadUpdater() == 'UPDR_DONE':
@@ -235,7 +232,12 @@ def updaterExists():
 
 def about():
     geo_width = 370
-    geo_len= 410
+    geo_len = 300
+
+    if args.Egg:
+        geo_width = 370
+        geo_len= 410
+
     aboutmenu = create_popup(root, "About Us!", geo_width, geo_len, 1)
     make_non_resizable(aboutmenu)
 
@@ -253,32 +255,43 @@ def about():
 
     credits_label = tk.Label(aboutmenu, text=credits_text, justify=tk.LEFT)
     credits_label.pack(pady=10)
-    
+
     copyright_label = tk.Label(aboutmenu, text=copyright_text, justify=tk.CENTER)
     copyright_label.pack(pady=5)
 
-    mailto_label = tk.Label(aboutmenu, text="nate@n8ventures.dev", fg="blue", cursor="hand2")
-    mailto_label.pack()
-    mailto_label.bind("<Button-1>", lambda e: open_link("mailto:nate@n8ventures.dev"))
+    clickable_link_labels(
+        aboutmenu, "nate@n8ventures.dev", "mailto:nate@n8ventures.dev"
+    )
+    clickable_link_labels(
+        aboutmenu,
+        "https://github.com/n8ventures",
+        "https://github.com/n8ventures",
+    )
+    if args.Egg:
+        egg_about(aboutmenu, geo_width, geo_len)
 
-    github_label = tk.Label(aboutmenu, text="https://github.com/n8ventures", fg="blue", cursor="hand2")
-    github_label.pack()
-    github_label.bind("<Button-1>", lambda e: open_link("https://github.com/n8ventures"))
-    
-    mograph = 'motionteamph.png' 
-    if hasattr(sys, '_MEIPASS'):
-        mograph = os.path.join(sys._MEIPASS, mograph)
-    else:
-        mograph = '.\\buildandsign\\ico\\motionteamph.png' 
+    close_button = ttk.Button(aboutmenu, text="Close", command=aboutmenu.destroy)
+    close_button.pack(pady=10)
 
+
+def egg_about(aboutmenu, geo_width, geo_len):
+    mograph = 'motionteamph.png'
+    mograph = (
+        os.path.join(sys._MEIPASS, mograph)
+        if hasattr(sys, '_MEIPASS')
+        else '.\\buildandsign\\ico\\motionteamph.png'
+    )
     image = tk.PhotoImage(file=mograph)
     label = tk.Label(aboutmenu, image=image, bd=0)
     label.image = image
     label.place(x=geo_width / 2, y=geo_len - 60, anchor=tk.CENTER)
     Hovertip(label, "BetMGM Manila Motions Team 2024")
-    
-    close_button = ttk.Button(aboutmenu, text="Close", command=aboutmenu.destroy)
-    close_button.pack(pady=10)
+
+
+def clickable_link_labels(aboutmenu, text, link):
+    mailto_label = tk.Label(aboutmenu, text=text, fg="blue", cursor="hand2")
+    mailto_label.pack()
+    mailto_label.bind("<Button-1>", lambda e: open_link(link))
 
 def open_link(url):
     import webbrowser
@@ -357,10 +370,10 @@ alpha_formats = [
 
 def video_to_frames_seq(input_file, framerate):
     temp_folder = 'temp'
-    
+
     if os.path.exists(temp_folder) and os.listdir(temp_folder):
         shutil.rmtree(temp_folder)
-        
+
     os.makedirs(temp_folder, exist_ok=True)
 
     cmd = [
@@ -369,14 +382,12 @@ def video_to_frames_seq(input_file, framerate):
         '-i', input_file,
         "-vf",
     ]
-    
-    filtergraph = []
-    
-    filtergraph.append(f'fps={str(framerate)}')
-    
+
+    filtergraph = [f'fps={str(framerate)}']
+
     if scale_widget.get() != 100:
         filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
-    
+
     if safeAlpha.get():
         filtergraph.append('unpremultiply=inplace=1')
 
@@ -421,66 +432,58 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
         print(cmd)
 
 
-def get_and_print_video_data(file_path):
+def get_and_print_video_data(file_path):  # sourcery skip: low-code-quality
     global video_data
-    if not file_path == 'temp/temp.gif':
+    if file_path != 'temp/temp.gif':
         print(f"File: {file_path}")
-    
-    if file_path and is_video_file(file_path) and not file_path == 'temp/temp.gif':
-        video_data = get_video_data(file_path)
-        
-        if video_data:
-            width_value = video_data['width']
-            height_value = video_data['height']
-            fps_value = round(eval(video_data['r_frame_rate']), 3)
-            duration_value = video_data['duration']
-            pix_fmt = video_data['pix_fmt']
 
-            fps_int = round(fps_value)
-            total_frames = int(float(duration_value) *fps_int)
-            hours = total_frames // (3600 * fps_int)
-            remaining_frames = total_frames % (3600 * fps_int)
-            minutes = remaining_frames // (60 * fps_int)
-            remaining_frames %= (60 * fps_int)
-            seconds = remaining_frames // fps_int
-            frames = remaining_frames % fps_int
-            timecode = f"{hours:02}:{minutes:02}:{seconds:02}:{frames:02}"
-            
-            print("Video width:", width_value)
-            print("Video height:", height_value)
-            print("Frame rate:", fps_value)
-            print("Duration:", duration_value)
-            print("Frames:", total_frames)
-            print(f"Timecode: {timecode}")
-            print("pixel format:", pix_fmt)
-        
-            if not settings_window_open:
-                open_settings_window()
-                
+    if file_path and is_video_file(file_path) and file_path != 'temp/temp.gif':
+        if video_data := get_video_data(file_path):
+            parse_video_data(video_data)
     elif file_path and is_video_file(file_path) and file_path == 'temp/temp.gif':
-        temp_data = get_video_data(file_path)
-        
-        if temp_data:
-            width_value = temp_data['width']
-            height_value = temp_data['height']
-            fps_value = round(eval(temp_data['r_frame_rate']), 3)
-            duration_value = temp_data['duration']
-            pix_fmt = temp_data['pix_fmt']
+        if temp_data := get_video_data(file_path):
+            parse_temp_data(temp_data)
+    elif file_path == '':
+        print('No video File dropped.')
 
-            fps_int = round(fps_value)
-            total_frames = int(float(duration_value) *fps_int)
-            hours = total_frames // (3600 * fps_int)
-            remaining_frames = total_frames % (3600 * fps_int)
-            minutes = remaining_frames // (60 * fps_int)
-            remaining_frames %= (60 * fps_int)
-            seconds = remaining_frames // fps_int
-            frames = remaining_frames % fps_int
-            timecode = f"{hours:02}:{minutes:02}:{seconds:02}:{frames:02}"
+    else:
+        notavideo()
 
-            debug_gif_window = create_popup(root, 'Debugging GIF', 200, 200, 1)
-            make_non_resizable(debug_gif_window)
-            
-            debug_gif_text= f'''
+def notavideo():
+    notavideo = create_popup(root, "Not a video!", 400, 100, 1)
+    make_non_resizable(notavideo)
+
+    errortext = (
+        "Not a video! Please select a video file!"
+    )
+
+    about_label = tk.Label(notavideo, text=errortext, justify=tk.LEFT)
+    about_label.pack(pady=10)
+
+    close_button = ttk.Button(notavideo, text="Close", command=notavideo.destroy)
+    close_button.pack(pady=10)
+
+def parse_temp_data(temp_data):
+    width_value = temp_data['width']
+    height_value = temp_data['height']
+    fps_value = round(eval(temp_data['r_frame_rate']), 3)
+    duration_value = temp_data['duration']
+    pix_fmt = temp_data['pix_fmt']
+
+    fps_int = round(fps_value)
+    total_frames = int(float(duration_value) *fps_int)
+    hours = total_frames // (3600 * fps_int)
+    remaining_frames = total_frames % (3600 * fps_int)
+    minutes = remaining_frames // (60 * fps_int)
+    remaining_frames %= (60 * fps_int)
+    seconds = remaining_frames // fps_int
+    frames = remaining_frames % fps_int
+    timecode = f"{hours:02}:{minutes:02}:{seconds:02}:{frames:02}"
+
+    debug_gif_window = create_popup(root, 'Debugging GIF', 200, 200, 1)
+    make_non_resizable(debug_gif_window)
+
+    debug_gif_text= f'''
         Video width: {width_value}
         Video height: {height_value}
         Framerate: {fps_value}
@@ -488,32 +491,44 @@ def get_and_print_video_data(file_path):
         Frames: {total_frames}
         Timecode: {timecode}
         pixel format: {pix_fmt}'''
-            
-            debug_gif_label = tk.Label(debug_gif_window, text=debug_gif_text, justify=tk.LEFT)
-            debug_gif_label.pack()
-            
-            close_button = ttk.Button(debug_gif_window, text="Close", command=debug_gif_window.destroy)
-            close_button.pack(pady=10)
-            
-            if not settings_window_open:
-                open_settings_window()
-    
-    elif file_path == '':
-        print('No video File dropped.')
-        
-    else:
-        notavideo = create_popup(root, "Not a video!", 400, 100, 1)
-        make_non_resizable(notavideo)
 
-        errortext = (
-            "Not a video! Please select a video file!"
-        )
+    debug_gif_label = tk.Label(debug_gif_window, text=debug_gif_text, justify=tk.LEFT)
+    debug_gif_label.pack()
 
-        about_label = tk.Label(notavideo, text=errortext, justify=tk.LEFT)
-        about_label.pack(pady=10)
+    close_button = ttk.Button(debug_gif_window, text="Close", command=debug_gif_window.destroy)
+    close_button.pack(pady=10)
 
-        close_button = ttk.Button(notavideo, text="Close", command=notavideo.destroy)
-        close_button.pack(pady=10)
+    if not settings_window_open:
+        open_settings_window()
+
+
+def parse_video_data(video_data):
+    width_value = video_data['width']
+    height_value = video_data['height']
+    fps_value = round(eval(video_data['r_frame_rate']), 3)
+    duration_value = video_data['duration']
+    pix_fmt = video_data['pix_fmt']
+
+    fps_int = round(fps_value)
+    total_frames = int(float(duration_value) *fps_int)
+    hours = total_frames // (3600 * fps_int)
+    remaining_frames = total_frames % (3600 * fps_int)
+    minutes = remaining_frames // (60 * fps_int)
+    remaining_frames %= (60 * fps_int)
+    seconds = remaining_frames // fps_int
+    frames = remaining_frames % fps_int
+    timecode = f"{hours:02}:{minutes:02}:{seconds:02}:{frames:02}"
+
+    print("Video width:", width_value)
+    print("Video height:", height_value)
+    print("Frame rate:", fps_value)
+    print("Duration:", duration_value)
+    print("Frames:", total_frames)
+    print(f"Timecode: {timecode}")
+    print("pixel format:", pix_fmt)
+
+    if not settings_window_open:
+        open_settings_window()
         
 video_extensions = [
 '.3g2', '.3gp', '.amv', '.asf', '.avi', '.drc', '.f4v', '.flv', '.gif', '.gifv', '.m2ts', 
@@ -551,15 +566,15 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
                 if win.minimize():
                     win.restore(True)
                 win.activate(True)
-                
+
             else:
                 print('Window not found with specified title.')
 
     if mode == 'final':
         output_file = filedialog.asksaveasfile(
             defaultextension=".gif",
-        initialfile=os.path.splitext(os.path.basename(input_file))[0] + ".gif",
-        filetypes=[("GIF files", "*.gif")]
+            initialfile=f"{os.path.splitext(os.path.basename(input_file))[0]}.gif",
+            filetypes=[("GIF files", "*.gif")],
         )
         if output_file:
             output_file.close()
@@ -576,7 +591,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             on_settings_window_close()
             openOutputFolder(output_dir, output_folder)
             # open_finish_window()
-            
+
     elif mode == 'temp':
             output_file = 'temp/temp.gif'
             print(output_file)
@@ -586,20 +601,20 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             loading_thread_switch(False)
 
             print("Conversion complete!")
-            
-            
+
+
     elif mode == 'temp-final':
         output_file = filedialog.asksaveasfile(
-        defaultextension=".gif",
-        initialfile=os.path.splitext(os.path.basename(input_file))[0] + ".gif",
-        filetypes=[("GIF files", "*.gif")]
+            defaultextension=".gif",
+            initialfile=f"{os.path.splitext(os.path.basename(input_file))[0]}.gif",
+            filetypes=[("GIF files", "*.gif")],
         )
-        
+
         if output_file:
             output_file.close()
             output_folder = os.path.abspath(output_file.name)
             output_dir = os.path.dirname(output_file.name)
-            
+
             shutil.copy2('temp/temp.gif', output_file.name)
             print("Conversion complete!")
             shutil.rmtree('temp')
@@ -950,10 +965,7 @@ def animate(frame_num, loop):
         frame_num += 1
         splash_screen.after(25, animate, frame_num, False)
 
-loop_switch = False
-if args.Egg:
-    loop_switch = True
-
+loop_switch = bool(args.Egg)
 animate(0, loop_switch)
 
 def show_main():    

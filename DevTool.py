@@ -293,11 +293,11 @@ def genUpdaterRC():
 def buildAndSign():
     build_main = 'pyinstaller ./main.spec'
     build_updater = 'pyinstaller ./updater.spec'
-    
+
     printColor(Color.CYAN, 'Building main.exe...')
     subprocess.run(build_main, shell=True)
     printColor(Color.GREEN, 'main.exe Built!')
-    
+
     printColor(Color.CYAN, 'Building updater.exe...')
     subprocess.run(build_updater, shell=True)
     printColor(Color.GREEN, 'updater.exe Built!')
@@ -316,12 +316,12 @@ def buildAndSign():
 
     def cert_pass():
         while True:
-            response = input(Color.YELLOW + 'Enter certificate password: ' + Color.END)
+            response = input(f'{Color.YELLOW}Enter certificate password: {Color.END}')
             if response:
                 return response
             else:
                 print("No input. Please enter the password: ")
-        
+
     # Construct the sign_command
     try:
         password = cert_pass()
@@ -329,7 +329,7 @@ def buildAndSign():
         printColor(Color.CYAN, 'Signing main.exe...')
         subprocess.run(main_sign_command, shell=True)
         printColor(Color.GREEN, 'main.exe signed!')
-        
+
         Updater_sign_command = f'{signtool_exe} sign /f "{script_directory}\\buildandsign\\certificate.pfx" /p {password} /tr http://timestamp.digicert.com /td sha256 /v "{script_directory}\\dist\\Updater.exe"'
         printColor(Color.CYAN, 'Signing updater.exe...')
         subprocess.run(Updater_sign_command, shell=True)
@@ -350,7 +350,7 @@ def buildAndSign():
 
     if os.path.exists(new_main):
         os.remove(new_main)
-        printColor(Color.YELLOW, f'\nremoved {new_main}!') 
+        printColor(Color.YELLOW, f'\nremoved {new_main}!')
     if os.path.exists(new_updater):
         os.remove(new_updater)
         printColor(Color.YELLOW, f'\nremoved {new_updater}!') 
@@ -365,28 +365,26 @@ def get_latest_release_version(repo_owner, repo_name):
     global api_url
     api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
     response = requests.get(api_url)
-    
-    if response.status_code == 200:
-        release_info = json.loads(response.text)
-        return release_info.get('tag_name', '0.0.0')
-    else:
+
+    if response.status_code != 200:
         return '0.0.0'
+    release_info = json.loads(response.text)
+    return release_info.get('tag_name', '0.0.0')
 
 def ffmpeg_GyanDev():
     gyan_api = 'https://www.gyan.dev/ffmpeg/builds/git-version'
     response = requests.get(gyan_api)
-    if response.status_code == 200:
-        release_info = response
-        return release_info.text
-    else:
+    if response.status_code != 200:
         return '0.0.0'
+    release_info = response
+    return release_info.text
     
 def yes_no_prompt(prompt):
     while True:
-        response = input(prompt + " (y/n): ").strip().lower()
-        if response == "yes" or response == "y":
+        response = input(f"{prompt} (y/n): ").strip().lower()
+        if response in ["yes", "y"]:
             return True
-        elif response == "no" or response == "n":
+        elif response in ["no", "n"]:
             return False
         else:
             print("Please enter 'yes' or 'no'.")
@@ -411,39 +409,39 @@ def download_file(url, destination):
 def check_and_update_local():
     ffmpeg = '.\\buildandsign\\bin\\full\\ffmpeg.exe'
     gifski= '.\\buildandsign\\bin\\gifski.exe'
-    
+
     def get_ffmpeg_version():
         cmd = [ffmpeg, '-version']
         result = subprocess.run(cmd, capture_output=True, text=True)
-        
+
         if result.returncode == 0:
-                version_info = result.stdout
-                version = re.search(r'ffmpeg version (\d{4}-\d{2}-\d{2}-git-\w+)', version_info)
-                if version:
-                    return version.group(1)
-                else:
-                    print("Version not found.")
-                    return None
+            version_info = result.stdout
+            version = re.search(r'ffmpeg version (\d{4}-\d{2}-\d{2}-git-\w+)', version_info)
+            if version:
+                return version[1]
+            print("Version not found.")
+            return None
         else:
             print(f"Error: {result.stderr}")
             return None
+
     print('Current FFmpeg version: ', get_ffmpeg_version())
-    
+
     def get_gifski_version():
         cmd = [gifski, '--version']
         result = subprocess.run(cmd, capture_output=True, text=True)
-        
+
         if result.returncode == 0:
-                version_info = result.stdout
-                version = re.search(r'(\d+(\.\d+)+)', version_info)
-                if version:
-                    return version.group(1)
-                else:
-                    print("Version not found.")
-                    return None
+            version_info = result.stdout
+            version = re.search(r'(\d+(\.\d+)+)', version_info)
+            if version:
+                return version[1]
+            print("Version not found.")
+            return None
         else:
             print(f"Error: {result.stderr}")
             return None
+
     print('Current Gifski version: ', get_gifski_version())
 
     def update__version__():
@@ -457,7 +455,7 @@ def check_and_update_local():
                 break
         with open('__version__.py', 'w') as file:
             file.writelines(lines)
-    
+
     update__version__()
     print('Checking and updating local versions on __version__.py...')
 
@@ -540,11 +538,11 @@ gifski_dir = f'.\\buildandsign\\bin\\'
 
 if args.build:
     print('############ V E R I F Y I N G ############')
-    
+
     if not os.path.exists(f'{gifski_dir}gifski.exe'):
         latest_file = f'gifski-{gifskiRepo}'
         gifski_exe = 'gifski.exe'
-        
+
         printColor(Color.YELLOW, 'gifski.exe NOT FOUND!')
         printColor(Color.CYAN, 'downloading gifski.exe...')
         if gifskiRepo == '0.0.0':
@@ -554,18 +552,18 @@ if args.build:
         else:
             download_file(f'https://gif.ski/gifski-{gifskiRepo}.zip', f'{gifski_dir}\\{latest_file}.zip')
             printColor(Color.GREEN, 'Gifski Download complete!')
-            
+
             printColor(Color.CYAN, f'Extracting {latest_file}.zip...')
             subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {gifski_dir}\\{latest_file}.zip -o{gifski_dir} win\\{gifski_exe}')
             printColor(Color.GREEN, 'Latest Gifski binaries extracted!')
             os.remove(os.path.join(gifski_dir, f'{latest_file}.zip'))
     else:
         printColor(Color.GREEN, 'gifski.exe Found!')
-        
+
     required_ffbins = ['ffmpeg.exe', 'ffplay.exe', 'ffprobe.exe']
     if not all(os.path.exists(os.path.join(ffmpeg_dir, bin)) for bin in required_ffbins):
         latest_file_full = f'ffmpeg-{ffmpegRepo}-full_build'
-        
+
         if ffmpegRepo == '0.0.0':
             printColor(Color.RED,'Request timed out. Please try again later.')
             print('Exiting Build process.')
@@ -573,7 +571,7 @@ if args.build:
         else:
             download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z', os.path.join(ffmpeg_dir, f'{latest_file_full}.7z'))
             printColor(Color.GREEN, 'FFMPEG Download complete!')
-            
+
             printColor(Color.CYAN, f'Extracting {latest_file_full}.7z...')
             subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {ffmpeg_dir}\\{latest_file_full}.7z -o{ffmpeg_dir} {latest_file_full}\\bin\\*')
             printColor(Color.GREEN, 'Latest FFmpeg binaries extracted!')
@@ -581,13 +579,13 @@ if args.build:
     else:
         for bin in required_ffbins:
             printColor(Color.GREEN, f'{bin} Found!')
-        
+
     printColor(Color.CYAN, 'Updating local versions...')
     check_and_update_local()
     printColor(Color.GREEN, 'Versions up to date!')
-    
+
     printColor(Color.CYAN, 'Checking icons and files...')
-    
+
     if not os.path.exists('ico.ico'):
         printColor(Color.YELLOW, 'ico.ico NOT FOUND!')
         printColor(Color.CYAN, 'building ico.ico...')
@@ -595,7 +593,7 @@ if args.build:
         printColor(Color.GREEN, 'ico.ico Ready!')
     else:
         printColor(Color.GREEN, 'ico.ico Found!')
-        
+
     if not os.path.exists('icoUpdater.ico'):
         printColor(Color.YELLOW, 'ico.ico NOT FOUND!')
         printColor(Color.CYAN, 'building icoUpdater.ico...')
@@ -603,13 +601,13 @@ if args.build:
         printColor(Color.GREEN, 'icoUpdater.ico Ready!')
     else:
         printColor(Color.GREEN, 'icoUpdater.ico Found!')
-        
+
 
     print('############ S P E C  F I L E S ############')
     printColor(Color.CYAN, 'Generating main.spec...')
     genMainSpec(ff, console)
     printColor(Color.GREEN, 'main.spec generated!')
-    
+
     printColor(Color.CYAN, 'Generating updater.spec...')
     genUpdaterSpec()
     printColor(Color.GREEN, 'updater.spec generated!')
@@ -632,14 +630,14 @@ if args.Update:
     
     currentFFmpeg = __ffmpegversion__
     currentGifski = __gifskiversion__
-    
+
     # sevenZip = 'C:\\Program Files\\7-Zip\\7z.exe'
     # if not os.exists(sevenZip):
     #     sevenZip = '.\\buildandsign\\bins\\7z.exe'
-        
+
     #     if not os.exists(sevenZip):
     #         print('Download and install: 7zip!')
-    
+
     print('Checking FFmpeg version...')
     if currentFFmpeg == ffmpegRepo:
         printColor(Color.CYAN, 'FFmpeg does not require an update at the moment.')
@@ -647,16 +645,17 @@ if args.Update:
         printColor(Color.RED,'Request timed out. Please try again later.')
     else:
         printColor(Color.GREEN, f"New version of FFmpeg \'{ffmpegRepo}\' is available.")
-        user_agrees = yes_no_prompt(Color.YELLOW + "Do you want to download the FFmpeg update?" + Color.END)
-        if user_agrees:
+        if user_agrees := yes_no_prompt(
+            f"{Color.YELLOW}Do you want to download the FFmpeg update?{Color.END}"
+        ):
             print("Downloading FFmpeg...")
             # latest_file_essentials = f'ffmpeg-{ffmpegRepo}-essentials_build.7z'
             latest_file_full = f'ffmpeg-{ffmpegRepo}-full_build'
             # download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-essentials.7z', latest_file_essentials)
             download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z', os.path.join(ffmpeg_dir, f'{latest_file_full}.7z'))
             printColor(Color.GREEN, 'FFmpeg Download complete!')
-            
-            
+
+
             ffmpeg_list = ['ffmpeg.exe', 'ffplay.exe', 'ffprobe.exe']
             if all(os.path.exists(os.path.join(ffmpeg_dir, exe)) for exe in ffmpeg_list):
                 for exe in ffmpeg_list:
@@ -665,15 +664,15 @@ if args.Update:
                 printColor(Color.GREEN, 'Old FFmpeg binaries removed!')
             else:
                 printColor(Color.CYAN, 'Old FFmpeg binaries not found!')
-            
+
             printColor(Color.CYAN, f'Extracting {latest_file_full}.7z...')
             subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {ffmpeg_dir}\\{latest_file_full}.7z -o{ffmpeg_dir} {latest_file_full}\\bin\\*')
             printColor(Color.GREEN, 'Latest FFmpeg binaries extracted!')
             os.remove(os.path.join(ffmpeg_dir, f'{latest_file_full}.7z'))
-            
+
         else:
             print("Skipping FFmpeg update...")
-    
+
     print('Checking Gifski version...')
     if currentGifski == gifskiRepo:
         printColor(Color.CYAN,'Gifski does not require an update at the moment.')
@@ -681,8 +680,9 @@ if args.Update:
         printColor(Color.RED,'Request timed out. Please try again later.')
     else:
         printColor(Color.GREEN, f"New version of Gifski \'{gifskiRepo}\' is available.")
-        user_agrees = yes_no_prompt(Color.YELLOW + "Do you want to download the Gifski update?" + Color.END)
-        if user_agrees:
+        if user_agrees := yes_no_prompt(
+            f"{Color.YELLOW}Do you want to download the Gifski update?{Color.END}"
+        ):
             latest_file = f'gifski-{gifskiRepo}'
             download_file(f'https://gif.ski/gifski-{gifskiRepo}.zip', f'{gifski_dir}\\{latest_file}.zip')
             printColor(Color.GREEN, 'Gifski Download complete!')
@@ -692,7 +692,7 @@ if args.Update:
                 os.remove(os.path.join(gifski_dir, gifski_exe))
                 printColor(Color.GREEN, 'Old Gifski binary removed!')
             printColor(Color.CYAN, 'Old gifski binary not found!')
-            
+
             printColor(Color.CYAN, f'Extracting {latest_file}.zip...')
             subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {gifski_dir}\\{latest_file}.zip -o{gifski_dir} win\\{gifski_exe}')
             printColor(Color.GREEN, 'Latest Gifski binary extracted!')
@@ -713,3 +713,4 @@ if args.icon:
         pngtoico(f'{icoFolder}ico3Updater.png')
         pngtoico(f'{icoFolder}ico3.png')
         pngtoico(f'{icoFolder}ico3beta.png')
+
