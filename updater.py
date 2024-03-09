@@ -49,26 +49,29 @@ def check_appVer():
         appversion = result.stdout.strip()
 
     else:
-        missing_app_menu = create_popup(root, 'Main App Missing!', 300,100, 1)
-        make_non_resizable(missing_app_menu)
+        Missing_main()
 
-        txt_label = tk.Label(missing_app_menu, text='You don\'t have the main app!\nDownloading it for you now...')
-        txt_label.pack(pady=20)
+def Missing_main():
+    global appversion
+    missing_app_menu = create_popup(root, 'Main App Missing!', 300,100, 1)
+    make_non_resizable(missing_app_menu)
 
-        appversion = 'N/A'
+    txt_label = tk.Label(missing_app_menu, text='You don\'t have the main app!\nDownloading it for you now...')
+    txt_label.pack(pady=20)
 
-        updatenow()
+    appversion = 'N/A'
+
+    updatenow()
 
 def get_latest_release_version(repo_owner, repo_name):
     global api_url
     api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
     response = requests.get(api_url)
-    
-    if response.status_code == 200:
-        release_info = json.loads(response.text)
-        return release_info.get('tag_name', '0.0.0')
-    else:
+
+    if response.status_code != 200:
         return '0.0.0'
+    release_info = json.loads(response.text)
+    return release_info.get('tag_name', '0.0.0')
 
 def threadMeUp(thread):
     threading.Thread(target=thread).start()
@@ -191,31 +194,22 @@ check_appVer()
 
 print("Current version:", appversion)
 
-current_version = appversion 
+current_version = appversion
 switch = 0
 make_non_resizable(root)
 
-image_path = 'ico3Updater.png' 
+image_path = 'ico3Updater.png'
 if hasattr(sys, '_MEIPASS'):
     image_path = os.path.join(sys._MEIPASS, image_path)
 else:
     image_path = '.\\buildandsign\\ico\\ico3Updater.png'
-imgYPos = 225
-
-if args.Egg: 
-    image_path = 'n8.png' 
-    if hasattr(sys, '_MEIPASS'):
-        image_path = os.path.join(sys._MEIPASS, image_path)
-    else:
-        image_path = '.\\buildandsign\\ico\\n8.png'
-    imgYPos = 250
+imgYPos = 270
 
 image = tk.PhotoImage(file=image_path)
 resized_image = image.subsample(2)
 label = tk.Label(root, image=resized_image, bd=0)
 label.image = resized_image
 label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
-
 spacer = tk.Label(root, text='')
 spacer.pack(pady=5)
 check_for_updates_prompt = tk.Label(root, text='Checking for updates...')
@@ -237,7 +231,6 @@ update_button = ttk.Button(buttonFrame, text="Sure!", command=updatenow)
 update_button.pack_forget()
 
 
-
 root.update_idletasks()
 
 if current_version == latest_version:
@@ -245,39 +238,34 @@ if current_version == latest_version:
     # root.after(2000, check_for_updates_prompt.config(text='You have the latest version!'))
     check_for_updates_prompt.config(text='You have the latest version!')
     close_button_update.config(text='Close')
-    root.update_idletasks()
 elif current_version >= latest_version:
     # root.after(2000, check_for_updates_prompt.config(text='looks like you\'re using an unreleased version. heh.'))
     check_for_updates_prompt.config(text='looks like you\'re using an unreleased version. heh.\nDo you still want to download the stable release version?')
     latest_version_display.config(text=f'Latest Version: {latest_version}', font=('Helvetica', 10, 'bold'))
     close_button_update.config(text='Close')
-    
+
     latest_version_display.pack()
     update_button.pack(side=tk.LEFT, pady=10, padx= 70)
     close_button_update.pack(side=tk.RIGHT, pady=10, padx= 70)
-    
-    root.update_idletasks()
+
 elif latest_version == '0.0.0':
     check_for_updates_prompt.config(text=f"Internet connection unavailable.\nPlease try again later.")
     close_button_update.config(text='Close')
     close_button_update.pack()
-    root.update_idletasks()
 else:
     # root.after(2000, check_for_updates_prompt.config(text=f"New version {latest_version} is available.\n\nDo you want to update?"))
     check_for_updates_prompt.config(text=f"New version {latest_version} is available.\n\nDo you want to update?")
     close_button_update.pack_forget()
     update_button.pack(side=tk.LEFT, pady=10, padx= 50)
     close_button_update.pack(side=tk.RIGHT, pady=10, padx= 50)
-    
+
     # width = max(update_button.winfo_reqwidth(), close_button_update.winfo_reqwidth())
     # x_position = (checkupdates.winfo_width() - width) // 2
     # update_button.pack_configure(padx=(x_position - 5, 5))
     # close_button_update.pack_configure(padx=(5, x_position - 5))
-    
+
     close_button_update.config(text='Maybe later')
-    root.update_idletasks()
-
-
+root.update_idletasks()
 root.protocol("WM_DELETE_WINDOW", on_closing)
 atexit.register(on_closing)
 
