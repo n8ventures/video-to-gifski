@@ -27,6 +27,7 @@
 # add Splash Screen
 # Improve debug mode.
 # Write rc settings on DevTool
+# Optimized code
 
 # Updater ver 1.1.1
     # added button framing (still need to test this out)
