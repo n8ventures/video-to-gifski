@@ -7,7 +7,7 @@
     # For small Transparent GIFs, please double or triple the resolution then scale down to the intended solution in the program to prevent the dither/aliased edges
 
 
-# Batch File process
+# Batch File process - Yeah i dont know about this one, chief. Maybe queue mode instead of all in one.
     # alternative to this is to stop opening a new fucking window after conversion - this is done on 2.2.0
 
 
@@ -18,6 +18,12 @@
 # Improve Splash Screen / Loading times
     # Explore --one-dir option
 
+# Fix Text/Preview Button
+    # Rename Save to Quick Export/Convert
+
+# Add text to hint preview
+
+# Fill top half to be draggable area
 
 
 - 2.4.0
