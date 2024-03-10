@@ -432,7 +432,7 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
         print(cmd)
 
 
-def get_and_print_video_data(file_path):  # sourcery skip: low-code-quality
+def get_and_print_video_data(file_path):
     global video_data
     if file_path != 'temp/temp.gif':
         print(f"File: {file_path}")
