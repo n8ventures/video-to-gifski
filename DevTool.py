@@ -226,7 +226,7 @@ def genMainRC():
             StringStruct('FileDescription', 'N8\\'s Video to GIF Converter'),
             StringStruct('FileVersion', '{__version__}'),
             StringStruct('InternalName', '{__appname__}'),
-            StringStruct('LegalCopyright', '© 2024 N8VENTURES. All rights reserved.'),
+            StringStruct('LegalCopyright','Copyright © 2024 John Nathaniel Calvara. Licensed under the MIT License.'),
             StringStruct('OriginalFilename', '{__appname__}.exe'),
             StringStruct('ProductName', 'N8\\'s Video to GIF Converter'),
             StringStruct('ProductVersion', '{__version__}')])
@@ -277,7 +277,7 @@ def genUpdaterRC():
             StringStruct('FileDescription', 'N8\\'s Video to GIF Converter'),
             StringStruct('FileVersion', '{__updaterversion__}'),
             StringStruct('InternalName', '{__updatername__}'),
-            StringStruct('LegalCopyright', '© 2024 N8VENTURES. All rights reserved.'),
+            StringStruct('LegalCopyright', 'Copyright © 2024 John Nathaniel Calvara. Licensed under the MIT License.'),
             StringStruct('OriginalFilename', '{__updatername__}.exe'),
             StringStruct('ProductName', 'N8\\'s Video to GIF Converter'),
             StringStruct('ProductVersion', '{__updaterversion__}')])
