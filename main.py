@@ -503,6 +503,8 @@ def parse_temp_data(temp_data):
 
 
 def parse_video_data(video_data):
+    global parsed_framerate
+    
     width_value = video_data['width']
     height_value = video_data['height']
     fps_value = round(eval(video_data['r_frame_rate']), 3)
@@ -518,6 +520,8 @@ def parse_video_data(video_data):
     seconds = remaining_frames // fps_int
     frames = remaining_frames % fps_int
     timecode = f"{hours:02}:{minutes:02}:{seconds:02}:{frames:02}"
+    
+    parsed_framerate = int(round(fps_value))
 
     print("Video width:", width_value)
     print("Video height:", height_value)
@@ -768,7 +772,10 @@ def open_settings_window():
 
     fps_label = tk.Label(settings_window, text="Frames Per Second:")
     fps_label.pack()
-    fps = tk.Scale(settings_window, from_=1, to=30, orient=tk.HORIZONTAL, resolution=1, length=300)
+    
+    fps_limit = min(parsed_framerate, 30)
+    
+    fps = tk.Scale(settings_window, from_=1, to=fps_limit, orient=tk.HORIZONTAL, resolution=1, length=300)
     fps.set(30)
     fps.pack()
 

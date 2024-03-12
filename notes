@@ -34,6 +34,7 @@
 # Improve debug mode.
 # Write rc settings on DevTool
 # Optimized code
+# Framerate should now be limited to 30 and if framerate is <30, set to that max framerate on settings_window
 
 # Updater ver 1.1.1
     # added button framing (still need to test this out)
