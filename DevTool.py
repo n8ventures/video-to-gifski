@@ -63,10 +63,7 @@ def genMainSpec(ff, console):
         ('.\\\\buildandsign\\\\ico\\\\amor.png', '.'),
         ('.\\\\buildandsign\\\\ico\\\\ico3.png', '.'),
         ('.\\\\buildandsign\\\\ico\\\\motionteamph.png', '.'),
-        ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2'),
-        ('{site_packages_path}\\\\requests', 'requests'), 
-        ('{site_packages_path}\\\\PIL', 'PIL'),
-        ('{site_packages_path}\\\\pywinctl', 'pywinctl'),
+        ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2')
     ]
     datas += collect_data_files('pyinstaller_hooks_contrib.collect')
 
@@ -81,7 +78,7 @@ def genMainSpec(ff, console):
         ],\n'''
     b ='''\
         datas=datas,
-        hiddenimports=['tkinterdnd2', 'tkinter', 'PIL', 'requests'],
+        hiddenimports=[],
         hookspath=[],
         hooksconfig={},
         runtime_hooks=[],
@@ -133,11 +130,6 @@ def genUpdaterSpec():
         ('icoUpdater.ico', '.'),
         ('.\\\\buildandsign\\\\ico\\\\n8.png', '.'),
         ('.\\\\buildandsign\\\\ico\\\\ico3Updater.png', '.'),
-        ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2'),
-        ('{site_packages_path}\\\\requests', 'requests'), 
-        ('{site_packages_path}\\\\tqdm', 'tqdm'),
-        ('{site_packages_path}\\\\pywinctl', 'pywinctl'), 
-        
     ]
     datas += collect_data_files('pyinstaller_hooks_contrib.collect')
 
@@ -147,7 +139,7 @@ def genUpdaterSpec():
         binaries=[],\n'''
     b ='''\
         datas=datas,
-        hiddenimports=['tkinterdnd2', 'tkinter', 'tqdm'],
+        hiddenimports=[],
         hookspath=[],
         hooksconfig={},
         runtime_hooks=[],
