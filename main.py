@@ -309,10 +309,10 @@ def watermark_label(parent_window):
     parent_window.config(menu=menu_bar)
     
     frame = tk.Frame(parent_window)
-    frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=2)
+    frame.pack(side=tk.BOTTOM, fill=tk.X)
 
     separator_wm = ttk.Separator(frame, orient="horizontal")
-    separator_wm.pack(side=tk.BOTTOM, fill=tk.Y, padx=10)
+    separator_wm.pack(side=tk.TOP, fill=tk.X)
     
     watermark_label = tk.Label(frame, text="by N8VENTURES", fg="gray")
     watermark_label.pack(side=tk.LEFT, anchor=tk.SW)
@@ -833,10 +833,10 @@ def open_settings_window():
     buttonsFrame = tk.Frame(settings_window)
     buttonsFrame.pack(pady=10)
     
-    apply_button = tk.Button(buttonsFrame, text="Convert!", command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
+    apply_button = tk.Button(buttonsFrame, text="Quick Export", command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
     apply_button.pack(side=tk.LEFT, padx=5)
     
-    test_button = tk.Button(buttonsFrame, text="Test/Preview", command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start())
+    test_button = tk.Button(buttonsFrame, text="Apply & Preview", command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start())
     test_button.pack(side=tk.RIGHT, padx=5)
     
     def update_scale_label(value):
@@ -890,7 +890,7 @@ def open_settings_window():
         preview_label.img = tk_img
         preview_label.config(image=tk_img)
         
-        apply_button.config(text='Save', command=lambda: apply_settings('temp-final'))
+        apply_button.config(text='Save As...', command=lambda: apply_settings('temp-final'))
         
         filesize = get_filesize('temp/temp.gif')
         fileSize_label.config(text=f'GIF Size: {filesize}')
@@ -1082,7 +1082,7 @@ root.protocol("WM_DELETE_WINDOW", on_closing)
 atexit.register(on_closing)
 
 # threading.Thread(target=show_main).start()
-splash_screen.after(5000, show_main)
+splash_screen.after(3500, show_main)
 
 root.mainloop()
 
