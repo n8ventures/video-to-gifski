@@ -174,3 +174,5 @@ buildandsign/*.key
 buildandsign/bin/*.exe
 buildandsign/bin/full/*.exe
 buildandsign/bin/lite/*.exe
+__mainVersion.rc
+__updaterVersion.rc

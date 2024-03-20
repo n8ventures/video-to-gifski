@@ -266,12 +266,12 @@ def genUpdaterRC():
           StringTable(
             '040904e4',
             [StringStruct('CompanyName', 'N8VENTURES'),
-            StringStruct('FileDescription', 'N8\\'s Video to GIF Converter'),
+            StringStruct('FileDescription', 'N8\\'s V2G Updater'),
             StringStruct('FileVersion', '{__updaterversion__}'),
             StringStruct('InternalName', '{__updatername__}'),
             StringStruct('LegalCopyright', 'Copyright © 2024 John Nathaniel Calvara. Licensed under the MIT License.'),
             StringStruct('OriginalFilename', '{__updatername__}.exe'),
-            StringStruct('ProductName', 'N8\\'s Video to GIF Converter'),
+            StringStruct('ProductName', 'N8\\'s V2G Updater'),
             StringStruct('ProductVersion', '{__updaterversion__}')])
           ]), 
         VarFileInfo([VarStruct('Translation', [1033, 1252])])
