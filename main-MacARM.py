@@ -1,6 +1,6 @@
 from __version__ import __version__, __appname__, __ffmpegversion__, __gifskiversion__, __updatername__, __updaterversion__
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, ttk, PhotoImage
 from tkinterdnd2 import TkinterDnD, DND_FILES
 from PIL import Image, ImageTk, ImageSequence
 import subprocess
@@ -15,6 +15,8 @@ import threading
 import pywinctl as pwc
 import time
 import math
+from tkmacosx import Button
+import glob
 
 
 import argparse
@@ -49,30 +51,30 @@ print("Current version:", __version__)
 video_data = None
 global mode
 
-# for windows executables, basically makes this readable inside an exe
-if any(char.isalpha() for char in __version__):
-    icon = 'icoDev.ico'
-else:
-    icon = 'ico.ico'
-    
-ffprobe = 'ffprobe.exe'
-ffplay = 'ffplay.exe'
-gifski = 'gifski.exe'
-ffmpeg = 'ffmpeg.exe'
+# for windows executables, basically makes this readable inside an exe    
+ffprobe = 'ffprobe'
+ffplay = 'ffplay'
+gifski = 'gifski'
+ffmpeg = 'ffmpeg'
 if hasattr(sys, '_MEIPASS'):
-    icon = os.path.join(sys._MEIPASS, icon)
     ffprobe = os.path.join(sys._MEIPASS, ffprobe)
     ffplay = os.path.join(sys._MEIPASS, ffplay)
     gifski = os.path.join(sys._MEIPASS, gifski)
     ffmpeg = os.path.join(sys._MEIPASS, ffmpeg)
+else:
+    MacOSbin = './buildandsign/bin/macOS'
+    ffprobe = os.path.join(MacOSbin, ffprobe)
+    ffplay = os.path.join(MacOSbin, ffplay)
+    gifski = os.path.join(MacOSbin, gifski)
+    ffmpeg = os.path.join(MacOSbin, ffmpeg)
 
 def create_popup(root, title, width, height, switch):
     popup = tk.Toplevel(root)
     popup.title(title)
     popup.geometry(f"{width}x{height}")
-    popup.iconbitmap(icon)
+    popup.iconphoto(True, icon)
     # popup.overrideredirect(True)
-    popup.attributes('-toolwindow', 1)
+    popup.attributes('-type', 'utility')
     center_window(popup, width, height)
     
     if switch == 1:
@@ -192,43 +194,20 @@ def execute_download_updater():
         subprocess.Popen(f'{__updatername__}.exe')
 
 def CheckUpdates():
-    get_latest_release_version()
+    print('Disabled. lol')
+    # get_latest_release_version()
     
-    if not os.path.exists(f"{__updatername__}.exe"):
-        print('updater not found')
-        execute_download_updater()
-    else:
-        print('Updater exists!')
-        if __version__ < get_latest_release_version():
-            print('New release! Downloading updated updater. (yeah I know...)')
-            execute_download_updater()
-        else:
-            print('opening updater')
-            subprocess.Popen(f'{__updatername__}.exe')
-
-def CheckUpdates_bg():
-    get_latest_release_version()
-    
-    if not os.path.exists(f"{__updatername__}.exe"):
-        print('updater not found')
-        execute_download_updater()
-    else:
-        print('Updater exists!')
-        
-        result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
-        if args.debug:
-            print(f'Updater version: {result.stdout.strip()}')
-
-        if __version__ < get_latest_release_version():
-            print('New release! Downloading updated updater. (yeah I know...)')
-            execute_download_updater()
-
-        if result.stdout.strip() < __updaterversion__:
-            print('new Updater version detected. Downloading updater!')
-            execute_download_updater()
-
-def updaterExists():
-    CheckUpdates_bg()
+    # if not os.path.exists(f"{__updatername__}.exe"):
+    #     print('updater not found')
+    #     execute_download_updater()
+    # else:
+    #     print('Updater exists!')
+    #     if __version__ < get_latest_release_version():
+    #         print('New release! Downloading updated updater. (yeah I know...)')
+    #         execute_download_updater()
+    #     else:
+    #         print('opening updater')
+    #         subprocess.Popen(f'{__updatername__}.exe')
 
 def about():
     geo_width = 370
@@ -279,7 +258,7 @@ def egg_about(aboutmenu, geo_width, geo_len):
     mograph = (
         os.path.join(sys._MEIPASS, mograph)
         if hasattr(sys, '_MEIPASS')
-        else '.\\buildandsign\\ico\\motionteamph.png'
+        else './buildandsign/ico/motionteamph.png'
     )
     image = tk.PhotoImage(file=mograph)
     label = tk.Label(aboutmenu, image=image, bd=0)
@@ -339,8 +318,7 @@ def get_filesize(file_path):
     return f'{size_mb} MB ({size_kb} KB)'
 
 def get_video_data(input_file):
-    cmd = [
-        ffprobe,
+    cmd = [ffprobe,
         "-v", "error",
         "-select_streams", "v:0",
         "-show_entries", "stream=width,height,r_frame_rate,duration,pix_fmt",
@@ -348,7 +326,7 @@ def get_video_data(input_file):
         input_file
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+    result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode == 0:
         # Parse the JSON output
@@ -394,7 +372,7 @@ def video_to_frames_seq(input_file, framerate):
     cmd.append(','.join(filtergraph))
     cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
     # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+    subprocess.run(cmd)
     if args.debug:
         print(cmd)
     
@@ -424,10 +402,19 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
     if lossy_var.get():
         cmd.extend(["--lossy-quality", str(lossyQuality)])
         
-    cmd.extend(["-o", output_file, "temp/frames*.png"])
+    # Find all matching files in the temp directory
+    input_files = glob.glob("temp/frames*.png")
 
-    # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+    # Check if any files are found
+    if input_files:
+        # Extend the command with the found file paths
+        cmd.extend(["-o", output_file])
+        cmd.extend(input_files)
+
+        # Execute the command
+        subprocess.run(cmd)
+    else:
+        print("No input files found.")
     if args.debug:
         print(cmd)
 
@@ -545,6 +532,7 @@ def is_video_file(file_path):
     _, file_extension = os.path.splitext(file_path)
     return file_extension.lower() in video_extensions
 
+#TODO: Convert to MacOS
 def is_folder_open(path):
     open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
     folder_name = os.path.basename(path)
@@ -557,6 +545,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     motionQ= motion_quality.get()
     lossyQ = lossy_quality.get()
 
+#TODO: Convert to MacOS
     def openOutputFolder(path, path2):
         print('checking if window is open...')
         if not is_folder_open(path):
@@ -694,7 +683,7 @@ def open_settings_window():
     settings_window = tk.Toplevel(root)
     settings_window.title("User Settings")
     center_window(settings_window, 350, 720)
-    settings_window.iconbitmap(icon)
+    settings_window.iconphoto(True, icon)
     watermark_label(settings_window)
     make_non_resizable(settings_window)
 
@@ -708,13 +697,13 @@ def open_settings_window():
     
     playframe = tk.Frame(settings_window)
     playframe.pack()
-    play_gif_button = tk.Button(playframe, text='Play GIF', command=lambda: play_gif('temp/temp.gif'))
+    play_gif_button = Button(playframe, text='Play GIF', command=lambda: play_gif('temp/temp.gif'))
     play_gif_button.pack(pady=10)
     play_gif_button.config(state="disabled")
     
     if args.debug:
         play_gif_button.pack(side=tk.LEFT, pady=10)
-        debug_gif_button = tk.Button(playframe, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
+        debug_gif_button = Button(playframe, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
         debug_gif_button.pack(side=tk.RIGHT, pady=10)
         debug_gif_button.config(state="disabled")
 
@@ -833,10 +822,10 @@ def open_settings_window():
     buttonsFrame = tk.Frame(settings_window)
     buttonsFrame.pack(pady=10)
     
-    apply_button = tk.Button(buttonsFrame, text="Quick Export", command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
+    apply_button = Button(buttonsFrame, text="Quick Export", command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
     apply_button.pack(side=tk.LEFT, padx=5)
     
-    test_button = tk.Button(buttonsFrame, text="Apply & Preview", command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start())
+    test_button = Button(buttonsFrame, text="Apply & Preview", command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start())
     test_button.pack(side=tk.RIGHT, padx=5)
     
     def update_scale_label(value):
@@ -890,6 +879,7 @@ def open_settings_window():
         preview_label.img = tk_img
         preview_label.config(image=tk_img)
         
+        #TODO: FIX lambda error
         apply_button.config(text='Save As...', command=lambda: apply_settings('temp-final'))
         
         filesize = get_filesize('temp/temp.gif')
@@ -908,7 +898,7 @@ def open_settings_window():
         file_path
     ]
 
-        subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+        subprocess.run(cmd)
 
     root.withdraw()
     settings_window.grab_set()
@@ -923,12 +913,16 @@ def open_settings_window():
 
 # Create the main window
 root = TkinterDnD.Tk()
+if any(char.isalpha() for char in __version__):
+    icon =  PhotoImage(file='./buildandsign/ico/ico3beta.png')
+else:
+    icon = PhotoImage(file='./buildandsign/ico/ico2.png')
 root.withdraw()
 
 splash_screen = tk.Toplevel(root)
 splash_screen.overrideredirect(1) 
 splash_screen.attributes('-topmost', True)  # Keep the window on top
-splash_screen.attributes("-transparentcolor", "white")
+splash_screen.attributes("-transparent", "true")
 splash_geo_x = 350
 splash_geo_y = 550
 if args.Egg:
@@ -1002,7 +996,7 @@ def show_main():
 
     geo_width= 425
     center_window(root, geo_width, 450)
-    root.iconbitmap(icon)
+    root.iconphoto(True, icon)
     make_non_resizable(root)
     watermark_label(root)
 
@@ -1010,7 +1004,7 @@ def show_main():
     spacer.pack(pady=10)
 
     # Create a button to choose a file
-    choose_button = tk.Button(root, text="Choose Video File", command=choose_file)
+    choose_button = Button(root, text="Choose Video File", command=choose_file)
     choose_button.pack(pady=20)
 
     or_label = tk.Label(root, text="Or")
@@ -1042,7 +1036,7 @@ def show_main():
     if hasattr(sys, '_MEIPASS'):
         DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
     else:
-        DnDLogo = '.\\buildandsign\\ico\\ico3.png'
+        DnDLogo = './buildandsign/ico/ico3.png'
     imgYPos = 225
 
 
@@ -1051,7 +1045,7 @@ def show_main():
         if hasattr(sys, '_MEIPASS'):
             DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
         else:
-            DnDLogo = '.\\buildandsign\\ico\\amor.png'
+            DnDLogo = './buildandsign/ico/amor.png'
         
         imgYPos = 200
 
@@ -1060,8 +1054,6 @@ def show_main():
     label = tk.Label(canvas, image=resized_image, bd=0, bg="white")
     label.image = resized_image
     label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
-    
-    threading.Thread(target=updaterExists).start()
     
     splash_screen.destroy()
     root.deiconify()
