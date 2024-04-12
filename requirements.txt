@@ -18,7 +18,7 @@ PyWinCtl==0.3
 requests==2.31.0
 setuptools==69.1.1
 tk==0.1.0
-tkinterdnd2==0.3.0
+tkinterdnd2-universal==1.7.3
 tqdm==4.66.2
 typing_extensions==4.10.0
 urllib3==2.2.1
