@@ -178,3 +178,4 @@ buildandsign/bin/full/*.exe
 buildandsign/bin/lite/*.exe
 __mainVersion.rc
 __updaterVersion.rc
+.DS_Store
