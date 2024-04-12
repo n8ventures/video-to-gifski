@@ -172,6 +172,8 @@ buildandsign/*.crt
 buildandsign/*.pem
 buildandsign/*.key
 buildandsign/bin/*.exe
+buildandsign/bin/macOS/*
+!buildandsign/bin/macOS/*.*
 buildandsign/bin/full/*.exe
 buildandsign/bin/lite/*.exe
 __mainVersion.rc
