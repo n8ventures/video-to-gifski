@@ -2,6 +2,14 @@
     # pip freeze > requirements.txt - on original terminal
     # pip install -r requirements.txt --upgrade -on new terminals
 
+# How the fuck do you set up for MacOS ARM???
+conda config --env --set subdir osx-arm64
+
+- It's single frontslash for macos instead of double backslash
+- need to bind and have an OS switch on main file.
+// not needed conda install --yes --file requirements.txt
+
+
 
 # Guide
     # For small Transparent GIFs, please double or triple the resolution then scale down to the intended solution in the program to prevent the dither/aliased edges
