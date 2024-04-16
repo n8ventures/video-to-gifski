@@ -1,4 +1,4 @@
-from __version__ import __version__, __appname__, __ffmpegversion__, __gifskiversion__, __updatername__, __updaterversion__
+from __version__ import __versionMac__ as __version__, __appname__, __ffmpegversion_Mac__ as __ffmpegversion__, __gifskiversion__
 import tkinter as tk
 from tkinter import filedialog, ttk, PhotoImage
 from tkinterdnd2 import TkinterDnD, DND_FILES
@@ -17,7 +17,27 @@ import time
 import math
 from tkmacosx import Button
 import glob
+import platform
 
+
+def is_running_from_bundle():
+    # Check if the application is running from a bundled executable
+    if getattr(sys, 'frozen', False):
+        # For py2app bundles, use sys.executable to get the bundle path
+        if hasattr(sys, '_MEIPASS'):
+            return sys._MEIPASS
+        else:
+            current_dir = os.path.dirname(sys.executable)
+            parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+            return os.path.join(parent_dir, "Resources")
+
+    return False
+
+# Example usage:
+if is_running_from_bundle():
+    print("Running from a bundled application")
+else:
+    print("Running from source")
 
 import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -56,11 +76,12 @@ ffprobe = 'ffprobe'
 ffplay = 'ffplay'
 gifski = 'gifski'
 ffmpeg = 'ffmpeg'
-if hasattr(sys, '_MEIPASS'):
-    ffprobe = os.path.join(sys._MEIPASS, ffprobe)
-    ffplay = os.path.join(sys._MEIPASS, ffplay)
-    gifski = os.path.join(sys._MEIPASS, gifski)
-    ffmpeg = os.path.join(sys._MEIPASS, ffmpeg)
+bundle_path = is_running_from_bundle()
+if bundle_path:
+    ffprobe = os.path.join(bundle_path, ffprobe)
+    ffplay = os.path.join(bundle_path, ffplay)
+    gifski = os.path.join(bundle_path, gifski)
+    ffmpeg = os.path.join(bundle_path, ffmpeg)
 else:
     MacOSbin = './buildandsign/bin/macOS'
     ffprobe = os.path.join(MacOSbin, ffprobe)
@@ -128,70 +149,70 @@ def get_latest_release_version():
     release_info = json.loads(response.text)
     return release_info.get('tag_name', '0.0.0')
 
-def downloadUpdater():
-    global latest_release_version
+# def downloadUpdater():
+#     global latest_release_version
 
-    response = requests.get(n8_gif_repo)
-    if response.status_code == 200:
-        return downloadUpdaterUpdate(response)
-    print("Failed to retrieve updater information. Please check your internet connection.")
-    return 'ERR_NO_CONNECTION'
+#     response = requests.get(n8_gif_repo)
+#     if response.status_code == 200:
+#         return downloadUpdaterUpdate(response)
+#     print("Failed to retrieve updater information. Please check your internet connection.")
+#     return 'ERR_NO_CONNECTION'
 
 
 
-def downloadUpdaterUpdate(response):
-    release_data = response.json()
-    latest_release_version = get_latest_release_version()
-    if latest_release_version == '0.0.0':
-        return 'ERR_NO_CONNECTION'
-    latest_file = f'{__updatername__}.exe'
+# def downloadUpdaterUpdate(response):
+#     release_data = response.json()
+#     latest_release_version = get_latest_release_version()
+#     if latest_release_version == '0.0.0':
+#         return 'ERR_NO_CONNECTION'
+#     latest_file = f'{__updatername__}.exe'
 
-    for asset in release_data['assets']:
-        if asset['name'] == latest_file:
-            download_url = asset['browser_download_url']
-            updaterURL = requests.get(download_url)
+#     for asset in release_data['assets']:
+#         if asset['name'] == latest_file:
+#             download_url = asset['browser_download_url']
+#             updaterURL = requests.get(download_url)
 
-            with open(latest_file, 'wb') as file:
-                file.write(updaterURL.content)
-                return 'UPDR_DONE'
-    print('File not found!')
-    return 'ERR_NOT_FOUND'
+#             with open(latest_file, 'wb') as file:
+#                 file.write(updaterURL.content)
+#                 return 'UPDR_DONE'
+#     print('File not found!')
+#     return 'ERR_NOT_FOUND'
 
-def UPDATER_POPUP(title, msg):
-    win_height = 250 if os.path.exists(f"{__updatername__}.exe") else 140
-    updaterMenu = create_popup(root, title, 400, win_height, 1)
-    make_non_resizable(updaterMenu)
+# def UPDATER_POPUP(title, msg):
+#     win_height = 250 if os.path.exists(f"{__updatername__}.exe") else 140
+#     updaterMenu = create_popup(root, title, 400, win_height, 1)
+#     make_non_resizable(updaterMenu)
 
-    txt_msg = msg
+#     txt_msg = msg
 
-    if os.path.exists(f"{__updatername__}.exe"):
-        NR_label1= tk.Label(updaterMenu, text='New release detected!', font=('Helvetica', 10, 'bold'))
-        NR_label2= tk.Label(updaterMenu, text=f'Updating {__updatername__}.exe...', font=('Helvetica', 10, 'italic'))
-        NR_label1.pack(pady=10)
-        NR_label2.pack(pady=10)
+#     if os.path.exists(f"{__updatername__}.exe"):
+#         NR_label1= tk.Label(updaterMenu, text='New release detected!', font=('Helvetica', 10, 'bold'))
+#         NR_label2= tk.Label(updaterMenu, text=f'Updating {__updatername__}.exe...', font=('Helvetica', 10, 'italic'))
+#         NR_label1.pack(pady=10)
+#         NR_label2.pack(pady=10)
 
-    txt_label = tk.Label(updaterMenu, text=txt_msg)
-    txt_label.pack(pady=10)
+#     txt_label = tk.Label(updaterMenu, text=txt_msg)
+#     txt_label.pack(pady=10)
 
-    close_button = ttk.Button(updaterMenu, text="Close", command=updaterMenu.destroy)
+#     close_button = ttk.Button(updaterMenu, text="Close", command=updaterMenu.destroy)
 
-    close_button.pack(pady=10)
+#     close_button.pack(pady=10)
 
-    root.update_idletasks()
+#     root.update_idletasks()
 
-    if downloadUpdater() == 'UPDR_DONE':
-        updaterMenu.destroy()
+#     if downloadUpdater() == 'UPDR_DONE':
+#         updaterMenu.destroy()
 
-def execute_download_updater():
-    UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
-    update_result = downloadUpdater()
-    if update_result == 'ERR_NO_CONNECTION':
-        UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
-    elif update_result == 'ERR_NOT_FOUND':
-        UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
-    elif update_result == 'UPDR_DONE':
-        time.sleep(3)
-        subprocess.Popen(f'{__updatername__}.exe')
+# def execute_download_updater():
+#     UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
+#     update_result = downloadUpdater()
+#     if update_result == 'ERR_NO_CONNECTION':
+#         UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
+#     elif update_result == 'ERR_NOT_FOUND':
+#         UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
+#     elif update_result == 'UPDR_DONE':
+#         time.sleep(3)
+#         subprocess.Popen(f'{__updatername__}.exe')
 
 def CheckUpdates():
     print('Disabled. lol')
@@ -256,8 +277,8 @@ def about():
 def egg_about(aboutmenu, geo_width, geo_len):
     mograph = 'motionteamph.png'
     mograph = (
-        os.path.join(sys._MEIPASS, mograph)
-        if hasattr(sys, '_MEIPASS')
+        os.path.join(bundle_path, mograph)
+        if bundle_path
         else './buildandsign/ico/motionteamph.png'
     )
     image = tk.PhotoImage(file=mograph)
@@ -532,11 +553,27 @@ def is_video_file(file_path):
     _, file_extension = os.path.splitext(file_path)
     return file_extension.lower() in video_extensions
 
-#TODO: Convert to MacOS
 def is_folder_open(path):
-    open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
     folder_name = os.path.basename(path)
-    return folder_name in open_folders
+    if platform.system() == 'Windows':
+        open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
+        return folder_name in open_folders
+    elif platform.system() == 'Darwin':  # macOS
+        # Use AppleScript to check if Finder window is open with the specified folder
+        script = f'''
+            tell application "System Events"
+                set openWindows to name of every window of application process "Finder"
+            end tell
+            if "{folder_name}" is in openWindows then
+                return true
+            else
+                return false
+            end if
+        '''
+        open_windows = subprocess.check_output(['osascript', '-e', script]).decode('utf-8').strip()
+        return open_windows == 'true'
+    else:
+        raise OSError("Unsupported operating system")
 
 def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file, mode):
     global output_file
@@ -545,23 +582,28 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     motionQ= motion_quality.get()
     lossyQ = lossy_quality.get()
 
-#TODO: Convert to MacOS
     def openOutputFolder(path, path2):
         print('checking if window is open...')
         if not is_folder_open(path):
             print('window not found, opening window.')
-            subprocess.run(fr'explorer /select,"{path2}"')
+            if platform.system() == 'Windows':
+                subprocess.run(fr'explorer /select,"{path2}"')
+            elif platform.system() == 'Darwin':  # macOS
+                subprocess.run(['open', '-R', path2])
         else:
             print('window found!')
-            windows = pwc.getWindowsWithTitle(os.path.basename(path))
-            if windows:
-                win = windows[0]
-                if win.minimize():
-                    win.restore(True)
-                win.activate(True)
-
-            else:
-                print('Window not found with specified title.')
+            if platform.system() == 'Windows':
+                windows = pwc.getWindowsWithTitle(os.path.basename(path))
+                if windows:
+                    win = windows[0]
+                    if win.minimize():
+                        win.restore(True)
+                    win.activate(True)
+                else:
+                    print('Window not found with specified title.')
+            elif platform.system() == 'Darwin':  # macOS
+                # macOS does not support window manipulation like Windows, so just reveal the file in Finder
+                subprocess.run(['open', '-R', path2])
 
     if mode == 'final':
         output_file = filedialog.asksaveasfile(
@@ -879,7 +921,6 @@ def open_settings_window():
         preview_label.img = tk_img
         preview_label.config(image=tk_img)
         
-        #TODO: FIX lambda error
         apply_button.config(text='Save As...', command=lambda: apply_settings('temp-final'))
         
         filesize = get_filesize('temp/temp.gif')
@@ -914,9 +955,15 @@ def open_settings_window():
 # Create the main window
 root = TkinterDnD.Tk()
 if any(char.isalpha() for char in __version__):
-    icon =  PhotoImage(file='./buildandsign/ico/ico3beta.png')
+    if bundle_path:
+        icon =  PhotoImage(file=os.path.join(bundle_path, 'ico3beta.png'))
+    else:
+        icon =  PhotoImage(file='./buildandsign/ico/ico3beta.png')
 else:
-    icon = PhotoImage(file='./buildandsign/ico/ico2.png')
+    if bundle_path:
+        icon =  PhotoImage(file=os.path.join(bundle_path, 'ico3.png'))
+    else:
+        icon = PhotoImage(file='./buildandsign/ico/ico3.png')
 root.withdraw()
 
 splash_screen = tk.Toplevel(root)
@@ -934,15 +981,15 @@ center_window(splash_screen, splash_geo_x, splash_geo_y)
 
 
 gif_path = 'splash.gif'
-if hasattr(sys, '_MEIPASS'):
-    gif_path = os.path.join(sys._MEIPASS, gif_path)
+if bundle_path:
+    gif_path = os.path.join(bundle_path, gif_path)
 else:
     gif_path = './/splash//splash.gif'
 
 if args.Egg:
     gif_path = 'splashEE.gif'
-    if hasattr(sys, '_MEIPASS'):
-        gif_path = os.path.join(sys._MEIPASS, gif_path)
+    if bundle_path:
+        gif_path = os.path.join(bundle_path, gif_path)
     else:
         gif_path = './/splash//splashEE.gif'
 
@@ -974,17 +1021,17 @@ def show_main():
         canvas.configure(scrollregion=canvas.bbox("all"))
         
     def drag_enter(event):
-        drop_label.config(bg="lightgray")
-        label.config(bg="lightgray")
+        drop_label.config
+        label.config
 
     def drag_leave(event):
-        drop_label.config(bg="white")
-        label.config (bg="white")
+        drop_label.config
+        label.config
         
     def on_drop(event):
         global file_path
-        drop_label.config(bg="white")
-        label.config (bg="white")
+        drop_label.config
+        label.config
         file_path = event.data.strip('{}')
         threading.Thread(target=get_and_print_video_data, args=(file_path, )).start()
     
@@ -1015,7 +1062,7 @@ def show_main():
     canvas.pack(expand=True, fill="both")
 
     # Create a Label for the drop area
-    drop_label = tk.Label(canvas, text="Drag and Drop Video Files Here", padx=20, pady=20, bg="white")
+    drop_label = tk.Label(canvas, text="Drag and Drop Video Files Here", padx=20, pady=20)
     drop_label.pack(expand=True, fill="both")
 
     # Bind the drop event to the on_drop function
@@ -1033,8 +1080,8 @@ def show_main():
 
     # logo on drop event area
     DnDLogo = 'ico3.png' 
-    if hasattr(sys, '_MEIPASS'):
-        DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
+    if bundle_path:
+        DnDLogo = os.path.join(bundle_path, DnDLogo)
     else:
         DnDLogo = './buildandsign/ico/ico3.png'
     imgYPos = 225
@@ -1042,8 +1089,8 @@ def show_main():
 
     if args.Egg:
         DnDLogo = 'amor.png' 
-        if hasattr(sys, '_MEIPASS'):
-            DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
+        if bundle_path:
+            DnDLogo = os.path.join(bundle_path, DnDLogo)
         else:
             DnDLogo = './buildandsign/ico/amor.png'
         
@@ -1051,7 +1098,7 @@ def show_main():
 
     image = tk.PhotoImage(file=DnDLogo)
     resized_image = image.subsample(2)
-    label = tk.Label(canvas, image=resized_image, bd=0, bg="white")
+    label = tk.Label(canvas, image=resized_image, bd=0)
     label.image = resized_image
     label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
     

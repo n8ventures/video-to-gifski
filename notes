@@ -8,7 +8,22 @@ conda config --env --set subdir osx-arm64
 - It's single frontslash for macos instead of double backslash
 - need to bind and have an OS switch on main file.
 // not needed conda install --yes --file requirements.txt
+// use .venv lol
 
+sips -z 16 16     ico3Updater.png --out icoUpdater.iconset/icon_16x16.png
+sips -z 32 32     ico3Updater.png --out icoUpdater.iconset/icon_16x16@2x.png
+sips -z 32 32     ico3Updater.png --out icoUpdater.iconset/icon_32x32.png
+sips -z 64 64     ico3Updater.png --out icoUpdater.iconset/icon_32x32@2x.png
+sips -z 128 128   ico3Updater.png --out icoUpdater.iconset/icon_128x128.png
+sips -z 256 256   ico3Updater.png --out icoUpdater.iconset/icon_128x128@2x.png
+sips -z 256 256   ico3Updater.png --out icoUpdater.iconset/icon_256x256.png
+sips -z 512 512   ico3Updater.png --out icoUpdater.iconset/icon_256x256@2x.png
+sips -z 512 512   ico3Updater.png --out icoUpdater.iconset/icon_512x512.png
+cp ico3Updater.png icoUpdater.iconset/icon_512x512@2x.png
+iconutil -c icns icoUpdater.iconset
+
+// make app
+python setup.py py2app
 
 
 # Guide

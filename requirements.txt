@@ -11,12 +11,11 @@ pillow==10.2.0
 pyinstaller==6.4.0
 pyinstaller-hooks-contrib==2024.1
 PyMonCtl==0.7
-pywin32==306
 pywin32-ctypes==0.2.2
 PyWinBox==0.6
 PyWinCtl==0.3
 requests==2.31.0
-setuptools==69.1.1
+setuptools==69.5.1
 tk==0.1.0
 tkinterdnd2-universal==1.7.3
 tqdm==4.66.2
@@ -24,3 +23,4 @@ typing_extensions==4.10.0
 urllib3==2.2.1
 Wand==0.6.13
 tkmacosx==1.0.5
+py2app==0.28.7
