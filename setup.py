@@ -9,7 +9,21 @@ else:
 APP = ['main-MacARM.py']
 OPTIONS = {
      'iconfile': icon, 
-     'packages':['PIL', 'tkinterdnd2', 'urllib3', 'packaging', 'requests', 'pywinctl'],
+     'packages':[
+         'PIL', 
+         'tkinterdnd2', 
+         'urllib3', 
+         'packaging', 
+         'requests', 
+         'pywinctl', 
+         'tkmacosx',
+         'charset_normalizer',
+         'colorama',
+         'tk',
+         'tqdm',
+         'typing_extensions',
+         'wand',
+         ],
 }
 DATA_FILES=[   
     ('.', [

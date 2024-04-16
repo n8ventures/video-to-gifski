@@ -1,5 +1,5 @@
 __version__ = "2.4.0"
-__versionMac__ = "2.4.1-beta"
+__versionMac__ = "2.4.1-beta2"
 __appname__ = "n8-vid-to-gif"
 
 __updaterversion__ = "1.1.1"
