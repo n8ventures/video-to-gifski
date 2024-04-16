@@ -3,26 +3,30 @@
     # pip install -r requirements.txt --upgrade -on new terminals
 
 # How the fuck do you set up for MacOS ARM???
-conda config --env --set subdir osx-arm64
 
-- It's single frontslash for macos instead of double backslash
-- need to bind and have an OS switch on main file.
-// not needed conda install --yes --file requirements.txt
-// use .venv lol
+# It's single frontslash for macos instead of double backslash
 
-sips -z 16 16     ico3Updater.png --out icoUpdater.iconset/icon_16x16.png
-sips -z 32 32     ico3Updater.png --out icoUpdater.iconset/icon_16x16@2x.png
-sips -z 32 32     ico3Updater.png --out icoUpdater.iconset/icon_32x32.png
-sips -z 64 64     ico3Updater.png --out icoUpdater.iconset/icon_32x32@2x.png
-sips -z 128 128   ico3Updater.png --out icoUpdater.iconset/icon_128x128.png
-sips -z 256 256   ico3Updater.png --out icoUpdater.iconset/icon_128x128@2x.png
-sips -z 256 256   ico3Updater.png --out icoUpdater.iconset/icon_256x256.png
-sips -z 512 512   ico3Updater.png --out icoUpdater.iconset/icon_256x256@2x.png
-sips -z 512 512   ico3Updater.png --out icoUpdater.iconset/icon_512x512.png
-cp ico3Updater.png icoUpdater.iconset/icon_512x512@2x.png
-iconutil -c icns icoUpdater.iconset
+# need to bind and have an OS switch on main file. [WIP]
+
+#not needed conda install --yes --file requirements.txt -NOPE 2.4.1-beta1
+# use .venv lol - NAH -2.4.1-beta2
+# reinstall everything, use brew and pyenve jfc. - 2.4.1-beta3
+
+# Create icns
+sips -z 16 16     icoDMG.png --out icoDMG.iconset/icon_16x16.png
+sips -z 32 32     icoDMG.png --out icoDMG.iconset/icon_16x16@2x.png
+sips -z 32 32     icoDMG.png --out icoDMG.iconset/icon_32x32.png
+sips -z 64 64     icoDMG.png --out icoDMG.iconset/icon_32x32@2x.png
+sips -z 128 128   icoDMG.png --out icoDMG.iconset/icon_128x128.png
+sips -z 256 256   icoDMG.png --out icoDMG.iconset/icon_128x128@2x.png
+sips -z 256 256   icoDMG.png --out icoDMG.iconset/icon_256x256.png
+sips -z 512 512   icoDMG.png --out icoDMG.iconset/icon_256x256@2x.png
+sips -z 512 512   ico3Updater.png --out icoDMG.iconset/icon_512x512.png
+cp icoDMG.png icoDMG.iconset/icon_512x512@2x.png
+iconutil -c icns icoDMG.iconset
 
 // make app
+rm -rf build dist
 python setup.py py2app
 
 

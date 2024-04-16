@@ -8,22 +8,32 @@ else:
 
 APP = ['main-MacARM.py']
 OPTIONS = {
-     'iconfile': icon, 
-     'packages':[
-         'PIL', 
-         'tkinterdnd2', 
-         'urllib3', 
-         'packaging', 
-         'requests', 
-         'pywinctl', 
-         'tkmacosx',
-         'charset_normalizer',
-         'colorama',
-         'tk',
-         'tqdm',
-         'typing_extensions',
-         'wand',
-         ],
+    'iconfile': icon, 
+    'packages':[
+        'PIL', 
+        'tkinterdnd2', 
+        'urllib3', 
+        'packaging', 
+        'requests', 
+        'pywinctl', 
+        'tkmacosx',
+        'charset_normalizer',
+        'colorama',
+        'tk',
+        'tqdm',
+        'typing_extensions',
+        'wand',
+        ],
+        'plist': {
+            'NSHumanReadableCopyright': 
+                'Copyright © 2024 John Nathaniel Calvara. This software is licensed under the MIT License.',
+            'CFBundleIdentifier':
+                "dev.n8ventures.N8\'sVideoToGIFConverter(Beta)",
+            'NSAppleScriptEnabled':
+                True,
+            'CFBundleGetInfoString':
+                'Convert Video To GIF with FFmpeg and Gifski.',
+    }
 }
 DATA_FILES=[   
     ('.', [
