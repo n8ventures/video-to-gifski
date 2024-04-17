@@ -303,7 +303,7 @@ def watermark_label(parent_window):
     
     about_menu = tk.Menu (menu_bar, tearoff=0)
     about_menu.add_command(label="About Us", command=about)
-    about_menu.add_command(label="Check for Updates", command=CheckUpdates)
+    # about_menu.add_command(label="Check for Updates", command=CheckUpdates)
     menu_bar.add_cascade(label="Help", menu=about_menu)
     
     parent_window.config(menu=menu_bar)
@@ -319,6 +319,8 @@ def watermark_label(parent_window):
     
     version_label = tk.Label(frame, text=f"version: {__version__} {debug}", fg="gray")
     version_label.pack(side=tk.RIGHT, anchor=tk.SE)
+    
+    root.config(menu=menu_bar)
 
 def make_non_resizable(window):
     window.resizable(False, False)

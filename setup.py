@@ -24,16 +24,34 @@ OPTIONS = {
         'typing_extensions',
         'wand',
         ],
-        'plist': {
-            'NSHumanReadableCopyright': 
-                'Copyright © 2024 John Nathaniel Calvara. This software is licensed under the MIT License.',
-            'CFBundleIdentifier':
-                "dev.n8ventures.N8\'sVideoToGIFConverter(Beta)",
-            'NSAppleScriptEnabled':
-                True,
-            'CFBundleGetInfoString':
-                'Convert Video To GIF with FFmpeg and Gifski.',
-    }
+    'includes':[
+        'requests',
+        'tkinter',
+        'os',
+        'json',
+        'shutil',
+        'sys',
+        'atexit',
+        'threading',
+        'time',
+        'math',
+        'glob',
+        'platform',
+        ],
+    'frameworks':[
+        '/opt/homebrew/Cellar/tcl-tk/8.6.14/lib/libtk8.6.dylib',
+        '/opt/homebrew/Cellar/tcl-tk/8.6.14/lib/libtcl8.6.dylib',
+    ],
+    'plist': {
+        'NSHumanReadableCopyright': 
+            'Copyright © 2024 John Nathaniel Calvara. This software is licensed under the MIT License.',
+        'CFBundleIdentifier':
+            "dev.n8ventures.N8\'sVideoToGIFConverter(Beta)",
+        'NSAppleScriptEnabled':
+            True,
+        'CFBundleGetInfoString':
+            'Convert Video To GIF with FFmpeg and Gifski.',
+        }
 }
 DATA_FILES=[   
     ('.', [
@@ -50,6 +68,7 @@ DATA_FILES=[
         './buildandsign/ico/ico3beta.png',
         './buildandsign/ico/motionteamph.png',
         ]),
+     ('../lib', ['/opt/homebrew/Cellar/tcl-tk/8.6.14/lib/']),
         ]
 setup(
     app=APP,
