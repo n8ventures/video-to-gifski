@@ -29,6 +29,8 @@ iconutil -c icns icoDMG.iconset
 rm -rf build dist
 python setup.py py2app
 
+# create-dmg
+# check dmgbuild.py
 
 # Guide
     # For small Transparent GIFs, please double or triple the resolution then scale down to the intended solution in the program to prevent the dither/aliased edges

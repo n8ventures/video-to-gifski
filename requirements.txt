@@ -24,3 +24,4 @@ urllib3==2.2.1
 Wand==0.6.13
 tkmacosx==1.0.5
 py2app==0.28.7
+dmgbuild==1.6.1
