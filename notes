@@ -55,9 +55,24 @@ python setup.py py2app
 # Fill top half to be draggable area
 
 - 2.4.1 (OSX)
+need to dive into more on https://github.com/Saadmairaj/tkmacosx
 KNOWN ISSUES
 # tkinterdnd2 is buggy af. Might have to discontinue this if I dont figure out why it's freezing...
+ - It might also be just a really buggy TCL/TK framework.
+        - Things to try:
+            - install OSX-ARM-only tkinterdnd2
+            - reinistall frameworks and maybe python
+            - downgrade python version.
+        Links to get started:
+            https://github.com/pyenv/pyenv/issues/1375
+            https://stackoverflow.com/questions/60469202/unable-to-install-tkinter-with-pyenv-pythons-on-macos/60469203#60469203
+            https://github.com/escoolioinglesias/tkinterdnd2-osxarm64
+
+
 # rare bug that doesn't change settings_window geometry after applying.
+# Fill top half to be draggable area
+
+# using drag and drop, let window stay at top instead of focusing on window
 
 - 2.4.0
 # Updated icons 
@@ -68,6 +83,8 @@ KNOWN ISSUES
 # Write rc settings on DevTool
 # Optimized code
 # Framerate should now be limited to 30 and if framerate is <30, set to that max framerate on settings_window
+# Fix Text/Preview Button
+    # Rename Save to Quick Export/Convert
 
 # Updater ver 1.1.1
     # added button framing (still need to test this out)
@@ -81,10 +98,12 @@ KNOWN ISSUES
     # I gotta make the check boxes cleaner so it doesnt get too cluttered.
 # for devtool, activate pngtoico script (or just transfer the damn thing to devtool)
     #in addition to this, I improved the PNGs. Magick is weird, so now we're using Pillow.
-
+# Add text to hint preview
 - 2.2.2
 # Disabled auto-running updater
 # Disabled unpremultiply filter (for now)
+
+# 2.2.1 updater bugs... Noticed that sometimes it wont start the download... Need to replicate
 
 - 2.2.1
 # Fixed auto checking of updates on main. 
@@ -104,6 +123,8 @@ KNOWN ISSUES
     # close main.exe to update successfully
     # Changed gui.update to update_idletasks()
 
+# Batch File process - Yeah i dont know about this one, chief. Maybe queue mode instead of all in one.
+    # alternative to this is to stop opening a new fucking window after conversion - this is done on 2.2.0
 
 - 2.1.0
 # add pop up for invalid file names
