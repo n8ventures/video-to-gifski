@@ -54,6 +54,10 @@ python setup.py py2app
 
 # Fill top half to be draggable area
 
+- 2.4.1 (OSX)
+KNOWN ISSUES
+# tkinterdnd2 is buggy af. Might have to discontinue this if I dont figure out why it's freezing...
+# rare bug that doesn't change settings_window geometry after applying.
 
 - 2.4.0
 # Updated icons 
