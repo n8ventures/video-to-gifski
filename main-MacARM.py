@@ -35,37 +35,16 @@ def is_running_from_bundle():
 
 # Example usage:
 if is_running_from_bundle():
-    print("Running from a bundled application")
+    print("Running from a bundled application (.app)")
 else:
-    print("Running from source")
+    print("Running from source (.py)")
 
-import argparse
-parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
-parser.add_argument("-E", "--Egg",action='store_true', help = "Egg, mi amor")
-parser.add_argument('-v', '--version', action='version', version = __version__)
-parser.add_argument('-D', '--debug', action='store_true', help=f'Debug mode. use cmd \' {__appname__}.exe | MORE\'. But, you already knew that, don\'t cha?')
-parser.add_argument('-ct', '--checkthreads', action='store_true', help='Checks threads. (Will not work without [-D])')
-args = parser.parse_args()
+print("Current app version:", __version__)
 
-debug = ''
-
-if args.debug:
-    debug = '(Debug Mode)'
-    if args.checkthreads:
-        def list_current_threads():
-            while True:
-                print("-" * 20)
-                print("Current threads:")
-                for thread in threading.enumerate():
-                    print(thread.name)
-                print("-" * 20)
-                time.sleep(3)
-
-        threading.Thread(name='thread checker', target=list_current_threads, daemon=True).start()
-if args.Egg:
-    debug = '(Egg me up)'
-print("Current version:", __version__)
-
+print("Current working directory:", os.getcwd())
+print("Executable path:", sys.executable)
+print('TclVersion: ', tk.TclVersion)
+print('TkVersion: ', tk.TkVersion)
 
 
 video_data = None
@@ -234,10 +213,6 @@ def about():
     geo_width = 370
     geo_len = 300
 
-    if args.Egg:
-        geo_width = 370
-        geo_len= 410
-
     aboutmenu = create_popup(root, "About Us!", geo_width, geo_len, 1)
     make_non_resizable(aboutmenu)
 
@@ -267,8 +242,6 @@ def about():
         "https://github.com/n8ventures",
         "https://github.com/n8ventures",
     )
-    if args.Egg:
-        egg_about(aboutmenu, geo_width, geo_len)
 
     close_button = ttk.Button(aboutmenu, text="Close", command=aboutmenu.destroy)
     close_button.pack(pady=10)
@@ -317,7 +290,7 @@ def watermark_label(parent_window):
     watermark_label = tk.Label(frame, text="by N8VENTURES", fg="gray")
     watermark_label.pack(side=tk.LEFT, anchor=tk.SW)
     
-    version_label = tk.Label(frame, text=f"version: {__version__} {debug}", fg="gray")
+    version_label = tk.Label(frame, text=f"version: {__version__}", fg="gray")
     version_label.pack(side=tk.RIGHT, anchor=tk.SE)
     
     root.config(menu=menu_bar)
@@ -396,8 +369,6 @@ def video_to_frames_seq(input_file, framerate):
     cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
     # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     subprocess.run(cmd)
-    if args.debug:
-        print(cmd)
     
 def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
@@ -438,8 +409,6 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
         subprocess.run(cmd)
     else:
         print("No input files found.")
-    if args.debug:
-        print(cmd)
 
 
 def get_and_print_video_data(file_path):
@@ -745,11 +714,11 @@ def open_settings_window():
     play_gif_button.pack(pady=10)
     play_gif_button.config(state="disabled")
     
-    if args.debug:
-        play_gif_button.pack(side=tk.LEFT, pady=10)
-        debug_gif_button = Button(playframe, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
-        debug_gif_button.pack(side=tk.RIGHT, pady=10)
-        debug_gif_button.config(state="disabled")
+    # if args.debug:
+    #     play_gif_button.pack(side=tk.LEFT, pady=10)
+    #     debug_gif_button = Button(playframe, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
+    #     debug_gif_button.pack(side=tk.RIGHT, pady=10)
+    #     debug_gif_button.config(state="disabled")
 
     separator1 = ttk.Separator(settings_window, orient="horizontal")
     separator1.pack(fill="x", padx=20, pady=4)
@@ -893,8 +862,8 @@ def open_settings_window():
     
     def preview_gif_window():
         play_gif_button.config(state="normal")
-        if args.debug:
-            debug_gif_button.config(state="normal")
+        # if args.debug:
+        #     debug_gif_button.config(state="normal")
             
         loading_thread_switch(True)
         video_to_frames_seq(file_path, fps.get())
@@ -958,6 +927,9 @@ def open_settings_window():
 
 # Create the main window
 root = TkinterDnD.Tk()
+print('TCL Library:', root.tk.exprstring('$tcl_library'))
+print('Tk Library:',root.tk.exprstring('$tk_library'))
+
 if any(char.isalpha() for char in __version__):
     if bundle_path:
         icon =  PhotoImage(file=os.path.join(bundle_path, 'ico3beta.png'))
@@ -976,9 +948,6 @@ splash_screen.attributes('-topmost', True)  # Keep the window on top
 splash_screen.attributes("-transparent", "true")
 splash_geo_x = 350
 splash_geo_y = 550
-if args.Egg:
-    splash_geo_x = 400
-    splash_geo_y = 400
 center_window(splash_screen, splash_geo_x, splash_geo_y)
 
 
@@ -990,12 +959,6 @@ if bundle_path:
 else:
     gif_path = './/splash//splash.gif'
 
-if args.Egg:
-    gif_path = 'splashEE.gif'
-    if bundle_path:
-        gif_path = os.path.join(bundle_path, gif_path)
-    else:
-        gif_path = './/splash//splashEE.gif'
 
 gif_img = Image.open(gif_path)
 gif_frames_rgba = [frame.convert("RGBA") for frame in ImageSequence.Iterator(gif_img)]
@@ -1017,8 +980,8 @@ def animate(frame_num, loop):
         frame_num += 1
         splash_screen.after(25, animate, frame_num, False)
 
-loop_switch = bool(args.Egg)
-animate(0, loop_switch)
+
+animate(0, False)
 
 def show_main():    
     def on_configure(event):
@@ -1067,10 +1030,6 @@ def show_main():
     drop_label.dnd_bind('<<Drop>>', on_drop)
     canvas.dnd_bind('<<Drop>>', on_drop)
     canvas.drop_target_register(DND_FILES)
-
-    print("Current working directory:", os.getcwd())
-    print("Executable path:", sys.executable)
-
     # logo on drop event area
     DnDLogo = 'ico3.png' 
     if bundle_path:
@@ -1078,16 +1037,6 @@ def show_main():
     else:
         DnDLogo = './buildandsign/ico/ico3.png'
     imgYPos = 225
-
-
-    if args.Egg:
-        DnDLogo = 'amor.png' 
-        if bundle_path:
-            DnDLogo = os.path.join(bundle_path, DnDLogo)
-        else:
-            DnDLogo = './buildandsign/ico/amor.png'
-        
-        imgYPos = 200
 
     image = tk.PhotoImage(file=DnDLogo)
     resized_image = image.subsample(2)
