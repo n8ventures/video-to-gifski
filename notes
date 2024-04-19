@@ -29,8 +29,8 @@ iconutil -c icns icoDMG.iconset
 rm -rf build dist
 python setup.py py2app
 
-# create-dmg
-# check dmgbuild.py
+// create dmg for dist
+dmgbuild -s dmgbuild.py -D filesystem='APFS' "N8's Video To Gifski (Beta)" "N8's Video To Gifski (Beta).dmg"
 
 # Guide
     # For small Transparent GIFs, please double or triple the resolution then scale down to the intended solution in the program to prevent the dither/aliased edges
@@ -67,12 +67,15 @@ KNOWN ISSUES
             https://github.com/pyenv/pyenv/issues/1375
             https://stackoverflow.com/questions/60469202/unable-to-install-tkinter-with-pyenv-pythons-on-macos/60469203#60469203
             https://github.com/escoolioinglesias/tkinterdnd2-osxarm64
-
-
+- turns out. Not buggy. just needs a tkinter.root.update_idletasks() line on settings.window
 # rare bug that doesn't change settings_window geometry after applying.
+this might be one of those special case that somebody removed python in their laptops.
+either way i just gotta package it more properly. i really think there's some mising dependencies
+but python isn't flagging it properly.
+
 # Fill top half to be draggable area
 
-# using drag and drop, let window stay at top instead of focusing on window
+# using drag and drop, let window stay at top instead of focusing on window (i have no idea what this meant. i just read this just now 7pm fri april 19 2024 gmt+8)
 
 - 2.4.0
 # Updated icons 
