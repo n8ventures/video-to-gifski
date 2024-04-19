@@ -10,8 +10,11 @@ APP = ['main-MacARM.py']
 OPTIONS = {
     'iconfile': icon, 
     'packages':[
-        'PIL', 
-        'tkinterdnd2', 
+        'PIL',
+        'tkinter',
+        'tkinterdnd2',
+        'subprocess', 
+        'json',
         'urllib3', 
         'packaging', 
         'requests', 
@@ -21,18 +24,22 @@ OPTIONS = {
         'charset_normalizer',
         'colorama',
         'tk',
-        'tqdm',
         'typing_extensions',
-        'wand',
+        'threading',
+        'shutil',
+        'glob',
+        'platform',
+        'encodings',
         ],
     'includes':[
         'requests',
+        'subprocess',
+        'sys',
+        'atexit',
         'tkinter',
         'os',
         'json',
         'shutil',
-        'sys',
-        'atexit',
         'threading',
         'time',
         'math',
@@ -47,7 +54,7 @@ OPTIONS = {
         'NSHumanReadableCopyright': 
             'Copyright © 2024 John Nathaniel Calvara. This software is licensed under the MIT License.',
         'CFBundleIdentifier':
-            "dev.n8ventures.N8\'sVideoToGIFConverter(Beta)",
+            "dev.n8ventures.N8VideoToGifski(Beta)",
         'NSAppleScriptEnabled':
             True,
         'CFBundleGetInfoString':
