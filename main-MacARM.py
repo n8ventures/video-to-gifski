@@ -864,7 +864,7 @@ def open_settings_window():
         root.update_idletasks()
     
     buttonsFrame = tk.Frame(settings_window)
-    buttonsFrame.pack(pady=10)
+    buttonsFrame.pack(side=tk.BOTTOM, pady=20)
     
     apply_button = Button(buttonsFrame, text="Quick Export", command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
     apply_button.pack(side=tk.LEFT, padx=5)
@@ -889,6 +889,7 @@ def open_settings_window():
             scale_label_var.set(f"{scaled_width}x{scaled_height} - Scale: {value}%")
     
     scale_widget.bind("<B1-Motion>", lambda event: update_scale_label(scale_widget.get()))
+    root.update_idletasks()
     
     def preview_gif_window():
         play_gif_button.config(state="normal")
@@ -917,7 +918,7 @@ def open_settings_window():
         img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
         tk_img = ImageTk.PhotoImage(img)
         center_window(settings_window, 480, 970)
-        settings_window.update_idletasks()
+        
 
         preview_label.config(text="")
         preview_label.img = tk_img
@@ -928,6 +929,7 @@ def open_settings_window():
         filesize = get_filesize('temp/temp.gif')
         fileSize_label.config(text=f'GIF Size: {filesize}')
         fileDimension_label.config(text=f'Dimensions: {imgW}x{imgH} ({aspect_ratio_simplified})')
+        settings_window.update_idletasks()
         
     settings_window.protocol("WM_DELETE_WINDOW", lambda: on_settings_window_close())
     
@@ -1022,20 +1024,13 @@ def show_main():
     def on_configure(event):
         canvas.configure(scrollregion=canvas.bbox("all"))
         
-    def drag_enter(event):
-        drop_label.config
-        label.config
-
-    def drag_leave(event):
-        drop_label.config
-        label.config
-        
     def on_drop(event):
         global file_path
         drop_label.config
         label.config
         file_path = event.data.strip('{}')
-        threading.Thread(target=get_and_print_video_data, args=(file_path, )).start()
+        threading.Thread(target=get_and_print_video_data, args=(file_path, ), daemon=True).start()
+        # get_and_print_video_data(file_path)
     
     if any(char.isalpha() for char in __version__):
         root.title(f"N8's Video to GIF Converter Early Access {__version__}")
@@ -1068,12 +1063,8 @@ def show_main():
     drop_label.pack(expand=True, fill="both")
 
     # Bind the drop event to the on_drop function
-    drop_label.bind("<Enter>", drag_enter)
-    drop_label.bind("<Leave>", drag_leave)
     drop_label.drop_target_register(DND_FILES)
     drop_label.dnd_bind('<<Drop>>', on_drop)
-    canvas.bind("<Enter>", drag_enter)
-    canvas.bind("<Leave>", drag_leave)
     canvas.dnd_bind('<<Drop>>', on_drop)
     canvas.drop_target_register(DND_FILES)
 

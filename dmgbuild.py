@@ -13,7 +13,7 @@ import os.path
 
 # .. Useful stuff ..............................................................
 
-application =  defines.get('app',"./dist/N8's Video To GIF Converter (Beta).app")
+application =  defines.get('app',"./dist/N8's Video To GIF Converter (Beta).app") # type: ignore
 appname = os.path.basename(application)
 
 # .. Basics ....................................................................
@@ -25,13 +25,13 @@ filename = "N8's Video To Gifski (Beta).dmg"
 volume_name = "N8's Video To Gifski (Beta)"
 
 # Volume format (see hdiutil create -help)
-format = defines.get("format", "UDRO")  # noqa: F821
+format = defines.get("format", "UDRO")  # type: ignore # noqa: F821
 
 # Compression level (if relevant)
 # compression_level = 9
 
 # Volume size
-size = defines.get("size", None)
+size = defines.get("size", None) # type: ignore
 
 # Files to include
 files = [application]

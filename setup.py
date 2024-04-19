@@ -17,6 +17,7 @@ OPTIONS = {
         'requests', 
         'pywinctl', 
         'tkmacosx',
+        'colour',
         'charset_normalizer',
         'colorama',
         'tk',
