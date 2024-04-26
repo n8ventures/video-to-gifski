@@ -1,6 +1,7 @@
 __version__ = "2.4.0"
 __versionMac__ = "2.4.1-beta6"
 __appname__ = "n8-vid-to-gif"
+__author__= 'John Nathaniel Calvara'
 
 __updaterversion__ = "1.1.1"
 __updatername__="n8-gif-updater"

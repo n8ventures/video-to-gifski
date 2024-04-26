@@ -1,4 +1,4 @@
-from __version__ import __version__, __appname__, __ffmpegversion__, __gifskiversion__, __updatername__, __updaterversion__
+from __version__ import __version__, __appname__, __ffmpegversion__, __gifskiversion__, __updatername__, __updaterversion__, __author__
 import tkinter as tk
 from tkinter import filedialog, ttk
 from tkinterdnd2 import TkinterDnD, DND_FILES
@@ -314,7 +314,7 @@ def watermark_label(parent_window):
     separator_wm = ttk.Separator(frame, orient="horizontal")
     separator_wm.pack(side=tk.TOP, fill=tk.X)
     
-    watermark_label = tk.Label(frame, text="by N8VENTURES", fg="gray")
+    watermark_label = tk.Label(frame, text=f"by {__author__}", fg="gray")
     watermark_label.pack(side=tk.LEFT, anchor=tk.SW)
     
     version_label = tk.Label(frame, text=f"version: {__version__} {debug}", fg="gray")

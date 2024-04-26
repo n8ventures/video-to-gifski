@@ -1,4 +1,4 @@
-from __version__ import __versionMac__ as __version__, __appname__, __ffmpegversion_Mac__ as __ffmpegversion__, __gifskiversion__
+from __version__ import __versionMac__ as __version__, __appname__, __ffmpegversion_Mac__ as __ffmpegversion__, __gifskiversion__, __author__
 import tkinter as tk
 from tkinter import filedialog, ttk, PhotoImage
 from tkinterdnd2 import TkinterDnD, DND_FILES
@@ -243,7 +243,7 @@ def about():
         "https://github.com/n8ventures",
     )
 
-    close_button = ttk.Button(aboutmenu, text="Close", command=aboutmenu.destroy)
+    close_button = Button(aboutmenu, text="Close", command=aboutmenu.destroy)
     close_button.pack(pady=10)
 
 
@@ -287,7 +287,7 @@ def watermark_label(parent_window):
     separator_wm = ttk.Separator(frame, orient="horizontal")
     separator_wm.pack(side=tk.TOP, fill=tk.X)
     
-    watermark_label = tk.Label(frame, text="by N8VENTURES", fg="gray")
+    watermark_label = tk.Label(frame, text=f"by {__author__}", fg="gray")
     watermark_label.pack(side=tk.LEFT, anchor=tk.SW)
     
     version_label = tk.Label(frame, text=f"version: {__version__}", fg="gray")
@@ -439,7 +439,7 @@ def notavideo():
     about_label = tk.Label(notavideo, text=errortext, justify=tk.LEFT)
     about_label.pack(pady=10)
 
-    close_button = ttk.Button(notavideo, text="Close", command=notavideo.destroy)
+    close_button = Button(notavideo, text="Close", command=notavideo.destroy)
     close_button.pack(pady=10)
 
 def parse_temp_data(temp_data):
@@ -474,7 +474,7 @@ def parse_temp_data(temp_data):
     debug_gif_label = tk.Label(debug_gif_window, text=debug_gif_text, justify=tk.LEFT)
     debug_gif_label.pack()
 
-    close_button = ttk.Button(debug_gif_window, text="Close", command=debug_gif_window.destroy)
+    close_button = Button(debug_gif_window, text="Close", command=debug_gif_window.destroy)
     close_button.pack(pady=10)
 
     if not settings_window_open:
