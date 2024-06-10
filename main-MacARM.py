@@ -683,16 +683,16 @@ def on_settings_window_close():
     global settings_window_open
     settings_window_open = False
     settings_window.destroy()
-    print(settings_window_open)
+    print('Settings Window is open?', settings_window_open)
     
-## let's impliment the hover for info for less GUI clutter.    
+
 def open_settings_window(): 
     global settings_window_open, fps, gif_quality_scale, scale_widget, extra_var, fast_var, settings_window, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, safeAlpha
     
     if not settings_window_open:
         settings_window_open = True
-        print(settings_window_open)
-    
+        print('Settings Window is open?', settings_window_open)
+
     settings_window = tk.Toplevel(root)
     settings_window.title("User Settings")
     center_window(settings_window, 350, 720)
@@ -914,15 +914,20 @@ def open_settings_window():
 
         subprocess.run(cmd)
 
+    def on_settings_close():
+        if os.path.exists('temp'):
+            shutil.rmtree('temp') 
+            print("temp removed successfully.")
+        else:
+            print("temp does not exist.")
+        settings_window.destroy()
+        on_settings_window_close()
+        root.deiconify()
+
     root.withdraw()
     settings_window.grab_set()
-    settings_window.wait_window(settings_window)
-    if os.path.exists('temp'):
-        shutil.rmtree('temp') 
-        print("temp removed successfully.")
-    else:
-        print("temp does not exist.")
-    root.deiconify()
+    settings_window.wait_visibility()
+    settings_window.protocol("WM_DELETE_WINDOW", on_settings_close) 
 
 
 # Create the main window
@@ -992,11 +997,10 @@ def show_main():
         drop_label.config
         label.config
         file_path = event.data.strip('{}')
-        threading.Thread(target=get_and_print_video_data, args=(file_path, ), daemon=True).start()
-        # get_and_print_video_data(file_path)
+        get_and_print_video_data(file_path)
     
     if any(char.isalpha() for char in __version__):
-        root.title(f"N8's Video to GIF Converter Early Access {__version__}")
+        root.title(f"N8's Video to GIF Converter Beta {__version__}")
         
     else:
         root.title(f"N8's Video to GIF Converter {__version__}")
@@ -1027,9 +1031,10 @@ def show_main():
 
     # Bind the drop event to the on_drop function
     drop_label.drop_target_register(DND_FILES)
+    canvas.drop_target_register(DND_FILES)
     drop_label.dnd_bind('<<Drop>>', on_drop)
     canvas.dnd_bind('<<Drop>>', on_drop)
-    canvas.drop_target_register(DND_FILES)
+
     # logo on drop event area
     DnDLogo = 'ico3.png' 
     if bundle_path:
