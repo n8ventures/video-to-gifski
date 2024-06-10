@@ -887,11 +887,30 @@ def open_settings_window():
         img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
         tk_img = ImageTk.PhotoImage(img)
         center_window(settings_window, 480, 970)
-        
 
         preview_label.config(text="")
         preview_label.img = tk_img
         preview_label.config(image=tk_img)
+        
+        # # Animate GIF preview Window
+        # # NOTE: I need to split the resized temp gif and split them into frames... again. This will increase load and will be slower. Unless i find a magic way on splittin them.
+        # def animate_gif_preview(gif, widget, frame_num, loop):
+        #     gif_frames_rgba = [frame.convert("RGBA") for frame in ImageSequence.Iterator(gif)]
+        #     frame = gif_frames_rgba[frame_num]
+        #     print('GIF FRAME LEN: ', len(gif_frames_rgba))
+        #     print('CURRENT FRAME: ', frame_num + 1)
+        #     photo = ImageTk.PhotoImage(frame)
+        #     widget.config(image=photo, bg='white')
+        #     widget.image = photo
+            
+        #     if loop:
+        #         frame_num = (frame_num + 1) % len(gif_frames_rgba)
+        #         widget.after(25, animate_gif_preview, gif, widget, frame_num, True)
+        #     elif frame_num < len(gif_frames_rgba) - 1:
+        #         frame_num += 1
+        #         widget.after(25, animate_gif_preview, gif, widget, frame_num, False)
+
+        # animate_gif_preview(img, preview_label, 0, True)
         
         apply_button.config(text='Save As...', command=lambda: apply_settings('temp-final'))
         
