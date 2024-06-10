@@ -3,6 +3,7 @@
     # pip install -r requirements.txt --upgrade -on new terminals
 
 # How the fuck do you set up for MacOS ARM???
+# brew install tcl-tk
 
 # It's single frontslash for macos instead of double backslash
 
