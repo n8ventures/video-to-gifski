@@ -117,99 +117,111 @@ def loading_thread_switch(switch):
         loading_event.clear()
         loading()
 
-# if Updater not found, download on github.
-def get_latest_release_version():
-    global n8_gif_repo
+# check updates
 
-    n8_gif_repo = "https://api.github.com/repos/n8ventures/v2g-con-personal/releases/latest"
+def get_latest_release_version(pr=False, filter_keywords=None, require_dmg=False):
+    n8_gif_repo = "https://api.github.com/repos/n8ventures/video-to-gifski/releases"
     response = requests.get(n8_gif_repo)
     if response.status_code != 200:
-        return '0.0.0'
-    release_info = json.loads(response.text)
-    return release_info.get('tag_name', '0.0.0')
+        return {
+            'tag_name': '0.0.0',
+            'has_dmg': False,
+            'has_exe': False
+        }
+    
+    releases = json.loads(response.text)
+    
+    if not releases:
+        return {
+            'tag_name': '0.0.0',
+            'has_dmg': False,
+            'has_exe': False
+        }
+    
+    for release in releases:
+        if pr or not release.get('prerelease', False):
+            tag_name = release.get('tag_name', '0.0.0')
+            assets = release.get('assets', [])
+            has_dmg = any(asset['name'].endswith('.dmg') for asset in assets)
+            has_exe = any(asset['name'].endswith('.exe') for asset in assets)
 
-# def downloadUpdater():
-#     global latest_release_version
+            if (filter_keywords is None or all(keyword.lower() in tag_name.lower() for keyword in filter_keywords)) and (not require_dmg or has_dmg):
+                return {
+                    'tag_name': tag_name,
+                    'has_dmg': has_dmg,
+                    'has_exe': has_exe
+                }
+    
+    return {
+        'tag_name': '0.0.0',
+        'has_dmg': False,
+        'has_exe': False
+    }
 
-#     response = requests.get(n8_gif_repo)
-#     if response.status_code == 200:
-#         return downloadUpdaterUpdate(response)
-#     print("Failed to retrieve updater information. Please check your internet connection.")
-#     return 'ERR_NO_CONNECTION'
 
+prerelease = get_latest_release_version(pr=True, filter_keywords=['macosx', 'beta'])
+release = get_latest_release_version(pr=False, require_dmg=True)
 
-
-# def downloadUpdaterUpdate(response):
-#     release_data = response.json()
-#     latest_release_version = get_latest_release_version()
-#     if latest_release_version == '0.0.0':
-#         return 'ERR_NO_CONNECTION'
-#     latest_file = f'{__updatername__}.exe'
-
-#     for asset in release_data['assets']:
-#         if asset['name'] == latest_file:
-#             download_url = asset['browser_download_url']
-#             updaterURL = requests.get(download_url)
-
-#             with open(latest_file, 'wb') as file:
-#                 file.write(updaterURL.content)
-#                 return 'UPDR_DONE'
-#     print('File not found!')
-#     return 'ERR_NOT_FOUND'
-
-# def UPDATER_POPUP(title, msg):
-#     win_height = 250 if os.path.exists(f"{__updatername__}.exe") else 140
-#     updaterMenu = create_popup(root, title, 400, win_height, 1)
-#     make_non_resizable(updaterMenu)
-
-#     txt_msg = msg
-
-#     if os.path.exists(f"{__updatername__}.exe"):
-#         NR_label1= tk.Label(updaterMenu, text='New release detected!', font=('Helvetica', 10, 'bold'))
-#         NR_label2= tk.Label(updaterMenu, text=f'Updating {__updatername__}.exe...', font=('Helvetica', 10, 'italic'))
-#         NR_label1.pack(pady=10)
-#         NR_label2.pack(pady=10)
-
-#     txt_label = tk.Label(updaterMenu, text=txt_msg)
-#     txt_label.pack(pady=10)
-
-#     close_button = ttk.Button(updaterMenu, text="Close", command=updaterMenu.destroy)
-
-#     close_button.pack(pady=10)
-
-#     root.update_idletasks()
-
-#     if downloadUpdater() == 'UPDR_DONE':
-#         updaterMenu.destroy()
-
-# def execute_download_updater():
-#     UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
-#     update_result = downloadUpdater()
-#     if update_result == 'ERR_NO_CONNECTION':
-#         UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
-#     elif update_result == 'ERR_NOT_FOUND':
-#         UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
-#     elif update_result == 'UPDR_DONE':
-#         time.sleep(3)
-#         subprocess.Popen(f'{__updatername__}.exe')
+has_beta = 'beta' in __version__.lower()
+print(f'Has Beta? {has_beta}')
 
 def CheckUpdates():
-    print('Disabled. lol')
-    # get_latest_release_version()
+    release = get_latest_release_version(pr=False)
+    prerelease = get_latest_release_version(pr=True, filter_keywords=['osx', 'beta'])
     
-    # if not os.path.exists(f"{__updatername__}.exe"):
-    #     print('updater not found')
-    #     execute_download_updater()
-    # else:
-    #     print('Updater exists!')
-    #     if __version__ < get_latest_release_version():
-    #         print('New release! Downloading updated updater. (yeah I know...)')
-    #         execute_download_updater()
-    #     else:
-    #         print('opening updater')
-    #         subprocess.Popen(f'{__updatername__}.exe')
+    has_prerelease_latest = 'beta' in prerelease['tag_name'].lower() and prerelease['has_dmg']
+    has_release_latest = release['has_dmg']
+    print(f'Pre-release: {has_prerelease_latest}\nRelease: {has_release_latest}')
+    print(f'compare: {__version__ in prerelease['tag_name']}')
+    geo_width = 250
+    geo_len = 200
+    updatemenu = create_popup(root, "About Us!", geo_width, geo_len, 1)
+    make_non_resizable(updatemenu)
+    
+    # TODO: Create Update Window with clickable link
+    msglabel = tk.Label(updatemenu, text='')
+    msglabel.pack(pady=10)
+    
+    version_display = tk.Label(updatemenu, text=f'(Current Version: {__version__})', font=('Helvetica', 11, 'italic'))
+    version_display.pack(pady=10)
+    latest_version_display = tk.Label(updatemenu, text ='Checking for updates...')
+    latest_version_display.pack(pady=10)
+    ask_label = tk.Label(updatemenu, text='Would you like to update?\n(Opens browser)')
+    
+    buttonsFrame = tk.Frame(updatemenu)
+    buttonsFrame.pack(side=tk.BOTTOM, pady=10)
+    
+    update_button = Button(buttonsFrame, text='Yes', command=lambda: open_link("https://github.com/n8ventures/video-to-gifski/releases/latest"))
+    close_button = Button(buttonsFrame, text="Close", command=updatemenu.destroy)
+    close_button.pack(side=tk.RIGHT, padx=5)
+    
+    if has_beta:
+        if has_prerelease_latest:
+            if __version__.split('-')[0].lower() in prerelease['tag_name'].lower() and __version__.split('-')[1].lower() in prerelease['tag_name'].lower() and prerelease['has_dmg']:
+                msglabel.config(text='You\'re up to date!')
+                latest_version_display.config(text='')
+            else:
+                # TODO: ADD VERSION COMPARISON LOGIC
+                msglabel.config(text='A new beta update is available!')
+                latest_version_display.config(text=f'Latest Version: {prerelease['tag_name']}')
+                ask_label.pack()
+                update_button.pack(side=tk.LEFT, )
+                close_button.config(text='Cancel')
 
-def about():
+    elif has_release_latest:
+        if __version__.split('-')[0].lower() in release['tag_name'].lower() and release['has_dmg']:
+            msglabel.config(text='You\'re up to date!')
+            latest_version_display.config(text='')
+        else:
+            msglabel.config(text='A new update is available!')
+            latest_version_display.config(text=f'Latest Version: {release['tag_name']}')
+            ask_label.pack()
+            update_button.pack(side=tk.LEFT)
+            close_button.config(text='Cancel')
+    else:
+        latest_version_display.config(text='Connection error, Please try again later.')
+
+def about():#
     geo_width = 370
     geo_len = 300
 
@@ -247,20 +259,6 @@ def about():
     close_button.pack(pady=10)
 
 
-def egg_about(aboutmenu, geo_width, geo_len):
-    mograph = 'motionteamph.png'
-    mograph = (
-        os.path.join(bundle_path, mograph)
-        if bundle_path
-        else './buildandsign/ico/motionteamph.png'
-    )
-    image = tk.PhotoImage(file=mograph)
-    label = tk.Label(aboutmenu, image=image, bd=0)
-    label.image = image
-    label.place(x=geo_width / 2, y=geo_len - 60, anchor=tk.CENTER)
-    Hovertip(label, "BetMGM Manila Motions Team 2024")
-
-
 def clickable_link_labels(aboutmenu, text, link):
     mailto_label = tk.Label(aboutmenu, text=text, fg="blue", cursor="hand2")
     mailto_label.pack()
@@ -276,7 +274,7 @@ def watermark_label(parent_window):
     
     about_menu = tk.Menu (menu_bar, tearoff=0)
     about_menu.add_command(label="About Us", command=about)
-    # about_menu.add_command(label="Check for Updates", command=CheckUpdates)
+    about_menu.add_command(label="Check for Updates", command=CheckUpdates)
     menu_bar.add_cascade(label="Help", menu=about_menu)
     
     parent_window.config(menu=menu_bar)
