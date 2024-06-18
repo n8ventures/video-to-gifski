@@ -52,8 +52,15 @@ dmgbuild -s dmgbuild.py -D filesystem='APFS' "N8's Video To Gifski (Beta)" "N8's
     # Rename Save to Quick Export/Convert
 
 # Add text to hint preview
-
+##############################################
 # Fill top half to be draggable area
+ - Done
+- 2.5.0
+ - Need to repurpose update module, (literally redirect to github for new release esp Mac).
+ - Need to release as part of Windows as well, and get the update module on that platform to be less aggressive.
+ - Might rename windows title since we already have version on lower right.
+    - Done
+ - Figure out how to make GIFs animate via preview window (the main issue is splitting the gif up without ruining its current state)
 
 - 2.4.1 (OSX)
 need to dive into more on https://github.com/Saadmairaj/tkmacosx
@@ -74,7 +81,6 @@ this might be one of those special case that somebody removed python in their la
 either way i just gotta package it more properly. i really think there's some mising dependencies
 but python isn't flagging it properly.
 
-# Fill top half to be draggable area
 
 # using drag and drop, let window stay at top instead of focusing on window (i have no idea what this meant. i just read this just now 7pm fri april 19 2024 gmt+8)
 
