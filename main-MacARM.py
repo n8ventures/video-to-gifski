@@ -1019,10 +1019,10 @@ def show_main():
         get_and_print_video_data(file_path)
     
     if any(char.isalpha() for char in __version__):
-        root.title(f"N8's Video to GIF Converter Beta {__version__}")
+        root.title(f"N8's Video to GIF Converter (Beta)")
         
     else:
-        root.title(f"N8's Video to GIF Converter {__version__}")
+        root.title(f"N8's Video to GIF Converter")
 
     geo_width= 425
     center_window(root, geo_width, 450)
@@ -1040,19 +1040,23 @@ def show_main():
     or_label = tk.Label(root, text="Or")
     or_label.pack(pady=20)
 
-    # Create a Canvas with a grey broken-line border - doesnt work lol
-    canvas = tk.Canvas(root, bd=2, relief="ridge")
+    # Create a Canvas
+    canvas = tk.Canvas(root, relief="ridge")
     canvas.pack(expand=True, fill="both")
 
     # Create a Label for the drop area
-    drop_label = tk.Label(canvas, text="Drag and Drop Video Files Here", padx=20, pady=20)
-    drop_label.pack(expand=True, fill="both")
+    drop_label = tk.Label(canvas, text="Drag and Drop Video Files Here")
+    drop_label.pack(pady = 60)
 
     # Bind the drop event to the on_drop function
-    drop_label.drop_target_register(DND_FILES)
-    canvas.drop_target_register(DND_FILES)
-    drop_label.dnd_bind('<<Drop>>', on_drop)
-    canvas.dnd_bind('<<Drop>>', on_drop)
+    def reg_dnd(widget):
+        widget.drop_target_register(DND_FILES)
+        widget.dnd_bind('<<Drop>>', on_drop)
+
+    reg_dnd(drop_label)
+    reg_dnd(canvas)
+    reg_dnd(or_label)
+    reg_dnd(root)
 
     # logo on drop event area
     DnDLogo = 'ico3.png' 
@@ -1090,4 +1094,3 @@ atexit.register(on_closing)
 splash_screen.after(3500, show_main)
 
 root.mainloop()
-

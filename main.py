@@ -119,7 +119,7 @@ def loading_thread_switch(switch):
 def get_latest_release_version():
     global n8_gif_repo
 
-    n8_gif_repo = "https://api.github.com/repos/n8ventures/v2g-con-personal/releases/latest"
+    n8_gif_repo = "https://api.github.com/repos/n8ventures/video-to-gifski/releases/latest"
     response = requests.get(n8_gif_repo)
     if response.status_code != 200:
         return '0.0.0'
@@ -995,10 +995,10 @@ def show_main():
         threading.Thread(target=get_and_print_video_data, args=(file_path, )).start()
     
     if any(char.isalpha() for char in __version__):
-        root.title(f"N8's Video to GIF Converter Early Access {__version__}")
+        root.title(f"N8's Video to GIF Converter (Beta)")
         
     else:
-        root.title(f"N8's Video to GIF Converter {__version__}")
+        root.title(f"N8's Video to GIF Converter")
 
     geo_width= 425
     center_window(root, geo_width, 450)
@@ -1025,14 +1025,16 @@ def show_main():
     drop_label.pack(expand=True, fill="both")
 
     # Bind the drop event to the on_drop function
-    drop_label.bind("<Enter>", drag_enter)
-    drop_label.bind("<Leave>", drag_leave)
-    drop_label.drop_target_register(DND_FILES)
-    drop_label.dnd_bind('<<Drop>>', on_drop)
-    canvas.bind("<Enter>", drag_enter)
-    canvas.bind("<Leave>", drag_leave)
-    canvas.dnd_bind('<<Drop>>', on_drop)
-    canvas.drop_target_register(DND_FILES)
+    def reg_dnd(widget):
+        widget.bind("<Enter>", drag_enter)
+        widget.bind("<Leave>", drag_leave)
+        widget.drop_target_register(DND_FILES)
+        widget.dnd_bind('<<Drop>>', on_drop)
+
+    reg_dnd(drop_label)
+    reg_dnd(canvas)
+    reg_dnd(or_label)
+    reg_dnd(root)
 
     print("Current working directory:", os.getcwd())
     print("Executable path:", sys.executable)
