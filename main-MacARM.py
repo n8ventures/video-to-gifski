@@ -197,19 +197,24 @@ def CheckUpdates():
     
     if has_beta:
         if has_prerelease_latest:
-            if __version__.split('-')[0].lower() in prerelease['tag_name'].lower() and __version__.split('-')[1].lower() in prerelease['tag_name'].lower() and prerelease['has_dmg']:
+            if __version__.split('-')[0] in prerelease['tag_name'] and __version__.split('-')[1].lower() in prerelease['tag_name'].lower() and prerelease['has_dmg']:
                 msglabel.config(text='You\'re up to date!')
                 latest_version_display.config(text='')
             else:
-                # TODO: ADD VERSION COMPARISON LOGIC
-                msglabel.config(text='A new beta update is available!')
-                latest_version_display.config(text=f'Latest Version: {prerelease['tag_name']}')
-                ask_label.pack()
-                update_button.pack(side=tk.LEFT, )
-                close_button.config(text='Cancel')
+                if __version__.split('-')[0] < prerelease['tag_name'].split('-')[0] and prerelease['has_dmg']:
+                    msglabel.config(text='A new update is available!')
+                try:
+                    if __version__.split('-')[0] == prerelease['tag_name'].split('-')[0] and __version__.split('-')[1].lower() < prerelease['tag_name'].split('-')[2].lower() and prerelease['has_dmg']:
+                        msglabel.config(text='A new beta patch is available!')
+                except:   
+                    msglabel.config(text='A new update is available!')
+            latest_version_display.config(text=f'Latest Version: {prerelease['tag_name']}')
+            ask_label.pack()
+            update_button.pack(side=tk.LEFT)
+            close_button.config(text='Cancel')
 
     elif has_release_latest:
-        if __version__.split('-')[0].lower() in release['tag_name'].lower() and release['has_dmg']:
+        if __version__.split('-')[0] in release['tag_name'] and release['has_dmg']:
             msglabel.config(text='You\'re up to date!')
             latest_version_display.config(text='')
         else:
@@ -307,8 +312,8 @@ def center_window(window, width, height):
 
 def get_filesize(file_path):
     size_bytes = os.path.getsize(file_path)
-    size_mb = round(size_bytes / (1024 * 1024), 2)
-    size_kb = round(size_bytes / 1024, 2)
+    size_mb = size_bytes / (1024 * 1024)
+    size_kb = size_bytes / 1024
     return f'{size_mb} MB ({size_kb} KB)'
 
 def get_video_data(input_file):
@@ -682,6 +687,7 @@ def on_settings_window_close():
     settings_window_open = False
     settings_window.destroy()
     print('Settings Window is open?', settings_window_open)
+    root.deiconify()
     
 
 def open_settings_window(): 
@@ -939,7 +945,6 @@ def open_settings_window():
             print("temp does not exist.")
         settings_window.destroy()
         on_settings_window_close()
-        root.deiconify()
 
     root.withdraw()
     settings_window.grab_set()
