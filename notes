@@ -57,10 +57,13 @@ dmgbuild -s dmgbuild.py -D filesystem='APFS' "N8's Video To Gifski (Beta)" "N8's
  - Done
 - 2.5.0
  - Need to repurpose update module, (literally redirect to github for new release esp Mac).
+  - Mac: Done.
+  - Windows: NOT YET STARTED.
  - Need to release as part of Windows as well, and get the update module on that platform to be less aggressive.
  - Might rename windows title since we already have version on lower right.
     - Done
  - Figure out how to make GIFs animate via preview window (the main issue is splitting the gif up without ruining its current state)
+ - Add osascript exception (low prio/optional)
 
 - 2.4.1 (OSX)
 need to dive into more on https://github.com/Saadmairaj/tkmacosx
