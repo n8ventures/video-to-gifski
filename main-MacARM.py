@@ -451,8 +451,8 @@ def center_window(window, width, height):
 
 def get_filesize(file_path):
     size_bytes = os.path.getsize(file_path)
-    size_mb = size_bytes / (1024 * 1024)
-    size_kb = size_bytes / 1024
+    size_mb = round(size_bytes / (1024 * 1024), 2)
+    size_kb = round(size_bytes / 1024, 2)
     return f'{size_mb} MB ({size_kb} KB)'
 
 def get_video_data(input_file):
@@ -484,13 +484,18 @@ alpha_formats = [
     'yuva422p16be', 'yuva422p16le', 'yuva444p16be', 'yuva444p16le'
 ]
 
-def video_to_frames_seq(input_file, framerate):
+def video_to_frames_seq(input_file, framerate, preview = False):
     temp_folder = 'temp'
+    preview_folder = 'temp/preview'
 
-    if os.path.exists(temp_folder) and os.listdir(temp_folder):
-        shutil.rmtree(temp_folder)
+    if preview == False:
+        if os.path.exists(temp_folder) and os.listdir(temp_folder):
+            shutil.rmtree(temp_folder)
+    else:
+            os.makedirs(preview_folder, exist_ok=True)
 
     os.makedirs(temp_folder, exist_ok=True)
+
 
     cmd = [
         ffmpeg,
@@ -503,15 +508,38 @@ def video_to_frames_seq(input_file, framerate):
 
     if scale_widget.get() != 100:
         filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
+    elif preview == True:
+        max_width=450
+        max_height=300
+        aspect_ratio = scaled_width / scaled_height
+        
+        if scaled_width > scaled_height:  # Landscape
+            target_width = min(scaled_width , max_width)
+            target_height = int(target_width / aspect_ratio)
+        else:  # Portrait or square
+            target_height = min(scaled_height, max_height)
+            target_width = int(target_height * aspect_ratio)
+            
+        filtergraph.append(f'scale={target_width}:{target_height},setsar=1')
 
     if safeAlpha.get():
         filtergraph.append('unpremultiply=inplace=1')
 
     cmd.append(','.join(filtergraph))
-    cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
+
+    if preview == False:
+        cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
+    else:
+        cmd.append(os.path.join(preview_folder, 'preview%04d.png'))
     # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     subprocess.run(cmd)
-    
+
+def load_gifpreview_frames():
+    folder = 'temp/preview'
+    frame_files = sorted([os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.png')])
+    frames = [Image.open(frame_file) for frame_file in frame_files]
+    return frames
+
 def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
     if hasattr(output, 'name'):
@@ -746,6 +774,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
 
             loading_thread_switch(True)
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
+            video_to_frames_seq(output_file, fps.get(), preview=True)
             loading_thread_switch(False)
 
             print("Conversion complete!")
@@ -843,7 +872,7 @@ def open_settings_window():
     watermark_label(settings_window)
     make_non_resizable(settings_window)
 
-    preview_label = tk.Label(settings_window, text='Click the Preview button to, well... Preview the GIF.')
+    preview_label = tk.Label(settings_window, text='Click the Apply & Preview button to load a GIF Preview.')
     preview_label.pack(pady=5)
     
     fileSize_label =tk.Label(settings_window, text = '')
@@ -853,7 +882,7 @@ def open_settings_window():
     
     playframe = tk.Frame(settings_window)
     playframe.pack()
-    play_gif_button = Button(playframe, text='Play GIF', command=lambda: play_gif('temp/temp.gif'))
+    play_gif_button = Button(playframe, text='No GIF loaded', command=lambda: play_gif('temp/temp.gif'))
     play_gif_button.pack(pady=10)
     play_gif_button.config(state="disabled")
     
@@ -921,7 +950,7 @@ def open_settings_window():
     fps_limit = min(parsed_framerate, 30)
     
     fps = tk.Scale(settings_window, from_=1, to=fps_limit, orient=tk.HORIZONTAL, resolution=1, length=300)
-    fps.set(30)
+    fps.set(fps_limit)
     fps.pack()
 
     # separator5 = ttk.Separator(settings_window, orient="horizontal")
@@ -1004,7 +1033,6 @@ def open_settings_window():
     root.update_idletasks()
     
     def preview_gif_window():
-        play_gif_button.config(state="normal")
         # if args.debug:
         #     debug_gif_button.config(state="normal")
             
@@ -1014,46 +1042,33 @@ def open_settings_window():
         
         apply_settings('temp')
         
+        play_gif_button.config(state="normal", text='Play GIF on Full Size')
+        
         img = Image.open(output_file)
-        aspect_ratio = img.width / img.height
         imgW, imgH = img.size
         gcd = math.gcd(imgW, imgH)
         aspect_ratio_simplified = f'{imgW // gcd}:{imgH // gcd}'
-        
-        if img.width > img.height:  # Landscape
-            target_width = min(img.width, 450)
-            target_height = int(target_width / aspect_ratio)
-        else:  # Portrait or square
-            target_height = min(img.height, 300)
-            target_width = int(target_height * aspect_ratio)
-        
-        img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-        tk_img = ImageTk.PhotoImage(img)
         center_window(settings_window, 480, 970)
 
         preview_label.config(text="")
-        preview_label.img = tk_img
-        preview_label.config(image=tk_img)
         
-        # # Animate GIF preview Window
-        # # NOTE: I need to split the resized temp gif and split them into frames... again. This will increase load and will be slower. Unless i find a magic way on splittin them.
-        # def animate_gif_preview(gif, widget, frame_num, loop):
-        #     gif_frames_rgba = [frame.convert("RGBA") for frame in ImageSequence.Iterator(gif)]
-        #     frame = gif_frames_rgba[frame_num]
-        #     print('GIF FRAME LEN: ', len(gif_frames_rgba))
-        #     print('CURRENT FRAME: ', frame_num + 1)
-        #     photo = ImageTk.PhotoImage(frame)
-        #     widget.config(image=photo, bg='white')
-        #     widget.image = photo
+        # Animate GIF preview Window
+        def animate_gif_preview(frames, widget, frame_num, loop, frame_duration):
+            frame = frames[frame_num]
+            photo = ImageTk.PhotoImage(frame)
+            widget.config(image=photo, bg='white')
+            widget.image = photo
             
-        #     if loop:
-        #         frame_num = (frame_num + 1) % len(gif_frames_rgba)
-        #         widget.after(25, animate_gif_preview, gif, widget, frame_num, True)
-        #     elif frame_num < len(gif_frames_rgba) - 1:
-        #         frame_num += 1
-        #         widget.after(25, animate_gif_preview, gif, widget, frame_num, False)
-
-        # animate_gif_preview(img, preview_label, 0, True)
+            frame_num = (frame_num + 1) % len(frames)
+            if loop or frame_num != 0:
+                widget.after(frame_duration, animate_gif_preview, frames, widget, frame_num, loop, frame_duration)
+                
+        def start_gif_animation(widget, loop=True, fps=30):
+            frames = load_gifpreview_frames()
+            frame_duration = 1000 // fps  # Duration per frame in milliseconds
+            animate_gif_preview(frames, widget, 0, loop, frame_duration)
+            
+        start_gif_animation(preview_label, loop=True, fps=fps.get())
         
         apply_button.config(text='Save As...', command=lambda: apply_settings('temp-final'))
         
