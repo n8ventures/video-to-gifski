@@ -218,7 +218,7 @@ check_for_updates_prompt.pack(pady=10)
 version_display = tk.Label(root, text=f'(Current Version: {appversion})', font=('Helvetica', 10, 'italic'))
 version_display.pack(pady=10)
 
-latest_version = get_latest_release_version("n8ventures", "v2g-con-personal")
+latest_version = get_latest_release_version("n8ventures", "video-to-gifski")
 latest_version_display = tk.Label(root, text='')
 latest_version_display.pack()
 

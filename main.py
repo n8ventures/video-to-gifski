@@ -135,8 +135,6 @@ def downloadUpdater():
     print("Failed to retrieve updater information. Please check your internet connection.")
     return 'ERR_NO_CONNECTION'
 
-
-
 def downloadUpdaterUpdate(response):
     release_data = response.json()
     latest_release_version = get_latest_release_version()
@@ -191,44 +189,43 @@ def execute_download_updater():
         time.sleep(3)
         subprocess.Popen(f'{__updatername__}.exe')
 
-def CheckUpdates():
+def CheckUpdates(bg=False):
     get_latest_release_version()
     
-    if not os.path.exists(f"{__updatername__}.exe"):
-        print('updater not found')
-        execute_download_updater()
+    if bg == False:
+        if not os.path.exists(f"{__updatername__}.exe"):
+            print('updater not found')
+            execute_download_updater()
+        else:
+            print('Updater exists!')
+            if __version__ < get_latest_release_version():
+                print('New release! Downloading updated updater. (yeah I know...)')
+                execute_download_updater()
+            else:
+                print('opening updater')
+                subprocess.Popen(f'{__updatername__}.exe')
+    
     else:
-        print('Updater exists!')
+        result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
+        if args.debug:
+            print(f'Updater version: {result.stdout.strip()}')
+            
         if __version__ < get_latest_release_version():
             print('New release! Downloading updated updater. (yeah I know...)')
             execute_download_updater()
         else:
-            print('opening updater')
-            subprocess.Popen(f'{__updatername__}.exe')
-
-def CheckUpdates_bg():
-    get_latest_release_version()
-    
-    if not os.path.exists(f"{__updatername__}.exe"):
-        print('updater not found')
-        execute_download_updater()
-    else:
-        print('Updater exists!')
-        
-        result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
-        if args.debug:
-            print(f'Updater version: {result.stdout.strip()}')
-
-        if __version__ < get_latest_release_version():
-            print('New release! Downloading updated updater. (yeah I know...)')
-            execute_download_updater()
+            if not os.path.exists(f"{__updatername__}.exe"):
+                print('updater not found')
+                execute_download_updater()
+            else:
+                print('Updater exists!')
 
         if result.stdout.strip() < __updaterversion__:
             print('new Updater version detected. Downloading updater!')
             execute_download_updater()
 
 def updaterExists():
-    CheckUpdates_bg()
+    CheckUpdates(bg=True)
 
 def about():
     geo_width = 370
@@ -286,7 +283,6 @@ def egg_about(aboutmenu, geo_width, geo_len):
     label.image = image
     label.place(x=geo_width / 2, y=geo_len - 60, anchor=tk.CENTER)
     Hovertip(label, "BetMGM Manila Motions Team 2024")
-
 
 def clickable_link_labels(aboutmenu, text, link):
     mailto_label = tk.Label(aboutmenu, text=text, fg="blue", cursor="hand2")
@@ -368,11 +364,15 @@ alpha_formats = [
     'yuva422p16be', 'yuva422p16le', 'yuva444p16be', 'yuva444p16le'
 ]
 
-def video_to_frames_seq(input_file, framerate):
+def video_to_frames_seq(input_file, framerate, preview = False):
     temp_folder = 'temp'
+    preview_folder = 'temp/preview'
 
-    if os.path.exists(temp_folder) and os.listdir(temp_folder):
-        shutil.rmtree(temp_folder)
+    if preview == False:
+        if os.path.exists(temp_folder) and os.listdir(temp_folder):
+            shutil.rmtree(temp_folder)
+    else:
+            os.makedirs(preview_folder, exist_ok=True)
 
     os.makedirs(temp_folder, exist_ok=True)
 
@@ -387,17 +387,40 @@ def video_to_frames_seq(input_file, framerate):
 
     if scale_widget.get() != 100:
         filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
+    elif preview == True:
+        max_width=450
+        max_height=300
+        aspect_ratio = scaled_width / scaled_height
+        
+        if scaled_width > scaled_height:  # Landscape
+            target_width = min(scaled_width , max_width)
+            target_height = int(target_width / aspect_ratio)
+        else:  # Portrait or square
+            target_height = min(scaled_height, max_height)
+            target_width = int(target_height * aspect_ratio)
+            
+        filtergraph.append(f'scale={target_width}:{target_height},setsar=1')
 
     if safeAlpha.get():
         filtergraph.append('unpremultiply=inplace=1')
 
     cmd.append(','.join(filtergraph))
-    cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
+    
+    if preview == False:
+        cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
+    else:
+        cmd.append(os.path.join(preview_folder, 'preview%04d.png'))
     # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
     if args.debug:
         print(cmd)
-    
+
+def load_gifpreview_frames():
+    folder = 'temp/preview'
+    frame_files = sorted([os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.png')])
+    frames = [Image.open(frame_file) for frame_file in frame_files]
+    return frames
+
 def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
     if hasattr(output, 'name'):
@@ -602,6 +625,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
 
             loading_thread_switch(True)
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
+            video_to_frames_seq(output_file, fps.get(), preview=True)
             loading_thread_switch(False)
 
             print("Conversion complete!")
@@ -698,7 +722,7 @@ def open_settings_window():
     watermark_label(settings_window)
     make_non_resizable(settings_window)
 
-    preview_label = tk.Label(settings_window, text='Click the Preview button to, well... Preview the GIF.')
+    preview_label = tk.Label(settings_window, text='Click the Apply & Preview button to load a GIF Preview.')
     preview_label.pack(pady=5)
     
     fileSize_label =tk.Label(settings_window, text = '')
@@ -708,7 +732,7 @@ def open_settings_window():
     
     playframe = tk.Frame(settings_window)
     playframe.pack()
-    play_gif_button = tk.Button(playframe, text='Play GIF', command=lambda: play_gif('temp/temp.gif'))
+    play_gif_button = tk.Button(playframe, text='No GIF loaded', command=lambda: play_gif('temp/temp.gif'))
     play_gif_button.pack(pady=10)
     play_gif_button.config(state="disabled")
     
@@ -858,44 +882,49 @@ def open_settings_window():
     scale_widget.bind("<B1-Motion>", lambda event: update_scale_label(scale_widget.get()))
     
     def preview_gif_window():
-        play_gif_button.config(state="normal")
-        if args.debug:
-            debug_gif_button.config(state="normal")
-            
         loading_thread_switch(True)
         video_to_frames_seq(file_path, fps.get())
         loading_thread_switch(False)
         
         apply_settings('temp')
         
+        play_gif_button.config(state="normal", text='Play GIF on Full Size')
+        if args.debug:
+            debug_gif_button.config(state="normal")
+        
         img = Image.open(output_file)
-        aspect_ratio = img.width / img.height
         imgW, imgH = img.size
         gcd = math.gcd(imgW, imgH)
         aspect_ratio_simplified = f'{imgW // gcd}:{imgH // gcd}'
-        
-        if img.width > img.height:  # Landscape
-            target_width = min(img.width, 450)
-            target_height = int(target_width / aspect_ratio)
-        else:  # Portrait or square
-            target_height = min(img.height, 300)
-            target_width = int(target_height * aspect_ratio)
-        
-        img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-        tk_img = ImageTk.PhotoImage(img)
         center_window(settings_window, 480, 970)
-        settings_window.update_idletasks()
 
         preview_label.config(text="")
-        preview_label.img = tk_img
-        preview_label.config(image=tk_img)
+        
+        # Animate GIF preview Window
+        def animate_gif_preview(frames, widget, frame_num, loop, frame_duration):
+            frame = frames[frame_num]
+            photo = ImageTk.PhotoImage(frame)
+            widget.config(image=photo, bg='white')
+            widget.image = photo
+            
+            frame_num = (frame_num + 1) % len(frames)
+            if loop or frame_num != 0:
+                widget.after(frame_duration, animate_gif_preview, frames, widget, frame_num, loop, frame_duration)
+                
+        def start_gif_animation(widget, loop=True, fps=30):
+            frames = load_gifpreview_frames()
+            frame_duration = 1000 // fps  # Duration per frame in milliseconds
+            animate_gif_preview(frames, widget, 0, loop, frame_duration)
+            
+        start_gif_animation(preview_label, loop=True, fps=fps.get())
         
         apply_button.config(text='Save As...', command=lambda: apply_settings('temp-final'))
         
         filesize = get_filesize('temp/temp.gif')
         fileSize_label.config(text=f'GIF Size: {filesize}')
         fileDimension_label.config(text=f'Dimensions: {imgW}x{imgH} ({aspect_ratio_simplified})')
-        
+        settings_window.update_idletasks()
+
     settings_window.protocol("WM_DELETE_WINDOW", lambda: on_settings_window_close())
     
         
@@ -1016,13 +1045,13 @@ def show_main():
     or_label = tk.Label(root, text="Or")
     or_label.pack(pady=20)
 
-    # Create a Canvas with a grey broken-line border - doesnt work lol
-    canvas = tk.Canvas(root, bd=2, relief="ridge")
+    # Create a Canvas
+    canvas = tk.Canvas(root, relief="ridge")
     canvas.pack(expand=True, fill="both")
 
     # Create a Label for the drop area
-    drop_label = tk.Label(canvas, text="Drag and Drop Video Files Here", padx=20, pady=20, bg="white")
-    drop_label.pack(expand=True, fill="both")
+    drop_label = tk.Label(canvas, text="Drag and Drop Video Files Here")
+    drop_label.pack(pady = 60)
 
     # Bind the drop event to the on_drop function
     def reg_dnd(widget):
@@ -1083,7 +1112,6 @@ def on_closing():
 root.protocol("WM_DELETE_WINDOW", on_closing)
 atexit.register(on_closing)
 
-# threading.Thread(target=show_main).start()
 splash_screen.after(3500, show_main)
 
 root.mainloop()
