@@ -796,6 +796,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
 
             shutil.copy2('temp/temp.gif', output_file.name)
             print("Conversion complete!")
+            stop_gif_animation(preview_label)
             shutil.rmtree('temp')
             on_settings_window_close()
             openOutputFolder(output_dir, output_folder)
