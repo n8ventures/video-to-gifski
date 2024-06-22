@@ -1177,10 +1177,10 @@ def show_main():
         get_and_print_video_data(file_path)
 
     if any(char.isalpha() for char in __version__):
-        root.title("N8's Video to GIF Converter (Beta)")
+        root.title("N8's Video to Gifski (Beta)")
 
     else:
-        root.title("N8's Video to GIF Converter")
+        root.title("N8's Video to Gifski")
 
     geo_width= 425
     center_window(root, geo_width, 450)

@@ -928,7 +928,7 @@ def open_settings_window():
             
             frame = frames[frame_num]
             photo = ImageTk.PhotoImage(frame)
-            widget.config(image=photo, bg='white')
+            widget.config(image=photo)
             widget.image = photo
             
             frame_num = (frame_num + 1) % len(frames)
@@ -1042,10 +1042,10 @@ def show_main():
         threading.Thread(target=get_and_print_video_data, args=(file_path, )).start()
 
     if any(char.isalpha() for char in __version__):
-        root.title("N8's Video to GIF Converter (Beta)")
+        root.title("N8's Video to Gifski (Beta)")
 
     else:
-        root.title("N8's Video to GIF Converter")
+        root.title("N8's Video to Gifski Converter")
 
     geo_width= 425
     center_window(root, geo_width, 450)
