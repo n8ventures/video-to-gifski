@@ -262,8 +262,7 @@ def CheckUpdates():
                 print('PASS 1-A: CURRENT IS HIGHER OR EQUAL VS ONLINE')
                 if current_tag.lower() >= prerelease_tag.lower() and current_version >= prerelease_version:
                     print('PASS 1-2-A: BETA IS HIGHER OR EQUAL VS ONLINE')
-                    msglabel.config(text="You're up to date!")
-                    latest_version_display.config(text='')
+                    latest_version_display.config(text="You're up to date!")
                 elif current_tag.lower() < prerelease_tag.lower() and current_version <= prerelease_version:
                     print('PASS 1-2-B: BETA IS OUTDATED VS ONLINE')
                     msglabel.config(text='A new beta patch is available!')
@@ -281,7 +280,7 @@ def CheckUpdates():
             else:
                 print('PASS 1-C: NO NEW UPDATE')
                 msglabel.config(text="No new pre-release available.")
-                latest_version_display.config(text='')
+                latest_version_display.config(text="You're up to date!")
                 close_button.config(text='Close')
         elif release['tag_name'] == '0.0.0' or prerelease['tag_name'] == '0.0.0':
             print('PASS 0-B: INTERNET ERROR BETA')
@@ -295,8 +294,7 @@ def CheckUpdates():
 
         if current_version >= release_version:
             print('PASS 0-A: STABLE IS HIGHER OR EQUAL VS ONLINE')
-            msglabel.config(text="You're up to date!")
-            latest_version_display.config(text='')
+            latest_version_display.config(text="You're up to date!")
         elif current_version < release_version:
             print('PASS 0-B: STABLE IS OUTDATED VS ONLINE')
             msglabel.config(text='A new update is available!')
@@ -306,13 +304,16 @@ def CheckUpdates():
             close_button.config(text='Cancel')
         else:
             print('PASS 0-C: NO NEW UPDATE')
-            msglabel.config(text="No new release available.")
-            latest_version_display.config(text='')
+            msglabel.config(text="No new update available.")
+            latest_version_display.config(text="You're up to date!")
             close_button.config(text='Close')
 
     elif release['tag_name'] == '0.0.0' or prerelease['tag_name'] == '0.0.0':
         print('PASS -1C: INTERNET ERROR')
         latest_version_display.config(text='Connection error, Please try again later.', font=('Helvetica', 14, 'bold'))
+    else:
+        msglabel.config(text="No new release available.")
+        latest_version_display.config(text="You're up to date!")
 
 def autoChecker():
     has_prerelease_latest = 'beta' in prerelease['tag_name'].lower() and prerelease['has_dmg']
