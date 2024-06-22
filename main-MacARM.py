@@ -23,13 +23,11 @@ import platform
 def is_running_from_bundle():
     # Check if the application is running from a bundled executable
     if getattr(sys, 'frozen', False):
-        # For py2app bundles, use sys.executable to get the bundle path
         if hasattr(sys, '_MEIPASS'):
             return sys._MEIPASS
-        else:
-            current_dir = os.path.dirname(sys.executable)
-            parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-            return os.path.join(parent_dir, "Resources")
+        current_dir = os.path.dirname(sys.executable)
+        parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+        return os.path.join(parent_dir, "Resources")
 
     return False
 
@@ -55,8 +53,7 @@ ffprobe = 'ffprobe'
 ffplay = 'ffplay'
 gifski = 'gifski'
 ffmpeg = 'ffmpeg'
-bundle_path = is_running_from_bundle()
-if bundle_path:
+if bundle_path := is_running_from_bundle():
     ffprobe = os.path.join(bundle_path, ffprobe)
     ffplay = os.path.join(bundle_path, ffplay)
     gifski = os.path.join(bundle_path, gifski)
@@ -320,7 +317,7 @@ def CheckUpdates():
 def autoChecker():
     has_prerelease_latest = 'beta' in prerelease['tag_name'].lower() and prerelease['has_dmg']
     has_release_latest = release['has_dmg']
-    
+
     if has_beta:
         print('PASS -1A: HAS BETA')
         if has_prerelease_latest:
@@ -340,12 +337,9 @@ def autoChecker():
                 elif current_tag.lower() < prerelease_tag.lower() and current_version <= prerelease_version:
                     print('AC - PASS 1-2-B: BETA IS OUTDATED VS ONLINE')
                     return CheckUpdates()
-            elif current_version < prerelease_version:
+            else:
                 print('AC - PASS 1-B: CURRENT IS LESS THAN ONLINE')
                 return CheckUpdates()
-            else:
-                print('AC - PASS 1-C: NO NEW UPDATE')
-            
         elif release['tag_name'] == '0.0.0' or prerelease['tag_name'] == '0.0.0':
             print('AC - PASS 0-B: INTERNET ERROR BETA')
 
@@ -356,12 +350,9 @@ def autoChecker():
 
         if current_version >= release_version:
             print('AC - PASS 0-A: STABLE IS HIGHER OR EQUAL VS ONLINE')
-        elif current_version < release_version:
+        else:
             print('AC - PASS 0-B: STABLE IS OUTDATED VS ONLINE')
             return CheckUpdates()
-        else:
-            print('AC - PASS 0-C: NO NEW UPDATE')
-
     elif release['tag_name'] == '0.0.0' or prerelease['tag_name'] == '0.0.0':
         print('AC - PASS -1C: INTERNET ERROR')
 
@@ -484,11 +475,22 @@ alpha_formats = [
     'yuva422p16be', 'yuva422p16le', 'yuva444p16be', 'yuva444p16le'
 ]
 
+running = False
+after_id = None
+
+def stop_gif_animation(widget):
+    global running, after_id
+    running = False
+    if after_id:
+        widget.after_cancel(after_id)
+        after_id = None
+
 def video_to_frames_seq(input_file, framerate, preview = False):
     temp_folder = 'temp'
     preview_folder = 'temp/preview'
 
     if preview == False:
+        stop_gif_animation(preview_label)
         if os.path.exists(temp_folder) and os.listdir(temp_folder):
             shutil.rmtree(temp_folder)
     else:
@@ -509,17 +511,17 @@ def video_to_frames_seq(input_file, framerate, preview = False):
     if scale_widget.get() != 100:
         filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
     elif preview == True:
-        max_width=450
-        max_height=300
         aspect_ratio = scaled_width / scaled_height
-        
+
         if scaled_width > scaled_height:  # Landscape
+            max_width=450
             target_width = min(scaled_width , max_width)
             target_height = int(target_width / aspect_ratio)
         else:  # Portrait or square
+            max_height=300
             target_height = min(scaled_height, max_height)
             target_width = int(target_height * aspect_ratio)
-            
+
         filtergraph.append(f'scale={target_width}:{target_height},setsar=1')
 
     if safeAlpha.get():
@@ -537,8 +539,7 @@ def video_to_frames_seq(input_file, framerate, preview = False):
 def load_gifpreview_frames():
     folder = 'temp/preview'
     frame_files = sorted([os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.png')])
-    frames = [Image.open(frame_file) for frame_file in frame_files]
-    return frames
+    return [Image.open(frame_file) for frame_file in frame_files]
 
 def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
@@ -565,12 +566,8 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
         cmd.extend(["--motion-quality", str(motionQuality)])
     if lossy_var.get():
         cmd.extend(["--lossy-quality", str(lossyQuality)])
-        
-    # Find all matching files in the temp directory
-    input_files = glob.glob("temp/frames*.png")
 
-    # Check if any files are found
-    if input_files:
+    if input_files := glob.glob("temp/frames*.png"):
         # Extend the command with the found file paths
         cmd.extend(["-o", output_file])
         cmd.extend(input_files)
@@ -859,7 +856,7 @@ def on_settings_window_close():
     
 
 def open_settings_window(): 
-    global settings_window_open, fps, gif_quality_scale, scale_widget, extra_var, fast_var, settings_window, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, safeAlpha
+    global settings_window_open, fps, gif_quality_scale, scale_widget, extra_var, fast_var, settings_window, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, safeAlpha, preview_label
     
     if not settings_window_open:
         settings_window_open = True
@@ -1033,9 +1030,6 @@ def open_settings_window():
     root.update_idletasks()
     
     def preview_gif_window():
-        # if args.debug:
-        #     debug_gif_button.config(state="normal")
-            
         loading_thread_switch(True)
         video_to_frames_seq(file_path, fps.get())
         loading_thread_switch(False)
@@ -1055,15 +1049,21 @@ def open_settings_window():
         # Animate GIF preview Window
         def animate_gif_preview(frames, widget, frame_num, loop, frame_duration):
             frame = frames[frame_num]
+            global running, after_id
+            if not running:
+                return
             photo = ImageTk.PhotoImage(frame)
             widget.config(image=photo, bg='white')
             widget.image = photo
             
             frame_num = (frame_num + 1) % len(frames)
             if loop or frame_num != 0:
-                widget.after(frame_duration, animate_gif_preview, frames, widget, frame_num, loop, frame_duration)
+                after_id = widget.after(frame_duration, animate_gif_preview, frames, widget, frame_num, loop, frame_duration)
                 
         def start_gif_animation(widget, loop=True, fps=30):
+            global running
+            running = True
+            
             frames = load_gifpreview_frames()
             frame_duration = 1000 // fps  # Duration per frame in milliseconds
             animate_gif_preview(frames, widget, 0, loop, frame_duration)
@@ -1112,19 +1112,19 @@ print('TCL Library:', root.tk.exprstring('$tcl_library'))
 print('Tk Library:',root.tk.exprstring('$tk_library'))
 
 if any(char.isalpha() for char in __version__):
-    if bundle_path:
-        icon =  PhotoImage(file=os.path.join(bundle_path, 'ico3beta.png'))
-    else:
-        icon =  PhotoImage(file='./buildandsign/ico/ico3beta.png')
+    icon = (
+        PhotoImage(file=os.path.join(bundle_path, 'ico3beta.png'))
+        if bundle_path
+        else PhotoImage(file='./buildandsign/ico/ico3beta.png')
+    )
+elif bundle_path:
+    icon =  PhotoImage(file=os.path.join(bundle_path, 'ico3.png'))
 else:
-    if bundle_path:
-        icon =  PhotoImage(file=os.path.join(bundle_path, 'ico3.png'))
-    else:
-        icon = PhotoImage(file='./buildandsign/ico/ico3.png')
+    icon = PhotoImage(file='./buildandsign/ico/ico3.png')
 root.withdraw()
 
 splash_screen = tk.Toplevel(root)
-splash_screen.overrideredirect(1) 
+splash_screen.overrideredirect(1)
 splash_screen.attributes('-topmost', True)  # Keep the window on top
 splash_screen.attributes("-transparent", "true")
 splash_geo_x = 350
@@ -1167,19 +1167,19 @@ animate(0, False)
 def show_main():    
     def on_configure(event):
         canvas.configure(scrollregion=canvas.bbox("all"))
-        
+
     def on_drop(event):
         global file_path
         drop_label.config
         label.config
         file_path = event.data.strip('{}')
         get_and_print_video_data(file_path)
-    
+
     if any(char.isalpha() for char in __version__):
-        root.title(f"N8's Video to GIF Converter (Beta)")
-        
+        root.title("N8's Video to GIF Converter (Beta)")
+
     else:
-        root.title(f"N8's Video to GIF Converter")
+        root.title("N8's Video to GIF Converter")
 
     geo_width= 425
     center_window(root, geo_width, 450)
@@ -1216,7 +1216,7 @@ def show_main():
     reg_dnd(root)
 
     # logo on drop event area
-    DnDLogo = 'ico3.png' 
+    DnDLogo = 'ico3.png'
     if bundle_path:
         DnDLogo = os.path.join(bundle_path, DnDLogo)
     else:
@@ -1228,7 +1228,7 @@ def show_main():
     label = tk.Label(canvas, image=resized_image, bd=0)
     label.image = resized_image
     label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
-    
+
     splash_screen.destroy()
     root.deiconify()
     threading.Thread(target=autoChecker(), daemon=True).start()    
