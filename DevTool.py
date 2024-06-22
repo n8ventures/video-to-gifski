@@ -443,7 +443,7 @@ def check_and_update_local():
             if '__ffmpegversion__' in line:
                 lines[i] = f'__ffmpegversion__ = \'{get_ffmpeg_version()}\'\n'
             if '__gifskiversion__' in line:
-                lines[i] = f'__gifskiversion__= \'{get_gifski_version()}\''
+                lines[i] = f'__gifskiversion__= \'{get_gifski_version()}\'\n'
                 break
         with open('__version__.py', 'w') as file:
             file.writelines(lines)
