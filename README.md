@@ -8,7 +8,7 @@ Download the latest release [here](https://github.com/n8ventures/video-to-gifski
 
 # How to use
 
-### 1. Open up the program, either choose the "Choose File" Button, or drag the image on the bottom-half!
+### 1. Open up the program, either choose the "Choose File" Button, or drag the video on the window!
 
 ![Main Menu](docs/howto/1.png)
 
