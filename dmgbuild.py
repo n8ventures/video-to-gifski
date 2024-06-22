@@ -1,5 +1,10 @@
 import os.path
-#
+import sys
+import plistlib
+sys.path.append(os.path.abspath(os.path.dirname('__version__.py')))
+
+from __version__ import __versionMac__ as __version__
+
 # Example settings file for dmgbuild
 #
 
@@ -13,17 +18,24 @@ import os.path
 
 # .. Useful stuff ..............................................................
 
-application =  defines.get('app',"./dist/N8's Video To GIF Converter (Beta).app") # type: ignore
+if any(char.isalpha() for char in __version__):
+    application =  defines.get('app',"./dist/N8's Video To Gifski (Beta).app") # type: ignore
+else:
+    application =  defines.get('app',"./dist/N8's Video To Gifski.app") # type: ignore
+
 appname = os.path.basename(application)
 
 # .. Basics ....................................................................
 
-# Uncomment to override the output filename
-filename = "N8's Video To Gifski (Beta).dmg"
+if any(char.isalpha() for char in __version__):
+    # Uncomment to override the output filename
+    filename = "N8's Video To Gifski (Beta).dmg"
 
-# Uncomment to override the output volume name
-volume_name = "N8's Video To Gifski (Beta)"
-
+    # Uncomment to override the output volume name
+    volume_name = "N8's Video To Gifski (Beta)"
+else:
+    filename = "N8's Video To Gifski.dmg"
+    volume_name = "N8's Video To Gifski"
 # Volume format (see hdiutil create -help)
 format = defines.get("format", "UDRO")  # type: ignore # noqa: F821
 
@@ -43,7 +55,10 @@ symlinks = {"Applications": "/Applications"}
 # hide = [ 'Secret.data' ]
 
 # Files to hide the extension of
-# hide_extension = [ 'README.rst' ]
+if any(char.isalpha() for char in __version__):
+    hide_extension = [ "N8's Video To Gifski (Beta).app" ]
+else:
+     hide_extension = [ "N8's Video To Gifski.app" ]
 
 # Volume icon
 #
@@ -52,10 +67,12 @@ symlinks = {"Applications": "/Applications"}
 # will be used to badge the system's Removable Disk icon. Badge icons require
 # pyobjc-framework-Quartz.
 #
-icon = './buildandsign/dmg/icoDMG.icns'
-
+if any(char.isalpha() for char in __version__):
+    icon = './buildandsign/dmg/icoDev-DMG.icns'
+else:
+    icon = './buildandsign/dmg/icoDMG.icns'
 # Where to put the icons
-icon_locations = {appname: (120, 170), "Applications": (440, 170)}
+icon_locations = {appname: (120, 170), "Applications": (450, 170)}
 
 # .. Window configuration ......................................................
 
@@ -69,7 +86,7 @@ icon_locations = {appname: (120, 170), "Applications": (440, 170)}
 #    hsl(120,1,.5)    - HSL (hue saturation lightness) color
 #    hwb(300,0,0)     - HWB (hue whiteness blackness) color
 #    cmyk(0,1,0,0)    - CMYK color
-#    goldenrod        - X11/SVG named color
+#    goldenrod        - X11/SVG named color 
 #    builtin-arrow    - A simple built-in background with a blue arrow
 #    /foo/bar/baz.png - The path to an image file
 #
@@ -79,7 +96,10 @@ icon_locations = {appname: (120, 170), "Applications": (440, 170)}
 #
 # Other color components may be expressed either in the range 0 to 1, or
 # as percentages (e.g. 60% is equivalent to 0.6).
-background = "./buildandsign/dmg/DMG_BG.png"
+if any(char.isalpha() for char in __version__):
+    background = "./buildandsign/dmg/DMGDev_BG.png"
+else:
+    background = "./buildandsign/dmg/DMG_BG.png"
 
 show_status_bar = False
 show_tab_view = False
@@ -117,7 +137,6 @@ scroll_position = (0, 0)
 label_pos = "bottom"  # or 'right'
 text_size = 12
 icon_size = 72
-
 # .. List view configuration ...................................................
 
 # Column names are as follows:

@@ -3,8 +3,10 @@ from __version__ import __versionMac__
 
 if any(char.isalpha() for char in __versionMac__):
     icon = 'icoDev.icns'
+    app_name='N8\'s Video To Gifski (Beta)'
 else:
     icon = 'ico.icns'
+    app_name='N8\'s Video To Gifski'
 
 APP = ['main-MacARM.py']
 OPTIONS = {
@@ -83,7 +85,7 @@ setup(
     data_files=DATA_FILES,
     options={'py2app': OPTIONS},
     setup_requires=['py2app'],
-    name='N8\'s Video To GIF Converter (Beta)',
+    name=app_name,
     version= __versionMac__,
     description='convert videos to gif using FFMPEG and Gifski.',
     author='John Nathaniel Calvara',
