@@ -1053,7 +1053,7 @@ def open_settings_window():
             if not running:
                 return
             photo = ImageTk.PhotoImage(frame)
-            widget.config(image=photo, bg='white')
+            widget.config(image=photo)
             widget.image = photo
             
             frame_num = (frame_num + 1) % len(frames)
