@@ -289,7 +289,8 @@ def CheckUpdates():
     elif has_release_latest:
         print('PASS -1B: HAS RELEASE')
         update_button.config(command=lambda: update_btn_cmd(lambda: open_link(release['html_url'])))
-        current_version = __version__.split('-')
+        current_version_parts = __version__.split('-')
+        current_version = current_version_parts[0]
         release_version = release['tag_name']
 
         if current_version >= release_version:
@@ -346,8 +347,11 @@ def autoChecker():
 
     elif has_release_latest:
         print('AC - PASS -1B: HAS RELEASE')
-        current_version = __version__.split('-')
+        current_version_parts = __version__.split('-')
+        current_version = current_version_parts[0]
         release_version = release['tag_name']
+        
+        
 
         if current_version >= release_version:
             print('AC - PASS 0-A: STABLE IS HIGHER OR EQUAL VS ONLINE')
