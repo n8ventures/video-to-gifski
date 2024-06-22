@@ -153,14 +153,18 @@ def downloadUpdaterUpdate(response):
     print('File not found!')
     return 'ERR_NOT_FOUND'
 
-def UPDATER_POPUP(title, msg):
-    win_height = 250 if os.path.exists(f"{__updatername__}.exe") else 140
+def UPDATER_POPUP(title, msg, buttons=False):
+    if __version__ < get_latest_release_version():
+        win_height = 250 if os.path.exists(f"{__updatername__}.exe") else 140
+    else:
+        win_height = 150 if os.path.exists(f"{__updatername__}.exe") else 140
+
     updaterMenu = create_popup(root, title, 400, win_height, 1)
     make_non_resizable(updaterMenu)
 
     txt_msg = msg
 
-    if os.path.exists(f"{__updatername__}.exe"):
+    if __version__ < get_latest_release_version():
         NR_label1= tk.Label(updaterMenu, text='New release detected!', font=('Helvetica', 10, 'bold'))
         NR_label2= tk.Label(updaterMenu, text=f'Updating {__updatername__}.exe...', font=('Helvetica', 10, 'italic'))
         NR_label1.pack(pady=10)
@@ -169,29 +173,34 @@ def UPDATER_POPUP(title, msg):
     txt_label = tk.Label(updaterMenu, text=txt_msg)
     txt_label.pack(pady=10)
 
-    close_button = ttk.Button(updaterMenu, text="Close", command=updaterMenu.destroy)
+    button_frame = tk.Frame(updaterMenu)
+    button_frame.pack(side=tk.BOTTOM, pady=20)
+    close_button = ttk.Button(button_frame, text="Close", command=updaterMenu.destroy)
 
-    close_button.pack(pady=10)
+    close_button.pack(side=tk.RIGHT, padx=5)
+
+    if buttons == False:
+        if downloadUpdater() == 'UPDR_DONE':
+            updaterMenu.destroy()
+    else:
+        update_button = ttk.Button(button_frame, text="Yes", command=lambda: subprocess.Popen(f'{__updatername__}.exe') and updaterMenu.destroy)
+        update_button.pack(side=tk.LEFT, padx=5)
 
     root.update_idletasks()
 
-    if downloadUpdater() == 'UPDR_DONE':
-        updaterMenu.destroy()
-
 def execute_download_updater():
-    UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!\nWe\'ll run the updater once the download has been finished!')
+    UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!')
     update_result = downloadUpdater()
     if update_result == 'ERR_NO_CONNECTION':
         UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
     elif update_result == 'ERR_NOT_FOUND':
         UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
     elif update_result == 'UPDR_DONE':
-        time.sleep(3)
-        subprocess.Popen(f'{__updatername__}.exe')
+        UPDATER_POPUP('Updater Downloaded!', '\nWould you like to check for updates?', buttons=True)
 
 def CheckUpdates(bg=False):
     get_latest_release_version()
-    
+
     if bg == False:
         if not os.path.exists(f"{__updatername__}.exe"):
             print('updater not found')
@@ -204,24 +213,25 @@ def CheckUpdates(bg=False):
             else:
                 print('opening updater')
                 subprocess.Popen(f'{__updatername__}.exe')
-    
+
     else:
-        result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
-        if args.debug:
-            print(f'Updater version: {result.stdout.strip()}')
-            
         if __version__ < get_latest_release_version():
             print('New release! Downloading updated updater. (yeah I know...)')
             execute_download_updater()
-        else:
-            if not os.path.exists(f"{__updatername__}.exe"):
-                print('updater not found')
-                execute_download_updater()
-            else:
-                print('Updater exists!')
 
-        if result.stdout.strip() < __updaterversion__:
-            print('new Updater version detected. Downloading updater!')
+        elif os.path.exists(f"{__updatername__}.exe"):
+            print('Updater exists!')
+            
+            result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
+            if args.debug:
+                print(f'Updater version: {result.stdout.strip()}')
+
+            if result.stdout.strip() < __updaterversion__:
+                print('new Updater version detected. Downloading updater!')
+                execute_download_updater()
+
+        else:
+            print('updater not found')
             execute_download_updater()
 
 def updaterExists():
@@ -364,11 +374,22 @@ alpha_formats = [
     'yuva422p16be', 'yuva422p16le', 'yuva444p16be', 'yuva444p16le'
 ]
 
+running = False
+after_id = None
+
+def stop_gif_animation(widget):
+    global running, after_id
+    running = False
+    if after_id:
+        widget.after_cancel(after_id)
+        after_id = None
+
 def video_to_frames_seq(input_file, framerate, preview = False):
     temp_folder = 'temp'
     preview_folder = 'temp/preview'
 
     if preview == False:
+        stop_gif_animation(preview_label)
         if os.path.exists(temp_folder) and os.listdir(temp_folder):
             shutil.rmtree(temp_folder)
     else:
@@ -388,24 +409,24 @@ def video_to_frames_seq(input_file, framerate, preview = False):
     if scale_widget.get() != 100:
         filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
     elif preview == True:
-        max_width=450
-        max_height=300
         aspect_ratio = scaled_width / scaled_height
-        
+
         if scaled_width > scaled_height:  # Landscape
+            max_width=450
             target_width = min(scaled_width , max_width)
             target_height = int(target_width / aspect_ratio)
         else:  # Portrait or square
+            max_height=300
             target_height = min(scaled_height, max_height)
             target_width = int(target_height * aspect_ratio)
-            
+
         filtergraph.append(f'scale={target_width}:{target_height},setsar=1')
 
     if safeAlpha.get():
         filtergraph.append('unpremultiply=inplace=1')
 
     cmd.append(','.join(filtergraph))
-    
+
     if preview == False:
         cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
     else:
@@ -418,8 +439,7 @@ def video_to_frames_seq(input_file, framerate, preview = False):
 def load_gifpreview_frames():
     folder = 'temp/preview'
     frame_files = sorted([os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.png')])
-    frames = [Image.open(frame_file) for frame_file in frame_files]
-    return frames
+    return [Image.open(frame_file) for frame_file in frame_files]
 
 def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
@@ -709,7 +729,7 @@ def on_settings_window_close():
     
 ## let's impliment the hover for info for less GUI clutter.    
 def open_settings_window(): 
-    global settings_window_open, fps, gif_quality_scale, scale_widget, extra_var, fast_var, settings_window, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, safeAlpha
+    global settings_window_open, fps, gif_quality_scale, scale_widget, extra_var, fast_var, settings_window, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, safeAlpha, preview_label
     
     if not settings_window_open:
         settings_window_open = True
@@ -902,6 +922,10 @@ def open_settings_window():
         
         # Animate GIF preview Window
         def animate_gif_preview(frames, widget, frame_num, loop, frame_duration):
+            global running, after_id
+            if not running:
+                return
+            
             frame = frames[frame_num]
             photo = ImageTk.PhotoImage(frame)
             widget.config(image=photo, bg='white')
@@ -909,9 +933,12 @@ def open_settings_window():
             
             frame_num = (frame_num + 1) % len(frames)
             if loop or frame_num != 0:
-                widget.after(frame_duration, animate_gif_preview, frames, widget, frame_num, loop, frame_duration)
+                after_id = widget.after(frame_duration, animate_gif_preview, frames, widget, frame_num, loop, frame_duration)
                 
         def start_gif_animation(widget, loop=True, fps=30):
+            global running
+            running = True
+            
             frames = load_gifpreview_frames()
             frame_duration = 1000 // fps  # Duration per frame in milliseconds
             animate_gif_preview(frames, widget, 0, loop, frame_duration)
@@ -1007,27 +1034,18 @@ animate(0, loop_switch)
 def show_main():    
     def on_configure(event):
         canvas.configure(scrollregion=canvas.bbox("all"))
-        
-    def drag_enter(event):
-        drop_label.config(bg="lightgray")
-        label.config(bg="lightgray")
 
-    def drag_leave(event):
-        drop_label.config(bg="white")
-        label.config (bg="white")
-        
+
     def on_drop(event):
         global file_path
-        drop_label.config(bg="white")
-        label.config (bg="white")
         file_path = event.data.strip('{}')
         threading.Thread(target=get_and_print_video_data, args=(file_path, )).start()
-    
+
     if any(char.isalpha() for char in __version__):
-        root.title(f"N8's Video to GIF Converter (Beta)")
-        
+        root.title("N8's Video to GIF Converter (Beta)")
+
     else:
-        root.title(f"N8's Video to GIF Converter")
+        root.title("N8's Video to GIF Converter")
 
     geo_width= 425
     center_window(root, geo_width, 450)
@@ -1055,8 +1073,6 @@ def show_main():
 
     # Bind the drop event to the on_drop function
     def reg_dnd(widget):
-        widget.bind("<Enter>", drag_enter)
-        widget.bind("<Leave>", drag_leave)
         widget.drop_target_register(DND_FILES)
         widget.dnd_bind('<<Drop>>', on_drop)
 
@@ -1069,7 +1085,7 @@ def show_main():
     print("Executable path:", sys.executable)
 
     # logo on drop event area
-    DnDLogo = 'ico3.png' 
+    DnDLogo = 'ico3.png'
     if hasattr(sys, '_MEIPASS'):
         DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
     else:
@@ -1083,17 +1099,17 @@ def show_main():
             DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
         else:
             DnDLogo = '.\\buildandsign\\ico\\amor.png'
-        
+
         imgYPos = 200
 
     image = tk.PhotoImage(file=DnDLogo)
     resized_image = image.subsample(2)
-    label = tk.Label(canvas, image=resized_image, bd=0, bg="white")
+    label = tk.Label(canvas, image=resized_image, bd=0)
     label.image = resized_image
     label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
-    
+
     threading.Thread(target=updaterExists).start()
-    
+
     splash_screen.destroy()
     root.deiconify()
 
