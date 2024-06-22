@@ -14,6 +14,7 @@
 # reinstall everything, use brew and pyenve jfc. - 2.4.1-beta3
 
 # Create icns
+mkdir icoDMG.iconset
 sips -z 16 16     icoDMG.png --out icoDMG.iconset/icon_16x16.png
 sips -z 32 32     icoDMG.png --out icoDMG.iconset/icon_16x16@2x.png
 sips -z 32 32     icoDMG.png --out icoDMG.iconset/icon_32x32.png
@@ -22,7 +23,7 @@ sips -z 128 128   icoDMG.png --out icoDMG.iconset/icon_128x128.png
 sips -z 256 256   icoDMG.png --out icoDMG.iconset/icon_128x128@2x.png
 sips -z 256 256   icoDMG.png --out icoDMG.iconset/icon_256x256.png
 sips -z 512 512   icoDMG.png --out icoDMG.iconset/icon_256x256@2x.png
-sips -z 512 512   ico3Updater.png --out icoDMG.iconset/icon_512x512.png
+sips -z 512 512   icoDMG.png --out icoDMG.iconset/icon_512x512.png
 cp icoDMG.png icoDMG.iconset/icon_512x512@2x.png
 iconutil -c icns icoDMG.iconset
 
@@ -31,7 +32,7 @@ rm -rf build dist
 python setup.py py2app
 
 // create dmg for dist
-dmgbuild -s dmgbuild.py -D filesystem='APFS' "N8's Video To Gifski (Beta)" "N8's Video To Gifski (Beta).dmg"
+dmgbuild -s dmgbuild.py -D filesystem='APFS' "N8's Video To Gifski 2.5.0" "N8's Video To Gifski 2.5.0.dmg"
 
 # Guide
     # For small Transparent GIFs, please double or triple the resolution then scale down to the intended solution in the program to prevent the dither/aliased edges
