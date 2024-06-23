@@ -56,7 +56,7 @@ OPTIONS = {
         'NSHumanReadableCopyright': 
             'Copyright © 2024 John Nathaniel Calvara. This software is licensed under the MIT License.',
         'CFBundleIdentifier':
-            "dev.n8ventures.N8VideoToGifski(Beta)",
+            "dev.n8ventures.N8VideoToGifski",
         'NSAppleScriptEnabled':
             True,
         'CFBundleGetInfoString':
