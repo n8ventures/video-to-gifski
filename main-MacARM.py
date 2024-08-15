@@ -441,6 +441,7 @@ def center_window(window, width, height):
     screen_height = window.winfo_screenheight()
     window_width = width  
     window_height = height
+    window.update_idletasks()
     x_position = (screen_width - window_width) // 2
     y_position = (screen_height - window_height) // 2  
     window.geometry(f"{window_width}x{window_height}+{x_position}+{y_position-35}")
@@ -513,17 +514,18 @@ def video_to_frames_seq(input_file, framerate, preview = False):
 
     filtergraph = [f'fps={str(framerate)}']
 
-    if scale_widget.get() != 100:
-        filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
-    elif preview == True:
+    if preview == False:
+        if scale_widget.get() != 100:
+            filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
+    else:
         aspect_ratio = scaled_width / scaled_height
 
         if scaled_width > scaled_height:  # Landscape
-            max_width=450
+            max_width=350
             target_width = min(scaled_width , max_width)
             target_height = int(target_width / aspect_ratio)
         else:  # Portrait or square
-            max_height=300
+            max_height=350
             target_height = min(scaled_height, max_height)
             target_width = int(target_height * aspect_ratio)
 
@@ -538,7 +540,6 @@ def video_to_frames_seq(input_file, framerate, preview = False):
         cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
     else:
         cmd.append(os.path.join(preview_folder, 'preview%04d.png'))
-    # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     subprocess.run(cmd)
 
 def load_gifpreview_frames():
