@@ -37,6 +37,12 @@ dmgbuild -s dmgbuild.py -D filesystem='APFS' "N8's Video To Gifski 2.5.0" "N8's 
 # Guide
     # For small Transparent GIFs, please double or triple the resolution then scale down to the intended solution in the program to prevent the dither/aliased edges
 
+# 2.5.1
+- Adjusted max_width and max_height to both equally 350 to allow buttons from spawning.
+(Previously, this was max_width=450, max_height=300)
+- Fixed if-else logic that was making the gif preview larger (or smaller) than intended.
+
+#############################
 
 # Batch File process - Yeah i dont know about this one, chief. Maybe queue mode instead of all in one.
     # alternative to this is to stop opening a new fucking window after conversion - this is done on 2.2.0
