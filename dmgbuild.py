@@ -40,7 +40,7 @@ else:
 format = defines.get("format", "UDRO")  # type: ignore # noqa: F821
 
 # Compression level (if relevant)
-# compression_level = 9
+compression_level = 9
 
 # Volume size
 size = defines.get("size", None) # type: ignore
