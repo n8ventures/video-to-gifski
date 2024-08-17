@@ -27,10 +27,7 @@ OPTIONS = {
         'colorama',
         'tk',
         'typing_extensions',
-        'threading',
-        'shutil',
         'glob',
-        'platform',
         'encodings',
         ],
     'includes':[
@@ -48,6 +45,9 @@ OPTIONS = {
         'glob',
         'platform',
         ],
+    'excludes':[
+        'PyInstaller'
+    ],
     'frameworks':[
         '/opt/homebrew/Cellar/tcl-tk/8.6.14/lib/libtk8.6.dylib',
         '/opt/homebrew/Cellar/tcl-tk/8.6.14/lib/libtcl8.6.dylib',
