@@ -37,7 +37,7 @@ else:
     filename = "N8's Video To Gifski.dmg"
     volume_name = "N8's Video To Gifski"
 # Volume format (see hdiutil create -help)
-format = defines.get("format", "UDRO")  # type: ignore # noqa: F821
+format = defines.get("format", "UDZO")  # type: ignore # noqa: F821
 
 # Compression level (if relevant)
 compression_level = 9

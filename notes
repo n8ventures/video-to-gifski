@@ -32,7 +32,7 @@ rm -rf build dist
 python setup.py py2app
 
 // create dmg for dist
-dmgbuild -s dmgbuild.py -D filesystem='UDRO' "N8's Video To Gifski 2.5.1" "N8's Video To Gifski 2.5.1.dmg"
+dmgbuild -s dmgbuild.py -D filesystem='UDZO' "N8's Video To Gifski 2.5.1" "N8's Video To Gifski 2.5.1.dmg"
 
 # Guide
     # For small Transparent GIFs, please double or triple the resolution then scale down to the intended solution in the program to prevent the dither/aliased edges
