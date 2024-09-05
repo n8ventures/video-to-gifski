@@ -413,11 +413,11 @@ def video_to_frames_seq(input_file, framerate, preview = False):
         aspect_ratio = scaled_width / scaled_height
 
         if scaled_width > scaled_height:  # Landscape
-            max_width=350
+            max_width=280
             target_width = min(scaled_width , max_width)
             target_height = int(target_width / aspect_ratio)
         else:  # Portrait or square
-            max_height=350
+            max_height=280
             target_height = min(scaled_height, max_height)
             target_width = int(target_height * aspect_ratio)
 
@@ -918,7 +918,7 @@ def open_settings_window():
         imgW, imgH = img.size
         gcd = math.gcd(imgW, imgH)
         aspect_ratio_simplified = f'{imgW // gcd}:{imgH // gcd}'
-        center_window(settings_window, 480, 970)
+        center_window(settings_window, 400, 980)
 
         preview_label.config(text="")
         
