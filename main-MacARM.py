@@ -492,6 +492,8 @@ def stop_gif_animation(widget):
         after_id = None
 
 def video_to_frames_seq(input_file, framerate, preview = False):
+    global preview_height, preview_weight
+    
     temp_folder = 'temp'
     preview_folder = 'temp/preview'
 
@@ -521,16 +523,19 @@ def video_to_frames_seq(input_file, framerate, preview = False):
         aspect_ratio = scaled_width / scaled_height
 
         if scaled_width > scaled_height:  # Landscape
-            max_width=350
+            max_width=320
             target_width = min(scaled_width , max_width)
             target_height = int(target_width / aspect_ratio)
         else:  # Portrait or square
-            max_height=350
+            max_height=300
             target_height = min(scaled_height, max_height)
             target_width = int(target_height * aspect_ratio)
+        
+        preview_height = target_height
+        preview_weight = target_width
 
         filtergraph.append(f'scale={target_width}:{target_height},setsar=1')
-
+        print('0000000000---- H:', target_height, 'x W:',target_width)
     if safeAlpha.get():
         filtergraph.append('unpremultiply=inplace=1')
 
@@ -1049,7 +1054,19 @@ def open_settings_window():
         imgW, imgH = img.size
         gcd = math.gcd(imgW, imgH)
         aspect_ratio_simplified = f'{imgW // gcd}:{imgH // gcd}'
-        center_window(settings_window, 480, 970)
+        if preview_height == 300:
+             height = 1000
+             print('max height')
+        elif preview_weight == 320:
+            height = 880
+            print('max width')
+            if preview_height >= 250:
+                height = 960
+        else:
+            height = 980
+            print('Normal Window')
+        
+        center_window(settings_window, 380, height)
 
         preview_label.config(text="")
         
