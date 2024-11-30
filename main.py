@@ -1,6 +1,6 @@
 from __version__ import __version__, __appname__, __ffmpegversion__, __gifskiversion__, __updatername__, __updaterversion__, __author__
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, ttk, colorchooser
 from tkinterdnd2 import TkinterDnD, DND_FILES
 from PIL import Image, ImageTk, ImageSequence
 import subprocess
@@ -366,12 +366,44 @@ def get_video_data(input_file):
         return None
 
 alpha_formats = [
-    'rgba', 'abgr', 'argb', 'bgra', 'yuva420p', 'yuva422p', 'yuva444p',
+    # RGB with alpha
+    'rgba', 'abgr', 'argb', 'bgra', 
+    
+    # 64-bit RGB with alpha
     'rgba64be', 'rgba64le', 'bgra64be', 'bgra64le',
-    'yuva422p9be', 'yuva422p9le', 'yuva444p9be', 'yuva444p9le',
-    'yuva420p10be', 'yuva420p10le', 'yuva422p10be', 'yuva422p10le',
-    'yuva444p10be', 'yuva444p10le', 'yuva420p16be', 'yuva420p16le',
-    'yuva422p16be', 'yuva422p16le', 'yuva444p16be', 'yuva444p16le'
+    
+    # 32-bit RGBA
+    'rgba32be', 'rgba32le',
+    
+    # YUV with alpha
+    'yuva420p', 'yuva422p', 'yuva444p',
+    
+    # YUV with alpha at various bit depths
+    'yuva420p9be', 'yuva420p9le',
+    'yuva422p9be', 'yuva422p9le',
+    'yuva444p9be', 'yuva444p9le',
+    
+    'yuva420p10be', 'yuva420p10le',
+    'yuva422p10be', 'yuva422p10le',
+    'yuva444p10be', 'yuva444p10le',
+    
+    'yuva420p12be', 'yuva420p12le',
+    'yuva444p12le',
+    
+    'yuva420p16be', 'yuva420p16le',
+    'yuva422p16be', 'yuva422p16le',
+    'yuva444p16be', 'yuva444p16le',
+
+    
+    # Other formats
+    'ya8',  # 8-bit grayscale with alpha
+    'ya16be', 'ya16le',  # 16-bit grayscale with alpha
+    
+    # 64-bit YUV with alpha
+    'ayuv64le', 'ayuv64be',
+    
+    # 32-bit float RGBA
+    'rgbaf32be', 'rgbaf32le'
 ]
 
 running = False
@@ -385,6 +417,8 @@ def stop_gif_animation(widget):
         after_id = None
 
 def video_to_frames_seq(input_file, framerate, preview = False):
+    global preview_height, preview_weight
+    
     temp_folder = 'temp'
     preview_folder = 'temp/preview'
 
@@ -413,7 +447,7 @@ def video_to_frames_seq(input_file, framerate, preview = False):
         aspect_ratio = scaled_width / scaled_height
 
         if scaled_width > scaled_height:  # Landscape
-            max_width=280
+            max_width=350
             target_width = min(scaled_width , max_width)
             target_height = int(target_width / aspect_ratio)
         else:  # Portrait or square
@@ -421,6 +455,9 @@ def video_to_frames_seq(input_file, framerate, preview = False):
             target_height = min(scaled_height, max_height)
             target_width = int(target_height * aspect_ratio)
 
+        preview_height = target_height
+        preview_weight = target_width
+        
         filtergraph.append(f'scale={target_width}:{target_height},setsar=1')
 
     if safeAlpha.get():
@@ -443,6 +480,7 @@ def load_gifpreview_frames():
     return [Image.open(frame_file) for frame_file in frame_files]
 
 def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
+    global matte_var
 
     if hasattr(output, 'name'):
         output_file = output.name
@@ -467,7 +505,13 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
         cmd.extend(["--motion-quality", str(motionQuality)])
     if lossy_var.get():
         cmd.extend(["--lossy-quality", str(lossyQuality)])
+    if enableMatte.get():
+        if matte_var is None:
+            matte_var = '#FFFFFF'
+            print('matte is not set. using default hex value #FFFFFF or white')
         
+        cmd.extend(["--matte", matte_var])
+
     cmd.extend(["-o", output_file, "temp/frames*.png"])
 
     # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -731,15 +775,21 @@ def on_settings_window_close():
     
 ## let's impliment the hover for info for less GUI clutter.    
 def open_settings_window(): 
-    global settings_window_open, fps, gif_quality_scale, scale_widget, extra_var, fast_var, settings_window, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, safeAlpha, preview_label
+    global settings_window_open, fps, scale_widget, extra_var, fast_var, settings_window, motion_var, lossy_var, safeAlpha, preview_label
+    global gif_quality_scale, motion_quality_scale, lossy_quality_scale
+    global enableMatte, matte_var
     
     if not settings_window_open:
         settings_window_open = True
         print(settings_window_open)
+
+    win_height = 650
+    if video_data['pix_fmt'] in alpha_formats:
+        win_height += 100
     
     settings_window = tk.Toplevel(root)
     settings_window.title("User Settings")
-    center_window(settings_window, 350, 720)
+    center_window(settings_window, 350, win_height)
     settings_window.iconbitmap(icon)
     watermark_label(settings_window)
     make_non_resizable(settings_window)
@@ -767,11 +817,11 @@ def open_settings_window():
     separator1 = ttk.Separator(settings_window, orient="horizontal")
     separator1.pack(fill="x", padx=20, pady=4)
     
-    gif_quality_label = tk.Label(settings_window, text="GIF Quality:")
-    gif_quality_label.pack()
-    gif_quality_scale = tk.Scale(settings_window, from_=100, to=1, orient=tk.HORIZONTAL, resolution=1, length=300)
+    gif_quality_scale = tk.Scale(settings_window, from_=1, to=100, orient=tk.HORIZONTAL, resolution=1, length=300)
     gif_quality_scale.set(90)
     gif_quality_scale.pack()
+    gif_quality_label = tk.Label(settings_window, text="GIF Quality")
+    gif_quality_label.pack()
     Hovertip(gif_quality_label, "Overall GIF Quality", hover_delay=500)
     Hovertip(gif_quality_scale, "Overall GIF Quality", hover_delay=500)
     
@@ -792,44 +842,24 @@ def open_settings_window():
                 widget['state'] = 'disabled'
                 widget['takefocus'] = False
                 widget['sliderrelief'] = 'flat'
-    
-    motion_var = tk.IntVar()
-    motion_quality_label = tk.Checkbutton(settings_window, text="Motion Quality:", variable=motion_var, command=lambda: update_checkbox_state(motion_var, motion_quality_scale, cmode = 'quality'))
-    motion_quality_label.pack()
-    motion_quality_scale = tk.Scale(settings_window, from_=100, to=1,orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat')
-    motion_quality_scale.set(100)
-    motion_quality_scale.pack()
-    motion_quality_scale['state'] = 'disabled'
-    Hovertip(motion_quality_label, "Turn this on to fine-tune the Motion Quality (affects overall Quality.)", hover_delay=500)
-    Hovertip(motion_quality_scale, "Lower values reduce motion.", hover_delay=500)
-    # separator3 = ttk.Separator(settings_window, orient="horizontal")
-    # separator3.pack(fill="x", padx=20, pady=2)
-    lossy_var = tk.IntVar()
-    lossy_quality_label = tk.Checkbutton(settings_window, text="Lossy Quality:", variable=lossy_var, command=lambda: update_checkbox_state(lossy_var, lossy_quality_scale, cmode = 'quality'))
-    lossy_quality_label.pack()
-    lossy_quality_scale = tk.Scale(settings_window, from_=100, to=1, orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat')
-    lossy_quality_scale.set(100)
-    lossy_quality_scale.pack()
-    lossy_quality_scale['state'] = 'disabled'
-    Hovertip(lossy_quality_scale, "Turn this on to fine-tune the Lossy Quality (affects overall Quality.)", hover_delay=500)
-    Hovertip(lossy_quality_label, "Lower values introduce noise and streaks.", hover_delay=500)
-    # separator4 = ttk.Separator(settings_window, orient="horizontal")
-    # separator4.pack(fill="x", padx=20, pady=2)
 
-    fps_label = tk.Label(settings_window, text="Frames Per Second:")
-    fps_label.pack()
-    
+        elif cmode == 'basic':
+            if var.get() == 1:
+                widget['state'] = 'normal'
+            else:
+                widget['state'] = 'disabled'
+
     fps_limit = min(parsed_framerate, 30)
     
-    fps = tk.Scale(settings_window, from_=1, to=fps_limit, orient=tk.HORIZONTAL, resolution=1, length=300)
-    fps.set(30)
+    fps = tk.Scale(settings_window, from_=1, to=fps_limit, orient=tk.HORIZONTAL, resolution=1, length=300, fg="#A9C5D3", troughcolor="#A9C5D3")
+    fps.set(fps_limit)
     fps.pack()
+    fps_label = tk.Label(settings_window, text="Frames Per Second", fg="#A9C5D3")
+    fps_label.pack()
 
     # separator5 = ttk.Separator(settings_window, orient="horizontal")
     # separator5.pack(fill="x", padx=20, pady=4)
 
-    scale_label_0 = tk.Label(settings_window, text="Scale:")
-    scale_label_0.pack()
     scale_widget = tk.Scale(settings_window, from_=25, to=100, orient=tk.HORIZONTAL, length=300)
     scale_widget.set(100)
     scale_widget.pack()    
@@ -839,11 +869,41 @@ def open_settings_window():
     scale_label = tk.Label(settings_window, textvariable=scale_label_var)
     scale_label.pack()
     
+    separator3 = ttk.Separator(settings_window, orient="horizontal")
+    separator3.pack(fill="x", padx=20, pady=2)
+    
+    optionalFrame = tk.Frame(settings_window)
+    optionalFrame.pack()
+    optionalLabel = tk.Label(optionalFrame, text="Optional Settings:")
+    optionalLabel.pack()
+    
+    motion_var = tk.IntVar()
+    motion_quality_scale = tk.Scale(optionalFrame, from_=1, to=100,orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat', fg="#A9C5D3", troughcolor="#A9C5D3")
+    motion_quality_scale.set(100)
+    motion_quality_scale.pack()
+    motion_quality_scale['state'] = 'disabled'
+    motion_quality_checkbutton = tk.Checkbutton(optionalFrame, text="Motion Quality", variable=motion_var, command=lambda: update_checkbox_state(motion_var, motion_quality_scale, cmode = 'quality'))
+    motion_quality_checkbutton.pack()
+    Hovertip(motion_quality_checkbutton, "Turn this on to fine-tune the Motion Quality (affects overall Quality.)", hover_delay=500)
+    Hovertip(motion_quality_scale, "Lower values reduce motion.", hover_delay=500)
+
+    lossy_var = tk.IntVar()
+    lossy_quality_scale = tk.Scale(optionalFrame, from_=1, to=100, orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat')
+    lossy_quality_scale.set(100)
+    lossy_quality_scale.pack()
+    lossy_quality_scale['state'] = 'disabled'
+    lossy_quality_checkbutton = tk.Checkbutton(optionalFrame, text="Lossy Quality", variable=lossy_var, command=lambda: update_checkbox_state(lossy_var, lossy_quality_scale, cmode = 'quality'))
+    lossy_quality_checkbutton.pack()
+    Hovertip(lossy_quality_scale, "Turn this on to fine-tune the Lossy Quality (affects overall Quality.)", hover_delay=500)
+    Hovertip(lossy_quality_checkbutton, "Lower values introduce noise and streaks.", hover_delay=500)
+    # separator4 = ttk.Separator(settings_window, orient="horizontal")
+    # separator4.pack(fill="x", padx=20, pady=2)
+    
     separator6 = ttk.Separator(settings_window, orient="horizontal")
     separator6.pack(fill="x", padx=20, pady=2)
     
     spacer = tk.Label(settings_window, text="Encode Quality:")
-    spacer.pack(pady=5)
+    spacer.pack()
     
     checkboxFrame = tk.Frame(settings_window)
     checkboxFrame.pack(pady=5)
@@ -863,19 +923,46 @@ def open_settings_window():
     alphaFrame = tk.Frame(settings_window)
     separator2 = ttk.Separator(settings_window, orient="horizontal")
     alphaLabel = tk.Label(alphaFrame, text='Alpha Options:')
+    matteFrame = tk.Frame(settings_window)
+    separator3 = ttk.Separator(settings_window, orient="horizontal")
     
     safeAlpha = tk.IntVar()
     unprenmult_checkbox = tk.Checkbutton(alphaFrame, variable=safeAlpha, text="Unpremultiply")
+    
+    matte_var = None
+    def pick_color():
+        global matte_var
+        color = colorchooser.askcolor()[1]  # Ask the user to choose a color and get the hex code
+        print(color)
+        if color:
+            matte_var = color
+            matte_box_preview.config(bg=color)
+            Hovertip(matte_box_preview, color, hover_delay=500)
+    
+    enableMatte = tk.IntVar()
+    matte_checkbox = tk.Checkbutton(matteFrame, variable=enableMatte, command=lambda: update_checkbox_state(enableMatte, matte_button, cmode = 'basic'))
+    matte_button = tk.Button(matteFrame, text="Choose Matte", command=pick_color)
+    matte_box_preview = tk.Label(matteFrame, width=2, height=1, bg="white", relief="solid")
+    
     if video_data['pix_fmt'] in alpha_formats:
         separator2.pack(fill="x", padx=20, pady=2)
         
         alphaFrame.pack()
         alphaLabel.pack()
         unprenmult_checkbox.pack(pady=5)
+        matteFrame.pack()
+        separator3.pack(fill="x", padx=20, pady=2)
+        matte_checkbox.pack(pady=5, side=tk.LEFT)
+        matte_box_preview.pack(pady=5,side=tk.LEFT)
+        matte_button.pack(pady=5, side=tk.RIGHT)
+        matte_button['state'] = 'disabled'
         
         Hovertip(unprenmult_checkbox, "It\'s like unmult but more precise.\nEnable this if your GIF has outlines.", hover_delay=500)
+        Hovertip(matte_button, "Click here to color-pick your desired matte.", hover_delay=500)
+        Hovertip(matte_checkbox, "Enable this if you have semitransparent pixels.", hover_delay=500)
+        Hovertip(matte_box_preview, '#FFFFFF', hover_delay=500)
         root.update_idletasks()
-    
+
     buttonsFrame = tk.Frame(settings_window)
     buttonsFrame.pack(pady=10)
     
@@ -918,7 +1005,13 @@ def open_settings_window():
         imgW, imgH = img.size
         gcd = math.gcd(imgW, imgH)
         aspect_ratio_simplified = f'{imgW // gcd}:{imgH // gcd}'
-        center_window(settings_window, 400, 980)
+        height =  650
+        height += preview_height
+        
+        if video_data['pix_fmt'] in alpha_formats:
+            height += 100
+        
+        center_window(settings_window, 380, height)
 
         preview_label.config(text="")
         
