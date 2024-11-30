@@ -49,8 +49,8 @@ OPTIONS = {
         'PyInstaller'
     ],
     'frameworks':[
-        '/opt/homebrew/Cellar/tcl-tk/8.6.14/lib/libtk8.6.dylib',
-        '/opt/homebrew/Cellar/tcl-tk/8.6.14/lib/libtcl8.6.dylib',
+        '/opt/homebrew/Cellar/tcl-tk@8/8.6.15/lib/libtk8.6.dylib',
+        '/opt/homebrew/Cellar/tcl-tk@8/8.6.15/lib/libtcl8.6.dylib',
     ],
     'plist': {
         'NSHumanReadableCopyright': 
@@ -78,7 +78,7 @@ DATA_FILES=[
         './buildandsign/ico/ico3beta.png',
         './buildandsign/ico/motionteamph.png',
         ]),
-     ('../lib', ['/opt/homebrew/Cellar/tcl-tk/8.6.14/lib/']),
+     ('../lib', ['/opt/homebrew/Cellar/tcl-tk@8/8.6.15/lib/']),
         ]
 setup(
     app=APP,
