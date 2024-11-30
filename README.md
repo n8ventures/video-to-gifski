@@ -4,7 +4,13 @@ Convert videos and export them into GIFs using Gifski.
 # Releases
 Stable release is available on Windows (x64) & MacOSX (Apple Silicon/ARM).
 
-Download the latest release [here](https://github.com/n8ventures/video-to-gifski/releases/latest).
+Download and check the latest release [here](https://github.com/n8ventures/video-to-gifski/releases/latest).
+
+or just directly download here without worry:
+
+[OSX (ARM/Apple Silicon)](https://github.com/n8ventures/video-to-gifski/releases/latest/download/N8.s.Video.To.Gifski.dmg)
+
+[Windows](https://github.com/n8ventures/video-to-gifski/releases/latest/download/n8-vid-to-gif.exe)
 
 # How to use
 
