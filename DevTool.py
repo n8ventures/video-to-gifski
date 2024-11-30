@@ -215,7 +215,7 @@ def genMainRC():
           StringTable(
             '040904e4',
             [StringStruct('CompanyName', 'N8VENTURES'),
-            StringStruct('FileDescription', 'N8\\'s Video to Gifskiski Converter'),
+            StringStruct('FileDescription', 'N8\\'s Video to Gifski Converter'),
             StringStruct('FileVersion', '{__version__}'),
             StringStruct('InternalName', '{__appname__}'),
             StringStruct('LegalCopyright','Copyright © 2024 John Nathaniel Calvara. Licensed under the MIT License.'),
