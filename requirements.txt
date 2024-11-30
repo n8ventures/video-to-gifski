@@ -15,7 +15,7 @@ pywin32-ctypes==0.2.2
 PyWinBox==0.6
 PyWinCtl==0.3
 requests==2.32.0
-setuptools==75.6.0
+setuptools==70.3.0
 tk==0.1.0
 tkinterdnd2==0.4.2
 tqdm==4.66.3
@@ -23,5 +23,5 @@ typing_extensions==4.10.0
 urllib3==2.2.2
 Wand==0.6.13
 tkmacosx==1.0.5
-py2app==0.28.7
+py2app==0.28.8
 dmgbuild==1.6.1

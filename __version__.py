@@ -1,5 +1,5 @@
-__version__ = "2.6.0"
-__versionMac__ = "2.6.0"
+__version__ = "3.0.0"
+__versionMac__ = "3.0.0"
 __appname__ = "n8-vid-to-gif"
 __author__= 'John Nathaniel Calvara'
 
