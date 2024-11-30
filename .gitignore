@@ -180,3 +180,4 @@ __mainVersion.rc
 __updaterVersion.rc
 .DS_Store
 *.dmg
+bugtesting/*
