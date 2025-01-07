@@ -631,6 +631,7 @@ def get_and_print_video_data(file_path):
     global video_data
     if file_path != 'temp/temp.gif':
         print(f"File: {file_path}")
+        
 
     if file_path and is_video_file(file_path) and file_path != 'temp/temp.gif':
         if video_data := get_video_data(file_path):
@@ -773,28 +774,18 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
         print('checking if window is open...')
         if not is_folder_open(path):
             print('window not found, opening window.')
-            if platform.system() == 'Windows':
-                subprocess.run(fr'explorer /select,"{path2}"')
-            elif platform.system() == 'Darwin':  # macOS
+            if platform.system() == 'Darwin':
                 subprocess.run(['open', '-R', path2])
         else:
             print('window found!')
-            if platform.system() == 'Windows':
-                windows = pwc.getWindowsWithTitle(os.path.basename(path))
-                if windows:
-                    win = windows[0]
-                    if win.minimize():
-                        win.restore(True)
-                    win.activate(True)
-                else:
-                    print('Window not found with specified title.')
-            elif platform.system() == 'Darwin':  # macOS
+            if platform.system() == 'Darwin':  # macOS
                 # macOS does not support window manipulation like Windows, so just reveal the file in Finder
                 subprocess.run(['open', '-R', path2])
 
     if mode == 'final':
         output_file = filedialog.asksaveasfile(
             defaultextension=".gif",
+            initialdir=f"{os.path.dirname(file_path)}",
             initialfile=f"{os.path.splitext(os.path.basename(input_file))[0]}.gif",
             filetypes=[("GIF files", "*.gif")],
         )
@@ -829,6 +820,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     elif mode == 'temp-final':
         output_file = filedialog.asksaveasfile(
             defaultextension=".gif",
+            initialdir=f"{os.path.dirname(file_path)}",
             initialfile=f"{os.path.splitext(os.path.basename(input_file))[0]}.gif",
             filetypes=[("GIF files", "*.gif")],
         )
@@ -991,7 +983,7 @@ def open_settings_window():
     # separator5 = ttk.Separator(settings_window, orient="horizontal")
     # separator5.pack(fill="x", padx=20, pady=4)
 
-    scale_widget = tk.Scale(settings_window, from_=25, to=100, orient=tk.HORIZONTAL, length=300)
+    scale_widget = tk.Scale(settings_window, from_=1, to=100, orient=tk.HORIZONTAL, resolution=0.5, length=300)
     scale_widget.set(100)
     scale_widget.pack()    
     scale_label_var = tk.StringVar()
