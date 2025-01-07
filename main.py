@@ -860,7 +860,7 @@ def open_settings_window():
     # separator5 = ttk.Separator(settings_window, orient="horizontal")
     # separator5.pack(fill="x", padx=20, pady=4)
 
-    scale_widget = tk.Scale(settings_window, from_=25, to=100, orient=tk.HORIZONTAL, length=300)
+    scale_widget = tk.Scale(settings_window, from_=1, to=100, orient=tk.HORIZONTAL, resolution=0.5, length=300)
     scale_widget.set(100)
     scale_widget.pack()    
     scale_label_var = tk.StringVar()
