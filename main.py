@@ -665,6 +665,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     if mode == 'final':
         output_file = filedialog.asksaveasfile(
             defaultextension=".gif",
+            initialdir=f"{os.path.dirname(file_path)}",
             initialfile=f"{os.path.splitext(os.path.basename(input_file))[0]}.gif",
             filetypes=[("GIF files", "*.gif")],
         )
@@ -699,6 +700,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     elif mode == 'temp-final':
         output_file = filedialog.asksaveasfile(
             defaultextension=".gif",
+            initialdir=f"{os.path.dirname(file_path)}",
             initialfile=f"{os.path.splitext(os.path.basename(input_file))[0]}.gif",
             filetypes=[("GIF files", "*.gif")],
         )
