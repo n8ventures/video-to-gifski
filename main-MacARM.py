@@ -18,6 +18,7 @@ import math
 from tkmacosx import Button
 import glob
 import platform
+import re
 
 
 def is_running_from_bundle():
@@ -65,7 +66,7 @@ else:
     gifski = os.path.join(MacOSbin, gifski)
     ffmpeg = os.path.join(MacOSbin, ffmpeg)
 
-def create_popup(root, title, width, height, switch):
+def create_popup(root, title, width, height, switch, lift = 0):
     popup = tk.Toplevel(root)
     popup.title(title)
     popup.geometry(f"{width}x{height}")
@@ -76,43 +77,62 @@ def create_popup(root, title, width, height, switch):
     
     if switch == 1:
         popup.bind("<FocusOut>", lambda e: popup.destroy())
+    if lift == 1:
+        popup.lift()
 
     popup.grab_set()
     
     return popup
 
-def loading():
-    if loading_event.is_set():
-        global loading_screen
-        loading_screen = create_popup(root, "Converting...", 350, 120, 0)
-        make_non_resizable(loading_screen)
-        
-        load_text_label = tk.Label(loading_screen, text='Converting...\nPlease wait.')
-        load_text_label.pack(pady=20)
+loading_screen = None
 
-        progress_bar = ttk.Progressbar(loading_screen, mode='indeterminate')
-        progress_bar.pack(fill=tk.X, padx=10, pady=0)
-        progress_bar.start()
-        root.update_idletasks()
-        print('starting loading popup')
+def loading(texthere='', filenum=0, filestotal=0):
+    global loading_screen, load_text_label
+
+    if loading_event.is_set():
+        if not loading_screen: 
+            loading_screen = create_popup(root, "Converting...", 380, 150, 0)
+            make_non_resizable(loading_screen)
+            
+            load_text_label = tk.Label(loading_screen, text='Converting...\nPlease wait.')
+            load_text_label.pack(pady=20)
+
+            update_loading(texthere, filenum, filestotal)
+
+            progress_bar = ttk.Progressbar(loading_screen, mode='indeterminate')
+            progress_bar.pack(fill=tk.X, padx=10, pady=0)
+            progress_bar.start()
+            loading_screen.update_idletasks()
+            print('starting loading popup')
     else:
-        loading_screen.destroy()
-        print('loading popup dead')
-        
+        if loading_screen:  
+            loading_screen.destroy()
+            loading_screen = None 
+            print('loading popup dead')
+
+def update_loading(texthere='', filenum=0, filestotal=0):
+    if filenum == 0 and filestotal == 0 or filestotal == 1:
+        load_text_label.config(text=f'{texthere}\n\nConverting...\nPlease wait.')
+    else:
+        load_text_label.config(text=f'({filenum}/{filestotal} Files)\n{texthere}\n\nConverting...\nPlease wait.')
+    
+    loading_screen.update_idletasks()
+
 loading_event = threading.Event()
 
-def loading_thread():
+def loading_thread(texthere='', filenum=0, filestotal=0):
     loading_event.set()
     print('starting thread')
-    loading()
+    loading(texthere, filenum, filestotal)
 
-def loading_thread_switch(switch):
-    if switch == True:
-        threading.Thread(target=loading_thread, daemon=True).start()
-    if switch == False:
+def loading_thread_switch(switch, texthere='', filenum=0, filestotal=0):
+    if switch:
+        threading.Thread(target=loading_thread, args=(texthere, filenum, filestotal), daemon=True).start()
+        print('Thread Initialized.')
+    else:
         print('killing loading popup')
         loading_event.clear()
-        loading()
+        root.after(0, loading)
 
 # check updates
 
@@ -549,7 +569,7 @@ def video_to_frames_seq(input_file, framerate, preview = False):
     filtergraph = [f'fps={str(framerate)}']
 
     if preview == False:
-        if scale_widget.get() != 100:
+        if len(valid_files) == 1 and scale_widget.get() != 100:
             filtergraph.append(f'scale={scaled_width}:{scaled_height},setsar=1')
     else:
         aspect_ratio = scaled_width / scaled_height
@@ -592,15 +612,24 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
     elif isinstance(output, str):
         output_file = output
 
-    cmd = [
-        gifski,
-        "-q",
-        "-r", str(int(fps)),
-        "-Q", str(gifQuality),
-        "-W", str(scaled_width),
-        "-H", str(scaled_height),
-        "--repeat", "0",
-        ]
+    if len(valid_files) == 1:
+        cmd = [
+            gifski,
+            "-q",
+            "-r", str(int(fps)),
+            "-Q", str(gifQuality),
+            "-W", str(scaled_width),
+            "-H", str(scaled_height),
+            "--repeat", "0",
+            ]
+    else:
+        cmd = [
+            gifski,
+            "-q",
+            "-r", str(int(fps)),
+            "-Q", str(gifQuality),
+            "--repeat", "0",
+            ]
 
     if extra_var.get():
         cmd.append("--extra")
@@ -628,36 +657,70 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
 
 def get_and_print_video_data(file_path):
-    global video_data
-    if file_path != 'temp/temp.gif':
-        print(f"File: {file_path}")
-        
+    global video_data, valid_files
+    invalid_files = []
+    valid_files = []
 
-    if file_path and is_video_file(file_path) and file_path != 'temp/temp.gif':
-        if video_data := get_video_data(file_path):
-            parse_video_data(video_data)
-    elif file_path and is_video_file(file_path) and file_path == 'temp/temp.gif':
-        if temp_data := get_video_data(file_path):
-            parse_temp_data(temp_data)
-    elif file_path == '':
+    if file_path == '':
         print('No video File dropped.')
+        return
 
-    else:
-        notavideo()
+    print(f"Files: {file_path}")
+    
+    for file in file_path:
+        if not is_video_file(file):
+            print(f'File "{file}" is not a supported video file.')
+            invalid_files.append(os.path.basename(file))
+            continue
 
-def notavideo():
-    notavideo = create_popup(root, "Not a video!", 400, 100, 1)
+        valid_files.append((os.path.basename(file), file))
+
+    if valid_files and not settings_window_open:
+        if len(valid_files) == 1:
+            if video_data := get_video_data(valid_files[0][1]):
+                parse_video_data(video_data)
+        else:
+            open_settings_window()
+    
+    if invalid_files:
+        notavideo(invalid_files,[f[0] for f in valid_files])
+
+def notavideo(invalid_file, valid_file):
+    longest_invalid_length = max((len(file) for file in invalid_file if len(file) > 50), default=0)
+    longest_valid_length = max((len(file) for file in valid_file if len(file) > 50), default=0)
+    largest_length = max(longest_invalid_length, longest_valid_length)
+
+    weight = (largest_length * 3) + 400
+    height = (((len(invalid_file)+len(valid_file))*16)+150)
+    
+    if len(valid_file) != 0:
+        height = height + 25
+        
+    print(f'{weight} x {height}')
+    notavideo = create_popup(root, "Not A Video!", weight, height, 1, 1)
     make_non_resizable(notavideo)
 
+    invalid_files_list = "❌ " + "\n❌ ".join(invalid_file)
+    button_text = 'Close'
+    
+    if len(valid_file) != 0:
+        valid_files_list = "✅ " + "\n✅ ".join(valid_file)
+        valid_text = f"The following files will be processed:\n\n{valid_files_list}"
+        button_text = 'Continue'
+    else:
+        valid_text = 'Please select valid video files!'
+
     errortext = (
-        "Not a video! Please select a video file!"
+        "The following files are not video files:\n\n"
+        f"{invalid_files_list}\n\n"
+        f"{valid_text}"
     )
 
     about_label = tk.Label(notavideo, text=errortext, justify=tk.LEFT)
     about_label.pack(pady=10)
 
-    close_button = Button(notavideo, text="Close", command=notavideo.destroy)
-    close_button.pack(pady=10)
+    close_button = Button(notavideo, text=button_text, command=notavideo.destroy)
+    close_button.pack(pady=10) 
 
 def parse_temp_data(temp_data):
     width_value = temp_data['width']
@@ -741,27 +804,31 @@ def is_video_file(file_path):
     _, file_extension = os.path.splitext(file_path)
     return file_extension.lower() in video_extensions
 
+
 def is_folder_open(path):
+    """
+    Checks if the folder is currently open in Finder (macOS only).
+    """
+    if platform.system() != 'Darwin':  # Ensure this only runs on macOS
+        raise OSError("is_folder_open is only supported on macOS.")
+
     folder_name = os.path.basename(path)
-    if platform.system() == 'Windows':
-        open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
-        return folder_name in open_folders
-    elif platform.system() == 'Darwin':  # macOS
-        # Use AppleScript to check if Finder window is open with the specified folder
-        script = f'''
-            tell application "System Events"
-                set openWindows to name of every window of application process "Finder"
-            end tell
-            if "{folder_name}" is in openWindows then
-                return true
-            else
-                return false
-            end if
-        '''
-        open_windows = subprocess.check_output(['osascript', '-e', script]).decode('utf-8').strip()
-        return open_windows == 'true'
-    else:
-        raise OSError("Unsupported operating system")
+
+    # AppleScript to check Finder windows
+    script = '''
+        tell application "System Events"
+            set openWindows to name of every window of application process "Finder"
+        end tell
+        return openWindows
+    '''
+
+    try:
+        open_windows = subprocess.check_output(['osascript', '-e', script]).decode('utf-8').strip().split(", ")
+        # Check if folder name is in the list of open windows
+        return folder_name in open_windows
+    except subprocess.CalledProcessError as e:
+        print(f"Error checking Finder windows: {e}")
+        return False
 
 def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file, mode):
     global output_file
@@ -771,45 +838,89 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     lossyQ = lossy_quality.get()
 
     def openOutputFolder(path, path2):
-        print('checking if window is open...')
+        """
+        Opens the specified folder or reveals a file in Finder (macOS only).
+        """
+        if platform.system() != 'Darwin':  # Ensure this only runs on macOS
+            raise OSError("open_output_folder is only supported on macOS.")
+
+        print('Checking if folder is open...')
         if not is_folder_open(path):
-            print('window not found, opening window.')
-            if platform.system() == 'Darwin':
-                subprocess.run(['open', '-R', path2])
+            print('Folder not found in Finder. Opening folder...')
         else:
-            print('window found!')
-            if platform.system() == 'Darwin':  # macOS
-                # macOS does not support window manipulation like Windows, so just reveal the file in Finder
-                subprocess.run(['open', '-R', path2])
+            print('Folder is already open in Finder.')
+
+        # Reveal the file or folder in Finder
+        try:
+            subprocess.run(['open', '-R', path2], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error opening folder in Finder: {e}")
+
+    file = input_file[0][1]
 
     if mode == 'final':
-        output_file = filedialog.asksaveasfile(
-            defaultextension=".gif",
-            initialdir=f"{os.path.dirname(file_path)}",
-            initialfile=f"{os.path.splitext(os.path.basename(input_file))[0]}.gif",
-            filetypes=[("GIF files", "*.gif")],
-        )
+        output_file = None
+        output_directory = None
+        
+        if len(input_file) == 1:
+            output_file = filedialog.asksaveasfile(
+                defaultextension=".gif",
+                initialdir=f"{os.path.dirname(file)}",
+                initialfile=f"{os.path.splitext(os.path.basename(file))[0]}.gif",
+                filetypes=[("GIF files", "*.gif")],
+            )
+        else:
+            output_directory = filedialog.askdirectory(
+                title="Select your Directory to Save GIF Files",
+                initialdir=f"{os.path.dirname(input_file[0][1])}"
+                )
+
         if output_file:
             output_file.close()
-            output_folder = os.path.abspath(output_file.name)
+            output_full_path = os.path.abspath(output_file.name)
             output_dir = os.path.dirname(output_file.name)
 
-            loading_thread_switch(True)
-            video_to_frames_seq(input_file, framerate)
+            loading_thread_switch(True, os.path.basename(file))
+
+            video_to_frames_seq(file, framerate)
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
             loading_thread_switch(False)
 
             print("Conversion complete!")
             shutil.rmtree('temp')
             on_settings_window_close()
-            openOutputFolder(output_dir, output_folder)
-            # open_finish_window()
+            try:
+                openOutputFolder(output_dir, output_full_path)
+            except OSError as e:
+                print(f"Error: {e}")
+
+        elif output_directory:
+            loading_thread_switch(True, input_file[0][0], 1, len(input_file))
+
+            for filenum, (file_name, full_path) in enumerate(input_file, start=1):
+                output = os.path.join(output_directory, f"{os.path.splitext(file_name)[0]}.gif")
+                
+                if loading_screen:
+                    update_loading(file_name, filenum, len(input_file))
+                
+                video_to_frames_seq(full_path, framerate)
+                vid_to_gif(framerate, gifQ, motionQ, lossyQ, output)
+                shutil.rmtree('temp')
+            
+            loading_thread_switch(False)
+            print("Conversions complete!")
+            on_settings_window_close()
+            
+            try:
+                openOutputFolder(output_directory, output)
+            except OSError as e:
+                print(f"Error: {e}")
 
     elif mode == 'temp':
             output_file = 'temp/temp.gif'
             print(output_file)
 
-            loading_thread_switch(True)
+            loading_thread_switch(True, os.path.basename(file))
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
             video_to_frames_seq(output_file, fps.get(), preview=True)
             loading_thread_switch(False)
@@ -820,14 +931,14 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     elif mode == 'temp-final':
         output_file = filedialog.asksaveasfile(
             defaultextension=".gif",
-            initialdir=f"{os.path.dirname(file_path)}",
-            initialfile=f"{os.path.splitext(os.path.basename(input_file))[0]}.gif",
+            initialdir=f"{os.path.dirname(file)}",
+            initialfile=f"{os.path.splitext(os.path.basename(file))[0]}.gif",
             filetypes=[("GIF files", "*.gif")],
         )
 
         if output_file:
             output_file.close()
-            output_folder = os.path.abspath(output_file.name)
+            output_full_path = os.path.abspath(output_file.name)
             output_dir = os.path.dirname(output_file.name)
 
             shutil.copy2('temp/temp.gif', output_file.name)
@@ -835,14 +946,16 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             stop_gif_animation(preview_label)
             shutil.rmtree('temp')
             on_settings_window_close()
-            openOutputFolder(output_dir, output_folder)
+            try:
+                openOutputFolder(output_dir, output_full_path)
+            except OSError as e:
+                print(f"Error: {e}")
 
 
 def apply_settings(mode):
     global fps, gif_quality_scale, scale_widget, extra_var, fast_var, motion_quality_scale, lossy_quality_scale, motion_var, lossy_var, scaled_width, scaled_height, safeAlpha
 
     fps_value = fps.get()
-    scale_value = scale_widget.get()
     extra_value = extra_var.get()
     fast_value = fast_var.get()
     motion_value = motion_var.get()
@@ -850,38 +963,41 @@ def apply_settings(mode):
     gif_quality_value = gif_quality_scale.get()
     motion_quality= motion_quality_scale.get()
     lossy_quality =lossy_quality_scale.get()
-    width_value = video_data['width']
-    height_value = video_data['height']
     unpremultiply_value = safeAlpha.get()
+    
+    if len(valid_files) == 1:
+        scale_value = scale_widget.get()
+        width_value = video_data['width']
+        height_value = video_data['height']
         
+        if width_value and height_value:
+            # Calculate the scaled width based on the slider value
+            scaled_width = int(width_value * scale_value / 100)
 
-    if width_value and height_value:
-        # Calculate the scaled width based on the slider value
-        scaled_width = int(width_value * scale_value / 100)
+            # Maintain the aspect ratio
+            scaled_height = int((scaled_width / width_value) * height_value)
+        
+        print(f"-- SETTINGS APPLIED --\nFPS: {fps_value} - Scale: {scaled_width} x {scaled_height}")
+        print("GIF Quality:", gif_quality_value)
+        
+        print("Motion Quality", motion_value)
+        if motion_value:
+            print("Motion Quality Value:", motion_quality)
+        
+        print("Lossy Quality", lossy_value)
+        if lossy_value:
+            print("Lossy Quality Value:", lossy_quality)
+        
+        print("Extra:", extra_value)
+        print("Fast:", fast_value)
+        print('unpremultiply:', unpremultiply_value)
 
-        # Maintain the aspect ratio
-        scaled_height = int((scaled_width / width_value) * height_value)
-
-    print(f"Settings applied - FPS: {fps_value}, Scale: {scaled_width} x {scaled_height}")
-    print("GIF Quality:", gif_quality_value)
-    
-    print("Motion Quality On:", motion_value)
-    if motion_value:
-        print("Motion Quality:", motion_quality)
-    
-    print("Lossy Quality On:", lossy_value)
-    if lossy_value:
-        print("Lossy Quality:", lossy_quality)
-    
-    print("Extra:", extra_value)
-    print("Fast:", fast_value)
-    print('unpremultiply:', unpremultiply_value)
-    
-    convert_and_save(fps, gif_quality_scale, motion_quality_scale, lossy_quality_scale, file_path, mode)
+    file = valid_files
+    convert_and_save(fps, gif_quality_scale, motion_quality_scale, lossy_quality_scale, file, mode)
 
 def choose_file():
     global file_path
-    file_path = filedialog.askopenfilename(
+    file_path = filedialog.askopenfilenames(
         title="Select Video File",
         filetypes=(("Video files", "*" + " *".join(video_extensions)), ("All files", "*.*"))
     )
@@ -907,18 +1023,29 @@ def open_settings_window():
         print('Settings Window is open?', settings_window_open)
 
     win_height = 650
-    if video_data['pix_fmt'] in alpha_formats:
-        win_height += 100
+    if len(valid_files) == 1:
+        window_title = 'User Settings'
+        preview_label_text = 'Click the Apply & Preview button to load a GIF Preview.'
+        export_label = 'Quick Export'
+        preview_label_pady = 5
+        if video_data['pix_fmt'] in alpha_formats:
+            win_height += 100
+    else:
+        window_title = 'User Settings: Batch Mode'
+        preview_label_text = 'Multiple videos detected!\nAdjust the settings to apply\nthe same configuration to all GIFs converted!'
+        export_label = 'Export'
+        preview_label_pady = 20
+        win_height -= 25
     
     settings_window = tk.Toplevel(root)
-    settings_window.title("User Settings")
+    settings_window.title(window_title)
     center_window(settings_window, 350, win_height)
     settings_window.iconphoto(True, icon)
     watermark_label(settings_window)
     make_non_resizable(settings_window)
 
-    preview_label = tk.Label(settings_window, text='Click the Apply & Preview button to load a GIF Preview.')
-    preview_label.pack(pady=5)
+    preview_label = tk.Label(settings_window, text = preview_label_text)
+    preview_label.pack(pady=preview_label_pady)
     
     fileSize_label =tk.Label(settings_window, text = '')
     fileDimension_label = tk.Label(settings_window, text='')
@@ -931,12 +1058,6 @@ def open_settings_window():
     play_gif_button.pack(pady=10)
     play_gif_button.config(state="disabled")
     
-    # if args.debug:
-    #     play_gif_button.pack(side=tk.LEFT, pady=10)
-    #     debug_gif_button = Button(playframe, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
-    #     debug_gif_button.pack(side=tk.RIGHT, pady=10)
-    #     debug_gif_button.config(state="disabled")
-
     separator1 = ttk.Separator(settings_window, orient="horizontal")
     separator1.pack(fill="x", padx=20, pady=4)
     
@@ -972,7 +1093,10 @@ def open_settings_window():
             else:
                 widget['state'] = 'disabled'
 
-    fps_limit = min(parsed_framerate, 30)
+    if len(valid_files) != 1:
+        fps_limit = 30
+    else:
+        fps_limit = min(parsed_framerate, 30)
     
     fps = tk.Scale(settings_window, from_=1, to=fps_limit, orient=tk.HORIZONTAL, resolution=1, length=300, fg="#A9C5D3", troughcolor="#A9C5D3")
     fps.set(fps_limit)
@@ -983,14 +1107,34 @@ def open_settings_window():
     # separator5 = ttk.Separator(settings_window, orient="horizontal")
     # separator5.pack(fill="x", padx=20, pady=4)
 
-    scale_widget = tk.Scale(settings_window, from_=1, to=100, orient=tk.HORIZONTAL, resolution=0.5, length=300)
-    scale_widget.set(100)
-    scale_widget.pack()    
-    scale_label_var = tk.StringVar()
-    scale_widget.config(command=lambda value: update_scale_label(value))
-    scale_label_var.set(f"{video_data['width']}x{video_data['height']} - Scale: {scale_widget.get()}%")
-    scale_label = tk.Label(settings_window, textvariable=scale_label_var)
-    scale_label.pack()
+    if len(valid_files) == 1:
+        scale_widget = tk.Scale(settings_window, from_=1, to=100, orient=tk.HORIZONTAL, resolution=0.5, length=300)
+        scale_widget.set(100)
+        scale_widget.pack()    
+        scale_label_var = tk.StringVar()
+        scale_widget.config(command=lambda value: update_scale_label(value))
+        scale_label_var.set(f"{video_data['width']}x{video_data['height']} - Scale: {scale_widget.get()}%")
+        scale_label = tk.Label(settings_window, textvariable=scale_label_var)
+        scale_label.pack()
+        
+        def update_scale_label(value):
+            global scaled_width, scaled_height
+            
+            width_value = video_data['width']
+            height_value = video_data['height']
+
+            if width_value and height_value:
+                # Calculate the scaled width based on the slider value
+                scaled_width = int(width_value * float(value) / 100)
+
+                # Maintain the aspect ratio
+                scaled_height = int((scaled_width / width_value) * height_value)
+
+                # Update the label text with the current size and percentage
+                scale_label_var.set(f"{scaled_width}x{scaled_height} - Scale: {value}%")
+
+        scale_widget.bind("<B1-Motion>", lambda event: update_scale_label(scale_widget.get()))
+        root.update_idletasks()
     
     separator3 = ttk.Separator(settings_window, orient="horizontal")
     separator3.pack(fill="x", padx=20, pady=2)
@@ -1067,7 +1211,7 @@ def open_settings_window():
     matte_button = tk.Button(matteFrame, text="Choose Matte", command=pick_color)
     matte_box_preview = tk.Label(matteFrame, width=2, height=1, bg="white", relief="solid")
     
-    if video_data['pix_fmt'] in alpha_formats:
+    if len(valid_files) != 1 or video_data['pix_fmt'] in alpha_formats:
         separator2.pack(fill="x", padx=20, pady=2)
         
         alphaFrame.pack()
@@ -1089,34 +1233,28 @@ def open_settings_window():
     buttonsFrame = tk.Frame(settings_window)
     buttonsFrame.pack(side=tk.BOTTOM, pady=20)
     
-    apply_button = Button(buttonsFrame, text="Quick Export", command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
+    apply_button = Button(buttonsFrame, text=export_label, command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
     apply_button.pack(side=tk.LEFT, padx=5)
     
     test_button = Button(buttonsFrame, text="Apply & Preview", command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start())
     test_button.pack(side=tk.RIGHT, padx=5)
     
-    def update_scale_label(value):
-        global scaled_width, scaled_height
+    if len(valid_files) != 1:
+        separator1.pack_forget()
+        # preview_label.pack_forget()
+        fileSize_label.pack_forget()
+        fileDimension_label.pack_forget()
+        playframe.pack_forget()
+        play_gif_button.pack_forget()
+        test_button.pack_forget()
+        apply_button.pack_forget()
+        apply_button.pack(side=tk.TOP)
         
-        width_value = video_data['width']
-        height_value = video_data['height']
-
-        if width_value and height_value:
-            # Calculate the scaled width based on the slider value
-            scaled_width = int(width_value * float(value) / 100)
-
-            # Maintain the aspect ratio
-            scaled_height = int((scaled_width / width_value) * height_value)
-
-            # Update the label text with the current size and percentage
-            scale_label_var.set(f"{scaled_width}x{scaled_height} - Scale: {value}%")
-    
-    scale_widget.bind("<B1-Motion>", lambda event: update_scale_label(scale_widget.get()))
-    root.update_idletasks()
+        root.update_idletasks()
     
     def preview_gif_window():
         loading_thread_switch(True)
-        video_to_frames_seq(file_path, fps.get())
+        video_to_frames_seq(file_path[0], fps.get())
         loading_thread_switch(False)
         
         apply_settings('temp')
@@ -1261,9 +1399,12 @@ def show_main():
 
     def on_drop(event):
         global file_path
-        drop_label.config
-        label.config
-        file_path = event.data.strip('{}')
+        print(f'File Path PASS I: {event.data}')
+        file_path = re.findall(r'\{.*?\}|\S+', event.data)
+        print(f'File Path PASS II: {file_path}')
+        file_path = [re.sub(r'[{}]', '', file) for file in file_path]
+        print(f'File Path PASS III: {file_path}')
+
         get_and_print_video_data(file_path)
 
     if any(char.isalpha() for char in __version__):
