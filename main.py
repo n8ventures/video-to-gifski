@@ -550,7 +550,7 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
 
 
 def get_and_print_video_data(file_path):
-    global video_data, valid_files
+    global video_data, valid_files, invalid_files
     invalid_files = []
     valid_files = []
 
@@ -574,15 +574,15 @@ def get_and_print_video_data(file_path):
 
             valid_files.append((os.path.basename(file), file))
 
+        if invalid_files:
+            notavideo(invalid_files,[f[0] for f in valid_files])
+
         if valid_files and not settings_window_open:
             if len(valid_files) == 1:
                 if video_data := get_video_data(valid_files[0][1]):
                     parse_video_data(video_data)
             else:
                 open_settings_window()
-
-        if invalid_files:
-            notavideo(invalid_files,[f[0] for f in valid_files])
 
 def notavideo(invalid_file, valid_file):
     longest_invalid_length = max((len(file) for file in invalid_file if len(file) > 50), default=0)
@@ -598,6 +598,7 @@ def notavideo(invalid_file, valid_file):
     print(f'{weight} x {height}')
     notavideo = create_popup(root, "Not A Video!", weight, height, 1, 1)
     make_non_resizable(notavideo)
+    notavideo.attributes("-topmost", True) 
 
     invalid_files_list = "❌ " + "\n❌ ".join(invalid_file)
     button_text = 'Close'
@@ -1194,7 +1195,8 @@ def open_settings_window():
         subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
 
     root.withdraw()
-    settings_window.grab_set()
+    if not invalid_files:
+        settings_window.grab_set()
     settings_window.wait_window(settings_window)
     if os.path.exists('temp'):
         shutil.rmtree('temp') 
@@ -1363,4 +1365,3 @@ atexit.register(on_closing)
 splash_screen.after(3500, show_main)
 
 root.mainloop()
-
