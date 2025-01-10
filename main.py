@@ -968,10 +968,10 @@ def open_settings_window():
     else:
         fps_limit = min(parsed_framerate, 30)
     
-    fps = tk.Scale(settings_window, from_=1, to=fps_limit, orient=tk.HORIZONTAL, resolution=1, length=300, fg="#A9C5D3", troughcolor="#A9C5D3")
+    fps = tk.Scale(settings_window, from_=1, to=fps_limit, orient=tk.HORIZONTAL, resolution=1, length=300, fg="#7d7dff", troughcolor="#7d7dff")
     fps.set(fps_limit)
     fps.pack()
-    fps_label = tk.Label(settings_window, text="Frames Per Second", fg="#A9C5D3")
+    fps_label = tk.Label(settings_window, text="Frames Per Second", fg="#7d7dff")
     fps_label.pack()
 
     # separator5 = ttk.Separator(settings_window, orient="horizontal")
@@ -1015,7 +1015,7 @@ def open_settings_window():
     optionalLabel.pack()
     
     motion_var = tk.IntVar()
-    motion_quality_scale = tk.Scale(optionalFrame, from_=1, to=100,orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat', fg="#A9C5D3", troughcolor="#A9C5D3")
+    motion_quality_scale = tk.Scale(optionalFrame, from_=1, to=100,orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat', fg="#7d7dff", troughcolor="#7d7dff")
     motion_quality_scale.set(100)
     motion_quality_scale.pack()
     motion_quality_scale['state'] = 'disabled'
