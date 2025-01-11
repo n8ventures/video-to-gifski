@@ -772,7 +772,11 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             loading_thread_switch(True, input_file[0][0], 1, len(input_file))
 
             for filenum, (file_name, full_path) in enumerate(input_file, start=1):
-                output = os.path.join(output_directory, f"{os.path.splitext(file_name)[0]}.gif")
+                output = os.path.normpath(
+                    os.path.join(
+                        output_directory, f"{os.path.splitext(file_name)[0]}.gif"
+                        )
+                    )
                 
                 if loading_screen:
                     update_loading(file_name, filenum, len(input_file))
