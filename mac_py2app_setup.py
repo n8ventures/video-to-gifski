@@ -87,7 +87,7 @@ setup(
     setup_requires=['py2app'],
     name=app_name,
     version= __versionMac__,
-    description='convert videos to gif using FFMPEG and Gifski.',
+    description='convert videos to GIFs using FFMPEG and Gifski.',
     author='John Nathaniel Calvara',
     author_email='nate@n8ventures.dev',
     url='https://github.com/n8ventures/video-to-gifski',
