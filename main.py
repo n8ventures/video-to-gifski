@@ -1,34 +1,69 @@
-from __version__ import __version__, __appname__, __ffmpegversion__, __gifskiversion__, __updatername__, __updaterversion__, __author__
 import tkinter as tk
 from tkinter import filedialog, ttk, colorchooser
-from tkinterdnd2 import TkinterDnD, DND_FILES
-from PIL import Image, ImageTk, ImageSequence
+from tkinterdnd2 import DND_FILES
+from PIL import Image, ImageTk
 import subprocess
 import os
-import json
 import shutil
 import sys
 import atexit
 from idlelib.tooltip import Hovertip
-import requests
 import threading
-import pywinctl as pwc
 import time
 import math
 import re
+import glob
+
+# version info
+from __version__ import __version__
+
+# tk popups and settings
+from modules.PopupModules import (
+    create_popup, 
+    notavideo,
+    )
+
+from modules.TkModules import (
+    make_non_resizable, center_window,
+    Button, widget_color,
+    )
+# platform-specific modules 
+from modules.platformModules import (
+    win, mac,
+    bundle_path,
+    icon, 
+    ffmpeg, gifski, 
+    openOutputFolder
+    )
+
+# info modules
+from modules.infoModules import watermark_label
+
+# data/binary module
+from modules.dataBinaryModules import (
+    get_filesize, get_video_data, 
+    video_extensions, alpha_formats,
+    is_video_file,
+    play_gif,
+    )
+
+# splash screen module
+from modules.rootTkSplashModule import (
+    root,
+    splash_screen,
+    animate
+)
+
+from modules.UpdaterModule import autoChecker
 
 
-import argparse
-parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
-parser.add_argument("-E", "--Egg",action='store_true', help = "Egg, mi amor")
-parser.add_argument('-v', '--version', action='version', version = __version__)
-parser.add_argument('-D', '--debug', action='store_true', help=f'Debug mode. use cmd \' {__appname__}.exe | MORE\'. But, you already knew that, don\'t cha?')
-parser.add_argument('-ct', '--checkthreads', action='store_true', help='Checks threads. (Will not work without [-D])')
-args = parser.parse_args()
+if win:
+    from modules.argsModule import args
+    import win32api
 
 debug = ''
 
-if args.debug:
+if win and args.debug:
     debug = '(Debug Mode)'
     if args.checkthreads:
         def list_current_threads():
@@ -41,53 +76,18 @@ if args.debug:
                 time.sleep(3)
 
         threading.Thread(name='thread checker', target=list_current_threads, daemon=True).start()
-if args.Egg:
+if win and args.Egg:
     debug = '(Egg me up)'
 print("Current version:", __version__)
 
 
-
-video_data = None
 global mode
-
-# for windows executables, basically makes this readable inside an exe
-if any(char.isalpha() for char in __version__):
-    icon = 'icoDev.ico'
-else:
-    icon = 'ico.ico'
-    
-ffprobe = 'ffprobe.exe'
-ffplay = 'ffplay.exe'
-gifski = 'gifski.exe'
-ffmpeg = 'ffmpeg.exe'
-if hasattr(sys, '_MEIPASS'):
-    icon = os.path.join(sys._MEIPASS, icon)
-    ffprobe = os.path.join(sys._MEIPASS, ffprobe)
-    ffplay = os.path.join(sys._MEIPASS, ffplay)
-    gifski = os.path.join(sys._MEIPASS, gifski)
-    ffmpeg = os.path.join(sys._MEIPASS, ffmpeg)
-
-def create_popup(root, title, width, height, switch, lift = 0):
-    popup = tk.Toplevel(root)
-    popup.title(title)
-    popup.geometry(f"{width}x{height}")
-    popup.iconbitmap(icon)
-    # popup.overrideredirect(True)
-    popup.attributes('-toolwindow', 1)
-    center_window(popup, width, height)
-    
-    if switch == 1:
-        popup.bind("<FocusOut>", lambda e: popup.destroy())
-    if lift == 1:
-        popup.lift()
-
-    popup.grab_set()
-    
-    return popup
-
+video_data = None
+running = False
+after_id = None
 loading_screen = None
 
-def loading(texthere='', filenum=0, filestotal=0):
+def loading(root, texthere='', filenum=0, filestotal=0):
     global loading_screen, load_text_label
 
     if loading_event.is_set():
@@ -95,7 +95,7 @@ def loading(texthere='', filenum=0, filestotal=0):
             loading_screen = create_popup(root, "Converting...", 380, 150, 0)
             make_non_resizable(loading_screen)
             
-            load_text_label = tk.Label(loading_screen, text='Converting...\nPlease wait.')
+            load_text_label = ttk.Label(loading_screen, text='Converting...\nPlease wait.')
             load_text_label.pack(pady=20)
 
             update_loading(texthere, filenum, filestotal)
@@ -121,313 +121,20 @@ def update_loading(texthere='', filenum=0, filestotal=0):
 
 loading_event = threading.Event()
 
-def loading_thread(texthere='', filenum=0, filestotal=0):
+def loading_thread(root, texthere='', filenum=0, filestotal=0):
     loading_event.set()
     print('starting thread')
-    loading(texthere, filenum, filestotal)
+    loading(root, texthere, filenum, filestotal)
 
-def loading_thread_switch(switch, texthere='', filenum=0, filestotal=0):
+def loading_thread_switch(root, switch, texthere='', filenum=0, filestotal=0):
     if switch:
-        threading.Thread(target=loading_thread, args=(texthere, filenum, filestotal), daemon=True).start()
+        threading.Thread(target=loading_thread, args=(root, texthere, filenum, filestotal), daemon=True).start()
         print('Thread Initialized.')
     else:
         print('killing loading popup')
         loading_event.clear()
-        root.after(0, loading)
+        root.after(0, loading(root))
 
-# if Updater not found, download on github.
-def get_latest_release_version():
-    global n8_gif_repo
-
-    n8_gif_repo = "https://api.github.com/repos/n8ventures/video-to-gifski/releases/latest"
-    response = requests.get(n8_gif_repo)
-    if response.status_code != 200:
-        return '0.0.0'
-    release_info = json.loads(response.text)
-    return release_info.get('tag_name', '0.0.0')
-
-def downloadUpdater():
-    global latest_release_version
-
-    response = requests.get(n8_gif_repo)
-    if response.status_code == 200:
-        return downloadUpdaterUpdate(response)
-    print("Failed to retrieve updater information. Please check your internet connection.")
-    return 'ERR_NO_CONNECTION'
-
-def downloadUpdaterUpdate(response):
-    release_data = response.json()
-    latest_release_version = get_latest_release_version()
-    if latest_release_version == '0.0.0':
-        return 'ERR_NO_CONNECTION'
-    latest_file = f'{__updatername__}.exe'
-
-    for asset in release_data['assets']:
-        if asset['name'] == latest_file:
-            download_url = asset['browser_download_url']
-            updaterURL = requests.get(download_url)
-
-            with open(latest_file, 'wb') as file:
-                file.write(updaterURL.content)
-                return 'UPDR_DONE'
-    print('File not found!')
-    return 'ERR_NOT_FOUND'
-
-def UPDATER_POPUP(title, msg, buttons=False):
-    if __version__ < get_latest_release_version():
-        win_height = 250 if os.path.exists(f"{__updatername__}.exe") else 140
-    else:
-        win_height = 150 if os.path.exists(f"{__updatername__}.exe") else 140
-
-    updaterMenu = create_popup(root, title, 400, win_height, 1)
-    make_non_resizable(updaterMenu)
-
-    txt_msg = msg
-
-    if __version__ < get_latest_release_version():
-        NR_label1= tk.Label(updaterMenu, text='New release detected!', font=('Helvetica', 10, 'bold'))
-        NR_label2= tk.Label(updaterMenu, text=f'Updating {__updatername__}.exe...', font=('Helvetica', 10, 'italic'))
-        NR_label1.pack(pady=10)
-        NR_label2.pack(pady=10)
-
-    txt_label = tk.Label(updaterMenu, text=txt_msg)
-    txt_label.pack(pady=10)
-
-    button_frame = tk.Frame(updaterMenu)
-    button_frame.pack(side=tk.BOTTOM, pady=20)
-    close_button = ttk.Button(button_frame, text="Close", command=updaterMenu.destroy)
-
-    close_button.pack(side=tk.RIGHT, padx=5)
-
-    if buttons == False:
-        if downloadUpdater() == 'UPDR_DONE':
-            updaterMenu.destroy()
-    else:
-        update_button = ttk.Button(button_frame, text="Yes", command=lambda: subprocess.Popen(f'{__updatername__}.exe') and updaterMenu.destroy)
-        update_button.pack(side=tk.LEFT, padx=5)
-
-    root.update_idletasks()
-
-def execute_download_updater():
-    UPDATER_POPUP('Downloading updater...', '\nDownloading the uploader!\nYou may still use the program freely!')
-    update_result = downloadUpdater()
-    if update_result == 'ERR_NO_CONNECTION':
-        UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nPlease check your internet connection and try again later!')
-    elif update_result == 'ERR_NOT_FOUND':
-        UPDATER_POPUP('Updater Download Failed!', '\nERROR: Download Failed!\nFile not found!')
-    elif update_result == 'UPDR_DONE':
-        UPDATER_POPUP('Updater Downloaded!', '\nWould you like to check for updates?', buttons=True)
-
-def CheckUpdates(bg=False):
-    get_latest_release_version()
-
-    if bg == False:
-        if not os.path.exists(f"{__updatername__}.exe"):
-            print('updater not found')
-            execute_download_updater()
-        else:
-            print('Updater exists!')
-            if __version__ < get_latest_release_version():
-                print('New release! Downloading updated updater. (yeah I know...)')
-                execute_download_updater()
-            else:
-                print('opening updater')
-                subprocess.Popen(f'{__updatername__}.exe')
-
-    else:
-        if __version__ < get_latest_release_version():
-            print('New release! Downloading updated updater. (yeah I know...)')
-            execute_download_updater()
-
-        elif os.path.exists(f"{__updatername__}.exe"):
-            print('Updater exists!')
-            
-            result = subprocess.run(f"{__updatername__}.exe -v", capture_output=True, text=True)
-            if args.debug:
-                print(f'Updater version: {result.stdout.strip()}')
-
-            if result.stdout.strip() < __updaterversion__:
-                print('new Updater version detected. Downloading updater!')
-                execute_download_updater()
-
-        else:
-            print('updater not found')
-            execute_download_updater()
-
-def updaterExists():
-    CheckUpdates(bg=True)
-
-def about():
-    geo_width = 370
-    geo_len = 300
-
-    if args.Egg:
-        geo_width = 370
-        geo_len= 410
-
-    aboutmenu = create_popup(root, "About Us!", geo_width, geo_len, 1)
-    make_non_resizable(aboutmenu)
-
-    gifski_text = f"- Gifski (https://gif.ski/)\nVersion: {__gifskiversion__}"
-    ffmpeg_text = f"- FFmpeg (https://ffmpeg.org/)\nVersion: {__ffmpegversion__}"
-    copyright_text = (
-    "This program is distributed under the MIT License.\n"
-    "Copyright (c) 2024 John Nathaniel Calvara"
-    )
-    credits_text = (
-        "\nCredits:\n"
-        f"{gifski_text}\n\n"
-        f"{ffmpeg_text}"
-    )
-
-    credits_label = tk.Label(aboutmenu, text=credits_text, justify=tk.LEFT)
-    credits_label.pack(pady=10)
-
-    copyright_label = tk.Label(aboutmenu, text=copyright_text, justify=tk.CENTER)
-    copyright_label.pack(pady=5)
-
-    clickable_link_labels(
-        aboutmenu, "nate@n8ventures.dev", "mailto:nate@n8ventures.dev"
-    )
-    clickable_link_labels(
-        aboutmenu,
-        "https://github.com/n8ventures",
-        "https://github.com/n8ventures",
-    )
-    if args.Egg:
-        egg_about(aboutmenu, geo_width, geo_len)
-
-    close_button = ttk.Button(aboutmenu, text="Close", command=aboutmenu.destroy)
-    close_button.pack(pady=10)
-
-
-def egg_about(aboutmenu, geo_width, geo_len):
-    mograph = 'motionteamph.png'
-    mograph = (
-        os.path.join(sys._MEIPASS, mograph)
-        if hasattr(sys, '_MEIPASS')
-        else '.\\buildandsign\\ico\\motionteamph.png'
-    )
-    image = tk.PhotoImage(file=mograph)
-    label = tk.Label(aboutmenu, image=image, bd=0)
-    label.image = image
-    label.place(x=geo_width / 2, y=geo_len - 60, anchor=tk.CENTER)
-    Hovertip(label, "BetMGM Manila Motions Team 2024")
-
-def clickable_link_labels(aboutmenu, text, link):
-    mailto_label = tk.Label(aboutmenu, text=text, fg="blue", cursor="hand2")
-    mailto_label.pack()
-    mailto_label.bind("<Button-1>", lambda e: open_link(link))
-
-def open_link(url):
-    import webbrowser
-    webbrowser.open(url)
-
-def watermark_label(parent_window):
-    
-    menu_bar = tk.Menu(root)
-    
-    about_menu = tk.Menu (menu_bar, tearoff=0)
-    about_menu.add_command(label="About Us", command=about)
-    about_menu.add_command(label="Check for Updates", command=CheckUpdates)
-    menu_bar.add_cascade(label="Help", menu=about_menu)
-    
-    parent_window.config(menu=menu_bar)
-    
-    frame = tk.Frame(parent_window)
-    frame.pack(side=tk.BOTTOM, fill=tk.X)
-
-    separator_wm = ttk.Separator(frame, orient="horizontal")
-    separator_wm.pack(side=tk.TOP, fill=tk.X)
-    
-    watermark_label = tk.Label(frame, text=f"by {__author__}", fg="gray")
-    watermark_label.pack(side=tk.LEFT, anchor=tk.SW)
-    
-    version_label = tk.Label(frame, text=f"version: {__version__} {debug}", fg="gray")
-    version_label.pack(side=tk.RIGHT, anchor=tk.SE)
-
-def make_non_resizable(window):
-    window.resizable(False, False)
-
-def center_window(window, width, height):
-    screen_width = window.winfo_screenwidth()
-    screen_height = window.winfo_screenheight()
-    window_width = width  
-    window_height = height
-    x_position = (screen_width - window_width) // 2
-    y_position = (screen_height - window_height) // 2  
-    window.geometry(f"{window_width}x{window_height}+{x_position}+{y_position-35}")
-
-def get_filesize(file_path):
-    size_bytes = os.path.getsize(file_path)
-    size_mb = round(size_bytes / (1024 * 1024), 2)
-    size_kb = round(size_bytes / 1024, 2)
-    return f'{size_mb} MB ({size_kb} KB)'
-
-def get_video_data(input_file):
-    cmd = [
-        ffprobe,
-        "-v", "error",
-        "-select_streams", "v:0",
-        "-show_entries", "stream=width,height,r_frame_rate,duration,pix_fmt",
-        "-of", "json",
-        input_file
-    ]
-
-    result = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
-    
-    if result.returncode == 0:
-        # Parse the JSON output
-        video_info = json.loads(result.stdout)
-        return video_info['streams'][0]  # Assuming there is only one video stream
-    else:
-        # Handle error
-        print(f"Error: {result.stderr}")
-        return None
-
-alpha_formats = [
-    # RGB with alpha
-    'rgba', 'abgr', 'argb', 'bgra', 
-    
-    # 64-bit RGB with alpha
-    'rgba64be', 'rgba64le', 'bgra64be', 'bgra64le',
-    
-    # 32-bit RGBA
-    'rgba32be', 'rgba32le',
-    
-    # YUV with alpha
-    'yuva420p', 'yuva422p', 'yuva444p',
-    
-    # YUV with alpha at various bit depths
-    'yuva420p9be', 'yuva420p9le',
-    'yuva422p9be', 'yuva422p9le',
-    'yuva444p9be', 'yuva444p9le',
-    
-    'yuva420p10be', 'yuva420p10le',
-    'yuva422p10be', 'yuva422p10le',
-    'yuva444p10be', 'yuva444p10le',
-    
-    'yuva420p12be', 'yuva420p12le',
-    'yuva444p12le',
-    
-    'yuva420p16be', 'yuva420p16le',
-    'yuva422p16be', 'yuva422p16le',
-    'yuva444p16be', 'yuva444p16le',
-
-    
-    # Other formats
-    'ya8',  # 8-bit grayscale with alpha
-    'ya16be', 'ya16le',  # 16-bit grayscale with alpha
-    
-    # 64-bit YUV with alpha
-    'ayuv64le', 'ayuv64be',
-    
-    # 32-bit float RGBA
-    'rgbaf32be', 'rgbaf32le'
-]
-
-running = False
-after_id = None
 
 def stop_gif_animation(widget):
     global running, after_id
@@ -435,6 +142,11 @@ def stop_gif_animation(widget):
     if after_id:
         widget.after_cancel(after_id)
         after_id = None
+
+def load_gifpreview_frames():
+    folder = 'temp/preview'
+    frame_files = sorted([os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.png')])
+    return [Image.open(frame_file) for frame_file in frame_files]
 
 def video_to_frames_seq(input_file, framerate, preview = False):
     global preview_height, preview_weight
@@ -489,15 +201,15 @@ def video_to_frames_seq(input_file, framerate, preview = False):
         cmd.append(os.path.join(temp_folder, 'frames%04d.png'))
     else:
         cmd.append(os.path.join(preview_folder, 'preview%04d.png'))
-    # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
-    if args.debug:
-        print(cmd)
+    
+    if win:
+        # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+        if args.debug:
+            print(cmd)
 
-def load_gifpreview_frames():
-    folder = 'temp/preview'
-    frame_files = sorted([os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.png')])
-    return [Image.open(frame_file) for frame_file in frame_files]
+    elif mac:
+        subprocess.run(cmd)
 
 def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
     global matte_var
@@ -541,13 +253,17 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
         
         cmd.extend(["--matte", matte_var])
 
-    cmd.extend(["-o", output_file, "temp/frames*.png"])
+    if input_files := glob.glob("temp/frames*.png"):
+        cmd.extend(["-o", output_file])
+        cmd.extend(input_files)
 
-    # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
-    if args.debug:
-        print(cmd)
-
+    if win:
+        # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+        if args.debug:
+            print(cmd)
+    elif mac:
+        subprocess.run(cmd)
 
 def get_and_print_video_data(file_path):
     global video_data, valid_files, invalid_files
@@ -558,10 +274,9 @@ def get_and_print_video_data(file_path):
         print('No video File dropped.')
         return
 
-    if isinstance(file_path, str):
-        if file_path != 'temp/temp.gif':
-            print(f"File: {file_path}")
+    print(f"Files: {file_path}")
 
+    if isinstance(file_path, str):
         if file_path and is_video_file(file_path) and file_path == 'temp/temp.gif':
             if temp_data := get_video_data(file_path):
                 parse_temp_data(temp_data)
@@ -573,9 +288,13 @@ def get_and_print_video_data(file_path):
                 continue
 
             valid_files.append((os.path.basename(file), file))
+    
+        def invalid_check():
+            if invalid_files:
+                notavideo(invalid_files,[f[0] for f in valid_files])
 
-        if invalid_files:
-            notavideo(invalid_files,[f[0] for f in valid_files])
+        if win:
+            invalid_check()
 
         if valid_files and not settings_window_open:
             if len(valid_files) == 1:
@@ -584,43 +303,8 @@ def get_and_print_video_data(file_path):
             else:
                 open_settings_window()
 
-def notavideo(invalid_file, valid_file):
-    longest_invalid_length = max((len(file) for file in invalid_file if len(file) > 50), default=0)
-    longest_valid_length = max((len(file) for file in valid_file if len(file) > 50), default=0)
-    largest_length = max(longest_invalid_length, longest_valid_length)
-
-    weight = (largest_length * 3) + 400
-    height = (((len(invalid_file)+len(valid_file))*16)+150)
-    
-    if len(valid_file) != 0:
-        height = height + 25
-        
-    print(f'{weight} x {height}')
-    notavideo = create_popup(root, "Not A Video!", weight, height, 1, 1)
-    make_non_resizable(notavideo)
-    notavideo.attributes("-topmost", True) 
-
-    invalid_files_list = "❌ " + "\n❌ ".join(invalid_file)
-    button_text = 'Close'
-    
-    if len(valid_file) != 0:
-        valid_files_list = "✅ " + "\n✅ ".join(valid_file)
-        valid_text = f"The following files will be processed:\n\n{valid_files_list}"
-        button_text = 'Continue'
-    else:
-        valid_text = 'Please select valid video files!'
-
-    errortext = (
-        "The following files are not video files:\n\n"
-        f"{invalid_files_list}\n\n"
-        f"{valid_text}"
-    )
-
-    about_label = tk.Label(notavideo, text=errortext, justify=tk.LEFT)
-    about_label.pack(pady=10)
-
-    close_button = tk.Button(notavideo, text=button_text, command=notavideo.destroy)
-    close_button.pack(pady=10) 
+        if mac:
+            invalid_check()
 
 def parse_temp_data(temp_data):
     width_value = temp_data['width']
@@ -651,15 +335,14 @@ def parse_temp_data(temp_data):
         Timecode: {timecode}
         pixel format: {pix_fmt}'''
 
-    debug_gif_label = tk.Label(debug_gif_window, text=debug_gif_text, justify=tk.LEFT)
+    debug_gif_label = ttk.Label(debug_gif_window, text=debug_gif_text, justify=tk.LEFT)
     debug_gif_label.pack()
 
-    close_button = ttk.Button(debug_gif_window, text="Close", command=debug_gif_window.destroy)
+    close_button = Button(debug_gif_window, text="Close", command=debug_gif_window.destroy)
     close_button.pack(pady=10)
 
     if not settings_window_open:
         open_settings_window()
-
 
 def parse_video_data(video_data):
     global parsed_framerate
@@ -692,22 +375,7 @@ def parse_video_data(video_data):
 
     if not settings_window_open:
         open_settings_window()
-        
-video_extensions = [
-'.3g2', '.3gp', '.amv', '.asf', '.avi', '.drc', '.f4v', '.flv', '.gif', '.gifv', '.m2ts', 
-'.m2v', '.m4p', '.m4v', '.mkv', '.mng', '.mov', '.mp2', '.mp4', '.mpe', '.mpeg', '.mpg', 
-'.mpv', '.mts', '.mxf', '.nsv', '.ogg', '.ogv', '.qt', '.rm', '.rmvb', '.roq', '.svi', 
-'.ts', '.vob', '.webm', '.wmv', '.yuv'
-]
 
-def is_video_file(file_path):
-    _, file_extension = os.path.splitext(file_path)
-    return file_extension.lower() in video_extensions
-
-def is_folder_open(path):
-    open_folders = subprocess.check_output('tasklist /v /fi "imagename eq explorer.exe"', shell=True).decode('utf-8')
-    folder_name = os.path.basename(path)
-    return folder_name in open_folders
 
 def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file, mode):
     global output_file
@@ -716,25 +384,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
     motionQ= motion_quality.get()
     lossyQ = lossy_quality.get()
 
-    def openOutputFolder(path, path2):
-        print('checking if window is open...')
-        if not is_folder_open(path):
-            print('window not found, opening window.')
-            subprocess.run(fr'explorer /select,"{path2}"')
-        else:
-            print('window found!')
-            windows = pwc.getWindowsWithTitle(os.path.basename(path))
-            if windows:
-                win = windows[0]
-                if win.minimize():
-                    win.restore(True)
-                win.activate(True)
-
-            else:
-                print('Window not found with specified title.')
-
     file = input_file[0][1]
-
     if mode == 'final':
         output_file = None
         output_directory = None
@@ -757,19 +407,25 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             output_full_path = os.path.abspath(output_file.name)
             output_dir = os.path.dirname(output_file.name)
 
-            loading_thread_switch(True, os.path.basename(file))
+            loading_thread_switch(root, True, os.path.basename(file))
 
             video_to_frames_seq(file, framerate)
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
-            loading_thread_switch(False)
+            
+            print("SINGLE FINAL: ", loading_screen)
+            
+            loading_thread_switch(root, False)
 
             print("Conversion complete!")
             shutil.rmtree('temp')
             on_settings_window_close()
-            openOutputFolder(output_dir, output_full_path)
+            try:
+                openOutputFolder(output_dir, output_full_path)
+            except OSError as e:
+                print(f"Error: {e}")
 
         elif output_directory:
-            loading_thread_switch(True, input_file[0][0], 1, len(input_file))
+            loading_thread_switch(root, True, input_file[0][0], 1, len(input_file))
 
             for filenum, (file_name, full_path) in enumerate(input_file, start=1):
                 output = os.path.normpath(
@@ -785,19 +441,20 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
                 vid_to_gif(framerate, gifQ, motionQ, lossyQ, output)
                 shutil.rmtree('temp')
             
-            loading_thread_switch(False)
-            print("Conversions complete!")
+            loading_thread_switch(root, False)
             on_settings_window_close()
-            openOutputFolder(output_directory, output)
+            try:
+                openOutputFolder(output_directory, output)
+            except OSError as e:
+                print(f"Error: {e}")
 
     elif mode == 'temp':
             output_file = 'temp/temp.gif'
             print(output_file)
 
-            loading_thread_switch(True, os.path.basename(file))
             vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
             video_to_frames_seq(output_file, fps.get(), preview=True)
-            loading_thread_switch(False)
+            loading_thread_switch(root, False)
 
             print("Conversion complete!")
 
@@ -820,7 +477,10 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             stop_gif_animation(preview_label)
             shutil.rmtree('temp')
             on_settings_window_close()
-            openOutputFolder(output_dir, output_full_path)
+            try:
+                openOutputFolder(output_dir, output_full_path)
+            except OSError as e:
+                print(f"Error: {e}")
 
 
 def apply_settings(mode):
@@ -880,8 +540,10 @@ def on_settings_window_close():
     global settings_window_open
     settings_window_open = False
     settings_window.destroy()
-    print(settings_window_open)
-    
+    print('Settings Window is open?', settings_window_open)
+    if mac:
+        root.deiconify()
+
 def open_settings_window(): 
     global settings_window_open, fps, scale_widget, extra_var, fast_var, settings_window, motion_var, lossy_var, safeAlpha, preview_label
     global gif_quality_scale, motion_quality_scale, lossy_quality_scale
@@ -889,7 +551,7 @@ def open_settings_window():
     
     if not settings_window_open:
         settings_window_open = True
-        print(settings_window_open)
+        print('Settings Window is open?', settings_window_open)
 
     win_height = 650
     if len(valid_files) == 1:
@@ -910,41 +572,41 @@ def open_settings_window():
     settings_window.title(window_title)
     center_window(settings_window, 350, win_height)
     settings_window.iconbitmap(icon)
-    watermark_label(settings_window)
+    watermark_label(settings_window, debug)
     make_non_resizable(settings_window)
 
-    preview_label = tk.Label(settings_window, text = preview_label_text)
+    preview_label = ttk.Label(settings_window, text = preview_label_text)
     preview_label.pack(pady=preview_label_pady)
     
-    fileSize_label =tk.Label(settings_window, text = '')
-    fileDimension_label = tk.Label(settings_window, text='')
+    fileSize_label = ttk.Label(settings_window, text = '')
+    fileDimension_label = ttk.Label(settings_window, text='')
     fileSize_label.pack()
     fileDimension_label.pack(pady=5)
     
-    playframe = tk.Frame(settings_window)
+    playframe = ttk.Frame(settings_window)
     playframe.pack()
-    play_gif_button = tk.Button(playframe, text='No GIF loaded', command=lambda: play_gif('temp/temp.gif'))
+    play_gif_button = Button(playframe, text='No GIF loaded', command=lambda: play_gif('temp/temp.gif'))
     play_gif_button.pack(pady=10)
     play_gif_button.config(state="disabled")
     
     if args.debug and len(valid_files) == 1:
         play_gif_button.pack(side=tk.LEFT, pady=10)
-        debug_gif_button = tk.Button(playframe, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
+        debug_gif_button = Button(playframe, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
         debug_gif_button.pack(side=tk.RIGHT, pady=10)
         debug_gif_button.config(state="disabled")
 
     separator1 = ttk.Separator(settings_window, orient="horizontal")
     separator1.pack(fill="x", padx=20, pady=4)
     
-    gif_quality_scale = tk.Scale(settings_window, from_=1, to=100, orient=tk.HORIZONTAL, resolution=1, length=300)
+    gif_quality_scale = tk.Scale(settings_window, from_=1, to=100, orient=tk.HORIZONTAL, resolution=1, length=300, troughcolor=widget_color[0])
     gif_quality_scale.set(90)
     gif_quality_scale.pack()
-    gif_quality_label = tk.Label(settings_window, text="GIF Quality")
+    gif_quality_label = ttk.Label(settings_window, text="GIF Quality")
     gif_quality_label.pack()
     Hovertip(gif_quality_label, "Overall GIF Quality", hover_delay=500)
     Hovertip(gif_quality_scale, "Overall GIF Quality", hover_delay=500)
     
-    def update_checkbox_state(var, widget, other_var=None, other_widget=None, cmode=None):
+    def update_checkbox_state(var, widget, other_var=None, other_widget=None, cmode=None, color = False):
         if cmode == 'encode':
             if var.get() == 1:
                 other_var.set(0)
@@ -957,10 +619,18 @@ def open_settings_window():
                 widget['state'] = 'normal'
                 widget['takefocus'] = True
                 widget['sliderrelief'] = 'raised'
+                if color:
+                    widget.config(troughcolor=widget_color[1])
+                else:
+                    widget.config(troughcolor=widget_color[0])
             else:
                 widget['state'] = 'disabled'
                 widget['takefocus'] = False
                 widget['sliderrelief'] = 'flat'
+                if color:
+                    widget.config(troughcolor=widget_color[3])
+                else:
+                    widget.config(troughcolor=widget_color[2])
 
         elif cmode == 'basic':
             if var.get() == 1:
@@ -973,23 +643,20 @@ def open_settings_window():
     else:
         fps_limit = min(parsed_framerate, 30)
     
-    fps = tk.Scale(settings_window, from_=1, to=fps_limit, orient=tk.HORIZONTAL, resolution=1, length=300, fg="#7d7dff", troughcolor="#7d7dff")
+    fps = tk.Scale(settings_window, from_=1, to=fps_limit, orient=tk.HORIZONTAL, resolution=1, length=300, fg=widget_color[1], troughcolor=widget_color[1])
     fps.set(fps_limit)
     fps.pack()
-    fps_label = tk.Label(settings_window, text="Frames Per Second", fg="#7d7dff")
+    fps_label = ttk.Label(settings_window, text="Frames Per Second", style="Alt.TLabel")
     fps_label.pack()
 
-    # separator5 = ttk.Separator(settings_window, orient="horizontal")
-    # separator5.pack(fill="x", padx=20, pady=4)
-
     if len(valid_files) == 1:
-        scale_widget = tk.Scale(settings_window, from_=1, to=100, orient=tk.HORIZONTAL, resolution=0.5, length=300)
+        scale_widget = tk.Scale(settings_window, from_=1, to=100, orient=tk.HORIZONTAL, resolution=0.5, length=300, troughcolor=widget_color[0])
         scale_widget.set(100)
         scale_widget.pack()    
         scale_label_var = tk.StringVar()
         scale_widget.config(command=lambda value: update_scale_label(value))
         scale_label_var.set(f"{video_data['width']}x{video_data['height']} - Scale: {scale_widget.get()}%")
-        scale_label = tk.Label(settings_window, textvariable=scale_label_var)
+        scale_label = ttk.Label(settings_window, textvariable=scale_label_var)
         scale_label.pack()
         
         def update_scale_label(value):
@@ -1014,62 +681,59 @@ def open_settings_window():
     separator3 = ttk.Separator(settings_window, orient="horizontal")
     separator3.pack(fill="x", padx=20, pady=2)
     
-    optionalFrame = tk.Frame(settings_window)
+    optionalFrame = ttk.Frame(settings_window)
     optionalFrame.pack()
-    optionalLabel = tk.Label(optionalFrame, text="Optional Settings:")
+    optionalLabel = ttk.Label(optionalFrame, text="Optional Settings:")
     optionalLabel.pack()
     
     motion_var = tk.IntVar()
-    motion_quality_scale = tk.Scale(optionalFrame, from_=1, to=100,orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat', fg="#7d7dff", troughcolor="#7d7dff")
+    motion_quality_scale = tk.Scale(optionalFrame, from_=1, to=100,orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat', fg=widget_color[1], troughcolor=widget_color[3])
     motion_quality_scale.set(100)
     motion_quality_scale.pack()
     motion_quality_scale['state'] = 'disabled'
-    motion_quality_checkbutton = tk.Checkbutton(optionalFrame, text="Motion Quality", variable=motion_var, command=lambda: update_checkbox_state(motion_var, motion_quality_scale, cmode = 'quality'))
+    motion_quality_checkbutton = ttk.Checkbutton(optionalFrame, text="Motion Quality", variable=motion_var, command=lambda: update_checkbox_state(motion_var, motion_quality_scale, cmode = 'quality', color = True), style="Alt.TCheckbutton")
     motion_quality_checkbutton.pack()
     Hovertip(motion_quality_checkbutton, "Turn this on to fine-tune the Motion Quality (affects overall Quality.)", hover_delay=500)
     Hovertip(motion_quality_scale, "Lower values reduce motion.", hover_delay=500)
 
     lossy_var = tk.IntVar()
-    lossy_quality_scale = tk.Scale(optionalFrame, from_=1, to=100, orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat')
+    lossy_quality_scale = tk.Scale(optionalFrame, from_=1, to=100, orient=tk.HORIZONTAL, resolution=1, length=300, sliderrelief='flat', troughcolor=widget_color[2])
     lossy_quality_scale.set(100)
     lossy_quality_scale.pack()
     lossy_quality_scale['state'] = 'disabled'
-    lossy_quality_checkbutton = tk.Checkbutton(optionalFrame, text="Lossy Quality", variable=lossy_var, command=lambda: update_checkbox_state(lossy_var, lossy_quality_scale, cmode = 'quality'))
+    lossy_quality_checkbutton = ttk.Checkbutton(optionalFrame, text="Lossy Quality", variable=lossy_var, command=lambda: update_checkbox_state(lossy_var, lossy_quality_scale, cmode = 'quality'))
     lossy_quality_checkbutton.pack()
     Hovertip(lossy_quality_scale, "Turn this on to fine-tune the Lossy Quality (affects overall Quality.)", hover_delay=500)
     Hovertip(lossy_quality_checkbutton, "Lower values introduce noise and streaks.", hover_delay=500)
-    # separator4 = ttk.Separator(settings_window, orient="horizontal")
-    # separator4.pack(fill="x", padx=20, pady=2)
-    
+
     separator6 = ttk.Separator(settings_window, orient="horizontal")
     separator6.pack(fill="x", padx=20, pady=2)
     
-    spacer = tk.Label(settings_window, text="Encode Quality:")
+    spacer = ttk.Label(settings_window, text="Encode Quality:")
     spacer.pack()
     
-    checkboxFrame = tk.Frame(settings_window)
+    checkboxFrame = ttk.Frame(settings_window)
     checkboxFrame.pack(pady=5)
     
     extra_var = tk.IntVar()
-    extra_checkbox = tk.Checkbutton(checkboxFrame, variable=extra_var, text="Extra Quality", command=lambda: update_checkbox_state(extra_var, extra_checkbox, fast_var, fast_checkbox,  cmode = 'encode'))
+    extra_checkbox =ttk.Checkbutton(checkboxFrame, variable=extra_var, text="Extra Quality", command=lambda: update_checkbox_state(extra_var, extra_checkbox, fast_var, fast_checkbox,  cmode = 'encode'))
     extra_checkbox.pack(side=tk.LEFT)
     Hovertip(extra_checkbox, "Slower encoding, but 1% better quality.", hover_delay=500)
     
     fast_var = tk.IntVar()
-    fast_checkbox = tk.Checkbutton(checkboxFrame, variable=fast_var, text="Fast Quality", command=lambda: update_checkbox_state(fast_var, fast_checkbox, extra_var, extra_checkbox,  cmode = 'encode'))
+    fast_checkbox = ttk.Checkbutton(checkboxFrame, variable=fast_var, text="Fast Quality", command=lambda: update_checkbox_state(fast_var, fast_checkbox, extra_var, extra_checkbox,  cmode = 'encode'))
     fast_checkbox.pack(side=tk.RIGHT)
     Hovertip(fast_checkbox, "Faster encoding, but 10% worse quality & larger file size.", hover_delay=500)
     
-    # insert unpremultiply option here
-    
-    alphaFrame = tk.Frame(settings_window)
+    # iunpremultiply option
+    alphaFrame = ttk.Frame(settings_window)
     separator2 = ttk.Separator(settings_window, orient="horizontal")
-    alphaLabel = tk.Label(alphaFrame, text='Alpha Options:')
-    matteFrame = tk.Frame(settings_window)
+    alphaLabel = ttk.Label(alphaFrame, text='Alpha Options:')
+    matteFrame = ttk.Frame(settings_window)
     separator3 = ttk.Separator(settings_window, orient="horizontal")
     
     safeAlpha = tk.IntVar()
-    unprenmult_checkbox = tk.Checkbutton(alphaFrame, variable=safeAlpha, text="Unpremultiply")
+    unprenmult_checkbox = ttk.Checkbutton(alphaFrame, variable=safeAlpha, text="Unpremultiply")
     
     matte_var = None
     def pick_color():
@@ -1082,8 +746,8 @@ def open_settings_window():
             Hovertip(matte_box_preview, color, hover_delay=500)
     
     enableMatte = tk.IntVar()
-    matte_checkbox = tk.Checkbutton(matteFrame, variable=enableMatte, command=lambda: update_checkbox_state(enableMatte, matte_button, cmode = 'basic'))
-    matte_button = tk.Button(matteFrame, text="Choose Matte", command=pick_color)
+    matte_checkbox = ttk.Checkbutton(matteFrame, variable=enableMatte, command=lambda: update_checkbox_state(enableMatte, matte_button, cmode = 'basic'))
+    matte_button = Button(matteFrame, text="Choose Matte", command=pick_color)
     matte_box_preview = tk.Label(matteFrame, width=2, height=1, bg="white", relief="solid")
     
     if len(valid_files) != 1 or video_data['pix_fmt'] in alpha_formats:
@@ -1105,13 +769,14 @@ def open_settings_window():
         Hovertip(matte_box_preview, '#FFFFFF', hover_delay=500)
         root.update_idletasks()
 
-    buttonsFrame = tk.Frame(settings_window)
+    # Export and Preview Buttons
+    buttonsFrame = ttk.Frame(settings_window)
     buttonsFrame.pack(pady=10)
     
-    apply_button = tk.Button(buttonsFrame, text=export_label, command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
+    apply_button = Button(buttonsFrame, text=export_label, command=lambda: threading.Thread(target=apply_settings, args=('final', ), daemon=True).start())
     apply_button.pack(side=tk.LEFT, padx=5)
     
-    test_button = tk.Button(buttonsFrame, text="Apply & Preview", command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start())
+    test_button = Button(buttonsFrame, text="Apply & Preview", command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start())
     test_button.pack(side=tk.RIGHT, padx=5)
     
     if len(valid_files) != 1:
@@ -1128,15 +793,14 @@ def open_settings_window():
         root.update_idletasks()
     
     def preview_gif_window():
-        loading_thread_switch(True)
-        video_to_frames_seq(file_path[0], fps.get())
-        loading_thread_switch(False)
+        loading_thread_switch(root, True, os.path.basename(valid_files[0][1]))
+        video_to_frames_seq(valid_files[0][1], fps.get())
         
         apply_settings('temp')
         
         play_gif_button.config(state="normal", text='Play GIF on Full Size')
-        if args.debug:
-            debug_gif_button.config(state="normal")
+        if win and args.debug:
+                debug_gif_button.config(state="normal")
         
         img = Image.open(output_file)
         imgW, imgH = img.size
@@ -1154,11 +818,10 @@ def open_settings_window():
         
         # Animate GIF preview Window
         def animate_gif_preview(frames, widget, frame_num, loop, frame_duration):
+            frame = frames[frame_num]
             global running, after_id
             if not running:
                 return
-            
-            frame = frames[frame_num]
             photo = ImageTk.PhotoImage(frame)
             widget.config(image=photo)
             widget.image = photo
@@ -1166,7 +829,7 @@ def open_settings_window():
             frame_num = (frame_num + 1) % len(frames)
             if loop or frame_num != 0:
                 after_id = widget.after(frame_duration, animate_gif_preview, frames, widget, frame_num, loop, frame_duration)
-                
+
         def start_gif_animation(widget, loop=True, fps=30):
             global running
             running = True
@@ -1185,90 +848,41 @@ def open_settings_window():
         settings_window.update_idletasks()
 
     settings_window.protocol("WM_DELETE_WINDOW", lambda: on_settings_window_close())
+
+    def on_settings_close():
+        if os.path.exists('temp'):
+            shutil.rmtree('temp') 
+            print("temp removed successfully.")
+        else:
+            print("temp does not exist.")
+        settings_window.destroy()
+        on_settings_window_close()
+
+    if mac:
+        settings_window.grab_set()
+        settings_window.wait_visibility()
+        settings_window.protocol("WM_DELETE_WINDOW", on_settings_close)
     
-        
-    def play_gif(file_path):
-        cmd = [
-        ffplay,
-        "-window_title", "Playing GIF Preview",
-        "-loglevel", "-8",
-        "-loop", "0",
-        file_path
-    ]
-
-        subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
-
     root.withdraw()
+    
     if not invalid_files:
         settings_window.grab_set()
     settings_window.wait_window(settings_window)
+    
+
+
     if os.path.exists('temp'):
         shutil.rmtree('temp') 
         print("temp removed successfully.")
     else:
         print("temp does not exist.")
+
     root.deiconify()
-
-
-# Create the main window
-root = TkinterDnD.Tk()
-root.withdraw()
-
-splash_screen = tk.Toplevel(root)
-splash_screen.overrideredirect(1) 
-splash_screen.attributes('-topmost', True)  # Keep the window on top
-splash_screen.attributes("-transparentcolor", "white")
-splash_geo_x = 350
-splash_geo_y = 550
-if args.Egg:
-    splash_geo_x = 400
-    splash_geo_y = 400
-center_window(splash_screen, splash_geo_x, splash_geo_y)
-
-
-
-
-gif_path = 'splash.gif'
-if hasattr(sys, '_MEIPASS'):
-    gif_path = os.path.join(sys._MEIPASS, gif_path)
-else:
-    gif_path = './/splash//splash.gif'
-
-if args.Egg:
-    gif_path = 'splashEE.gif'
-    if hasattr(sys, '_MEIPASS'):
-        gif_path = os.path.join(sys._MEIPASS, gif_path)
-    else:
-        gif_path = './/splash//splashEE.gif'
-
-gif_img = Image.open(gif_path)
-gif_frames_rgba = [frame.convert("RGBA") for frame in ImageSequence.Iterator(gif_img)]
-
-splash_label = tk.Label(splash_screen, bg='white')
-splash_label.pack()
-
-# Function to animate GIF frames
-def animate(frame_num, loop):
-    frame = gif_frames_rgba[frame_num]
-    photo = ImageTk.PhotoImage(frame)
-    splash_label.config(image=photo, bg='white')
-    splash_label.image = photo
-    
-    if loop:
-        frame_num = (frame_num + 1) % len(gif_frames_rgba)
-        splash_screen.after(25, animate, frame_num, True)
-    elif frame_num < len(gif_frames_rgba) - 1:
-        frame_num += 1
-        splash_screen.after(25, animate, frame_num, False)
 
 loop_switch = bool(args.Egg)
 animate(0, loop_switch)
-
+# Create the main window
 def show_main():    
-    def on_configure(event):
-        canvas.configure(scrollregion=canvas.bbox("all"))
-
-
     def on_drop(event):
         global file_path
         print(f'File Path PASS I: {event.data}')
@@ -1277,36 +891,42 @@ def show_main():
         file_path = [re.sub(r'[{}]', '', file) for file in file_path]
         print(f'File Path PASS III: {file_path}')
 
-        threading.Thread(target=get_and_print_video_data, args=(file_path, )).start()
+        if win:
+            threading.Thread(target=get_and_print_video_data, args=(file_path, )).start()
+        elif mac:
+            get_and_print_video_data(file_path)
 
     if any(char.isalpha() for char in __version__):
         root.title("N8's Video to Gifski (Beta)")
 
     else:
-        root.title("N8's Video to Gifski Converter")
+        root.title("N8's Video to Gifski")
 
     geo_width= 425
     center_window(root, geo_width, 450)
-    root.iconbitmap(icon)
+    if win:
+        root.iconbitmap(icon)
+    elif mac:
+        root.iconphoto(True, icon)
     make_non_resizable(root)
-    watermark_label(root)
+    watermark_label(root, debug)
 
-    spacer = tk.Label(root, text="")
+    spacer = ttk.Label(root, text="")
     spacer.pack(pady=10)
 
     # Create a button to choose a file
-    choose_button = tk.Button(root, text="Choose Video File", command=choose_file)
+    choose_button = Button(root, text="Choose Video File", command=choose_file)
     choose_button.pack(pady=20)
 
-    or_label = tk.Label(root, text="Or")
+    or_label = ttk.Label(root, text="Or")
     or_label.pack(pady=20)
 
     # Create a Canvas
-    canvas = tk.Canvas(root, relief="ridge")
+    canvas = ttk.Frame(root)
     canvas.pack(expand=True, fill="both")
 
     # Create a Label for the drop area
-    drop_label = tk.Label(canvas, text="Drag and Drop Video Files Here")
+    drop_label = ttk.Label(canvas, text="Drag and Drop Video Files Here")
     drop_label.pack(pady = 60)
 
     # Bind the drop event to the on_drop function
@@ -1324,8 +944,8 @@ def show_main():
 
     # logo on drop event area
     DnDLogo = 'ico3.png'
-    if hasattr(sys, '_MEIPASS'):
-        DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
+    if bundle_path:
+        DnDLogo = os.path.join(bundle_path, DnDLogo)
     else:
         DnDLogo = '.\\buildandsign\\ico\\ico3.png'
     imgYPos = 225
@@ -1346,10 +966,10 @@ def show_main():
     label.image = resized_image
     label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
 
-    threading.Thread(target=updaterExists).start()
-
     splash_screen.destroy()
     root.deiconify()
+
+    threading.Thread(target=autoChecker, daemon=True).start()    
 
 def on_closing():
     if os.path.exists('temp'):

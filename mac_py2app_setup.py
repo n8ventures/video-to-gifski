@@ -1,14 +1,14 @@
 from setuptools import setup
-from __version__ import __versionMac__
+from __version__ import __versionMac__, __appname__
 
 if any(char.isalpha() for char in __versionMac__):
-    icon = 'icoDev.icns'
-    app_name='N8\'s Video To Gifski (Beta)'
+    icon = './icons/mac/icoDev.icns'
+    app_name = f'{__appname__} (Beta)'
 else:
-    icon = 'ico.icns'
-    app_name='N8\'s Video To Gifski'
+    icon = './icons/mac/ico.icns'
+    app_name = __appname__
 
-APP = ['main-MacARM.py']
+APP = ['main.py']
 OPTIONS = {
     'iconfile': icon, 
     'packages':[
@@ -54,7 +54,7 @@ OPTIONS = {
     ],
     'plist': {
         'NSHumanReadableCopyright': 
-            'Copyright © 2024 John Nathaniel Calvara. This software is licensed under the MIT License.',
+            'Copyright © 2024-2025 John Nathaniel Calvara. This software is licensed under the MIT License.',
         'CFBundleIdentifier':
             "dev.n8ventures.N8VideoToGifski",
         'NSAppleScriptEnabled':
@@ -69,8 +69,8 @@ DATA_FILES=[
         './buildandsign/bin/macOS/ffprobe', 
         './buildandsign/bin/macOS/ffmpeg',
         './buildandsign/bin/macOS/gifski',
-        'ico.icns',
-        'icoDev.icns',
+        './icons/mac/ico.icns',
+        './icons/mac/icoDev.icns',
         './splash/splash.gif',
         './splash/splashEE.gif',
         './buildandsign/ico/amor.png',
