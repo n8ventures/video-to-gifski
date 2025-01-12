@@ -7,7 +7,11 @@ import requests
 import json
 from tqdm import tqdm
 import re
-from __version__ import __version__,__ffmpegversion__, __gifskiversion__, __updaterversion__, __appname__, __updatername__
+from __version__ import (
+    __version__,
+    __ffmpegversion__, 
+    __gifskiversion__, 
+    __appname__)
 from PIL import Image
 import shutil
 class Color:
@@ -43,21 +47,20 @@ site_packages_path = site_packages_path.replace('\\', '\\\\')
 script_directory = os.path.dirname(os.path.realpath(__file__))
     
 def genMainSpec(ff, console):
-
     if any(char.isalpha() for char in __version__):
-        icon = 'icoDev.ico'
+        icon = '.\\\\icons\\\\win\\\\icoDev.ico'
     else:
-        icon = 'ico.ico'
+        icon = '.\\\\icons\\\\win\\\\ico.ico'
 
     a = f'''\
     # -*- mode: python ; coding: utf-8 -*-
     from PyInstaller.utils.hooks import collect_data_files
     
-    excludes = ['test.py', 'updater.py', 'DevTool.py']
+    excludes = ['test.py', 'DevTool.py']
     
     datas = [ 
-        ('ico.ico', '.'),
-        ('icoDev.ico', '.'),
+        ('.\\\\icons\\\\win\\\\icoDev.ico', '.'),
+        ('.\\\\icons\\\\win\\\\ico.ico', '.'),
         ('.\\\\splash\\\\splash.gif','.'),
         ('.\\\\splash\\\\splashEE.gif','.'),
         ('.\\\\buildandsign\\\\ico\\\\amor.png', '.'),
@@ -96,7 +99,7 @@ def genMainSpec(ff, console):
         a.datas,
         [],
         name='main',
-        debug=False,
+        debug={console},
         bootloader_ignore_signals=False,
         strip=False,
         upx=True,
@@ -115,67 +118,6 @@ def genMainSpec(ff, console):
     b = textwrap.dedent(b)
     c = textwrap.dedent(c) 
     with open('main.spec', 'w') as spec_file:
-        spec_file.write(a.__str__())
-        spec_file.write(b.__str__())
-        spec_file.write(c.__str__())
-
-def genUpdaterSpec():
-    a = f'''\
-    # -*- mode: python ; coding: utf-8 -*-
-    from PyInstaller.utils.hooks import collect_data_files
-    
-    excludes = ['test.py', 'updater.py', 'DevTool.py']
-    
-    datas = [ 
-        ('icoUpdater.ico', '.'),
-        ('.\\\\buildandsign\\\\ico\\\\n8.png', '.'),
-        ('.\\\\buildandsign\\\\ico\\\\ico3Updater.png', '.'),
-    ]
-    datas += collect_data_files('pyinstaller_hooks_contrib.collect')
-
-    a = Analysis( # type: ignore
-        ['updater.py'],
-        pathex=[],
-        binaries=[],\n'''
-    b ='''\
-        datas=datas,
-        hiddenimports=[],
-        hookspath=[],
-        hooksconfig={},
-        runtime_hooks=[],
-        excludes=excludes,
-        noarchive=False,
-    )\n\n
-
-    pyz = PYZ(a.pure) # type: ignore\n\n'''
-
-    c = f'''\
-        exe = EXE( # type: ignore
-        pyz,
-        a.scripts,
-        a.binaries,
-        a.datas,
-        [],
-        name='updater',
-        debug=False,
-        bootloader_ignore_signals=False,
-        strip=False,
-        upx=True,
-        upx_exclude=[],
-        runtime_tmpdir=None,
-        console={console},
-        disable_windowed_traceback=False,
-        argv_emulation=False,
-        target_arch=None,
-        codesign_identity=None,
-        entitlements_file=None,
-        icon=['icoUpdater.ico'],
-        version='__updaterVersion.rc',
-        )'''
-    a = textwrap.dedent(a)
-    b = textwrap.dedent(b)
-    c = textwrap.dedent(c) 
-    with open('updater.spec', 'w') as spec_file:
         spec_file.write(a.__str__())
         spec_file.write(b.__str__())
         spec_file.write(c.__str__())
@@ -215,12 +157,12 @@ def genMainRC():
           StringTable(
             '040904e4',
             [StringStruct('CompanyName', 'N8VENTURES'),
-            StringStruct('FileDescription', 'N8\\'s Video to Gifski Converter'),
+            StringStruct('FileDescription', 'N8\\'s Video to Gifski'),
             StringStruct('FileVersion', '{__version__}'),
-            StringStruct('InternalName', '{__appname__}'),
-            StringStruct('LegalCopyright','Copyright © 2024 John Nathaniel Calvara. Licensed under the MIT License.'),
-            StringStruct('OriginalFilename', '{__appname__}.exe'),
-            StringStruct('ProductName', 'N8\\'s Video to Gifski Converter'),
+            StringStruct('InternalName', 'N8\\'s Video To Gifski'),
+            StringStruct('LegalCopyright','Copyright © 2024-2025 John Nathaniel Calvara. Licensed under the MIT License.'),
+            StringStruct('OriginalFilename', 'N8\\'s Video To Gifski.exe'),
+            StringStruct('ProductName', 'N8\\'s Video to Gifski'),
             StringStruct('ProductVersion', '{__version__}')])
           ]), 
         VarFileInfo([VarStruct('Translation', [1033, 1252])])
@@ -231,68 +173,12 @@ def genMainRC():
     with open('__mainVersion.rc', 'w', encoding='utf-8') as rc_file:
         rc_file.write(a.__str__())
 
-def genUpdaterRC():
-    version = __updaterversion__.split('.')
-    a = f'''
-    # UTF-8
-    # Please refer to __version__.py
-    # For more details about fixed file info 'ffi' see:
-    # http://msdn.microsoft.com/en-us/library/ms646997.aspx
-    VSVersionInfo(
-      ffi=FixedFileInfo(
-        # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
-        # Set not needed items to zero 0.
-        filevers=({version[0]}, {version[1]}, {version[2]}, 0),
-        prodvers=({version[0]}, {version[1]}, {version[2]}, 0),
-        # Contains a bitmask that specifies the valid bits 'flags'r
-        mask=0x3f,
-        # Contains a bitmask that specifies the Boolean attributes of the file.
-        flags=0x0,
-        # The operating system for which this file was designed.
-        # 0x4 - NT and there is no need to change it.
-        OS=0x4,
-        # The general type of file.
-        # 0x1 - the file is an application.
-        fileType=0x1,
-        # The function of the file.
-        # 0x0 - the function is not defined for this fileType
-        subtype=0x0,
-        # Creation date and time stamp.
-        date=(0, 0)
-        ),
-      kids=[
-        StringFileInfo(
-          [
-          StringTable(
-            '040904e4',
-            [StringStruct('CompanyName', 'N8VENTURES'),
-            StringStruct('FileDescription', 'N8\\'s V2G Updater'),
-            StringStruct('FileVersion', '{__updaterversion__}'),
-            StringStruct('InternalName', '{__updatername__}'),
-            StringStruct('LegalCopyright', 'Copyright © 2024 John Nathaniel Calvara. Licensed under the MIT License.'),
-            StringStruct('OriginalFilename', '{__updatername__}.exe'),
-            StringStruct('ProductName', 'N8\\'s V2G Updater'),
-            StringStruct('ProductVersion', '{__updaterversion__}')])
-          ]), 
-        VarFileInfo([VarStruct('Translation', [1033, 1252])])
-      ]
-    )
-    '''
-    a = textwrap.dedent(a)
-    with open('__updaterVersion.rc', 'w', encoding='utf-8') as rc_file:
-        rc_file.write(a.__str__())
-
 def buildAndSign():
     build_main = 'pyinstaller ./main.spec'
-    build_updater = 'pyinstaller ./updater.spec'
 
     printColor(Color.CYAN, 'Building main.exe...')
     subprocess.run(build_main, shell=True)
     printColor(Color.GREEN, 'main.exe Built!')
-
-    printColor(Color.CYAN, 'Building updater.exe...')
-    subprocess.run(build_updater, shell=True)
-    printColor(Color.GREEN, 'updater.exe Built!')
 
     # Sign the executable using signtool
     where_command= 'where /R "C:\\Program Files (x86)" signtool.*'
@@ -322,11 +208,6 @@ def buildAndSign():
         subprocess.run(main_sign_command, shell=True)
         printColor(Color.GREEN, 'main.exe signed!')
 
-        Updater_sign_command = f'{signtool_exe} sign /f "{script_directory}\\buildandsign\\certificate.pfx" /p {password} /tr http://timestamp.digicert.com /td sha256 /v "{script_directory}\\dist\\Updater.exe"'
-        printColor(Color.CYAN, 'Signing updater.exe...')
-        subprocess.run(Updater_sign_command, shell=True)
-        printColor(Color.GREEN, 'updater.exe signed!')
-
     except Exception as e:
         print("An error occurred while signing:", e)
 
@@ -336,22 +217,15 @@ def buildAndSign():
     os.chdir('./dist')
 
     old_main = 'main.exe'
-    old_updater = 'updater.exe'
     new_main = f'{__appname__}.exe'
-    new_updater = f'{__updatername__}.exe'
 
     if os.path.exists(new_main):
         os.remove(new_main)
         printColor(Color.YELLOW, f'\nremoved {new_main}!')
-    if os.path.exists(new_updater):
-        os.remove(new_updater)
-        printColor(Color.YELLOW, f'\nremoved {new_updater}!') 
 
     # Rename the file after signing
     os.rename(old_main, new_main)
     printColor(Color.GREEN, f'\n{__appname__} EXE Build version {__version__} DONE!')
-    os.rename(old_updater, new_updater)
-    printColor(Color.GREEN, f'\n{__updatername__} EXE Build version {__updaterversion__} DONE!')
 
 def get_latest_release_version(repo_owner, repo_name):
     global api_url
@@ -459,7 +333,7 @@ def pngtoico(png):
             resized_img = img.resize(size)
             resized_img.save(output_path)
             
-    mainDir = '.\\'
+    mainDir = '.\\icons\\win\\'
 
     image = png
     sizes = [(16, 16), (32, 32), (48, 48), (128, 128), (256, 256)]
@@ -499,10 +373,9 @@ parser.add_argument("-B", "--build",action='store_true', help = "build the app."
 parser.add_argument("-c", "--console",action='store_true', help = 'Enable console window. (for testing purposes. Please don\'t use the argument for final export.)')
 parser.add_argument("-U","--Update", action ='store_true', help ='Checks updates on binaries and will ask you to update.')
 parser.add_argument("-i","--icon", action ='store_true', help ='Updates and generates .ico files for the executables.')
-parser.add_argument('-v', '--version', action='version', help='Checks all the version the app uses including the app and updater itself.',
+parser.add_argument('-v', '--version', action='version', help='Checks all the version the apps',
                     version = textwrap.dedent(f"""\
                     App Proper: {__version__}
-                    Updater version: {__updaterversion__}
                     FFMPEG: {__ffmpegversion__}
                     Gifski: {__gifskiversion__}
                     """))
@@ -513,10 +386,6 @@ if args.Test:
     printColor(Color.CYAN, 'Generating mainVersion.rc...')
     genMainRC()
     printColor(Color.GREEN, 'mainVersion.rc Generated!')
-
-    printColor(Color.CYAN, 'Generating updaterVersion.rc...')
-    genUpdaterRC()
-    printColor(Color.GREEN, 'UpdaterVersion.rc Generated!')
 
 if args.console:
     console = 'True'
@@ -600,26 +469,16 @@ if args.build:
     genMainSpec(ff, console)
     printColor(Color.GREEN, 'main.spec generated!')
 
-    printColor(Color.CYAN, 'Generating updater.spec...')
-    genUpdaterSpec()
-    printColor(Color.GREEN, 'updater.spec generated!')
-
     print('############ V E R S I O N  R C  F I L E S ############')
     printColor(Color.CYAN, 'Generating mainVersion.rc...')
     genMainRC()
     printColor(Color.GREEN, 'mainVersion.rc Generated!')
-
-    printColor(Color.CYAN, 'Generating updaterVersion.rc...')
-    genUpdaterRC()
-    printColor(Color.GREEN, 'UpdaterVersion.rc Generated!')
 
     print('############ B U I L D  &  S I G N ############')
     buildAndSign()
 
 
 if args.Update:
-
-    
     currentFFmpeg = __ffmpegversion__
     currentGifski = __gifskiversion__
 
