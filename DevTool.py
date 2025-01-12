@@ -66,7 +66,9 @@ def genMainSpec(ff, console):
         ('.\\\\buildandsign\\\\ico\\\\amor.png', '.'),
         ('.\\\\buildandsign\\\\ico\\\\ico3.png', '.'),
         ('.\\\\buildandsign\\\\ico\\\\motionteamph.png', '.'),
-        ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2')
+        ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2'),
+        ('{site_packages_path}\\\\emoji','emoji'),
+        ('{site_packages_path}\\\\sv_ttk','sv_ttk')
     ]
     datas += collect_data_files('pyinstaller_hooks_contrib.collect')
 
