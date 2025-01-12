@@ -80,7 +80,12 @@ def egg_about(aboutmenu, geo_width, geo_len):
 def watermark_label(parent_window, debug = ''):
     menu_bar = tk.Menu(root)
     
-    about_menu = tk.Menu(menu_bar, tearoff=0)
+    if win:
+        about_menu = tk.Menu(menu_bar, tearoff=0)
+    elif mac:
+        about_menu = tk.Menu(menu_bar, tearoff=0, name="apple")
+
+    menu_bar.add_cascade(label="More", menu=about_menu)
 
     from modules.rootTkSplashModule import sv_ttk, darkdetect
     is_dark = True if darkdetect.theme() else False
@@ -103,7 +108,6 @@ def watermark_label(parent_window, debug = ''):
     
     about_menu.add_command(label="About Me", command=about)
     about_menu.add_command(label="Check for Updates", command=CheckUpdates)
-    menu_bar.add_cascade(label="Help", menu=about_menu)
     
     parent_window.config(menu=menu_bar)
     
@@ -118,6 +122,3 @@ def watermark_label(parent_window, debug = ''):
     
     version_label = ttk.Label(frame, text=f"version: {__version__} {debug}", style='WM.TLabel')
     version_label.pack(side=tk.RIGHT, anchor=tk.SE)
-    
-    if mac:
-        root.config(menu=menu_bar)
