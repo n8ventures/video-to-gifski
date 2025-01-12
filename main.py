@@ -901,10 +901,6 @@ def show_main():
 
     geo_width= 425
     center_window(root, geo_width, 450)
-    if win:
-        root.iconbitmap(icon)
-    elif mac:
-        root.iconphoto(True, PhotoImage(file=icon))
     make_non_resizable(root)
     watermark_label(root, debug)
 

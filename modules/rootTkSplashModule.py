@@ -1,12 +1,14 @@
 from tkinterdnd2 import TkinterDnD
 from PIL import Image, ImageTk, ImageSequence
-from tkinter import ttk
+from tkinter import ttk, PhotoImage
 import tkinter as tk
 import os
 import sys
+import sv_ttk
+import darkdetect
 
 from modules.TkModules import center_window, widget_color
-from modules.platformModules import win, mac, bundle_path
+from modules.platformModules import win, mac, bundle_path, icon
 from modules.argsModule import args
 
 def set_args(argument = None):
@@ -22,11 +24,14 @@ root.withdraw()
 print('TCL Library:', root.tk.exprstring('$tcl_library'))
 print('Tk Library:',root.tk.exprstring('$tk_library'))
 
+if win:
+    root.iconbitmap(icon)
+elif mac:
+    root.iconphoto(True, PhotoImage(file=icon))
 
-import sv_ttk
-import darkdetect
 sv_ttk.set_theme(darkdetect.theme())
 print('sv_ttk.get_theme(): ', sv_ttk.get_theme())
+
 if win:
     import pywinstyles
     def apply_theme_to_titlebar():
@@ -56,14 +61,6 @@ style.configure(
     borderwidth=1,       
 )
 style.configure("Alt.TCheckbutton", foreground=widget_color[1])
-
-def theme_emoji():
-    if sv_ttk.get_theme() == "dark":
-        print("Setting theme to light")
-        sv_ttk.use_light_theme()
-    elif sv_ttk.get_theme() == "light":
-        print("Setting theme to dark")
-        sv_ttk.use_dark_theme()
 
 # print(style.theme_names())  # List all themes
 # print(style.layout("TLabel"))  # Display layout for 'TLabel'
