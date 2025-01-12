@@ -2,7 +2,6 @@ import os
 import sys
 import platform
 import subprocess
-from tkinter import PhotoImage
 import tkinter as tk
 
 # Check the platform
@@ -70,12 +69,12 @@ if any(char.isalpha() for char in __version__):
     if win:
         icon = os.path.join(bundle_path or '', 'icoDev.ico') if bundle_path else './icons/win/icoDev.ico'
     elif mac:
-        icon = PhotoImage(file=os.path.join(bundle_path or '', 'ico3beta.png') if bundle_path else './buildandsign/ico/ico3beta.png')
+        icon = os.path.join(bundle_path or '', 'ico3beta.png') if bundle_path else './buildandsign/ico/ico3beta.png'
 else:
     if win:
         icon = os.path.join(bundle_path or '', 'ico.ico') if bundle_path else 'ico.ico'
     elif mac:
-        icon = PhotoImage(file=os.path.join(bundle_path or '', 'ico3.png') if bundle_path else './buildandsign/ico/ico3.png')
+        icon = os.path.join(bundle_path or '', 'ico3.png') if bundle_path else './buildandsign/ico/ico3.png'
 
 if bundle_path:
     binaries = {

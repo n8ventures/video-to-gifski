@@ -1,12 +1,14 @@
-import tkinter as tk
 from modules.platformModules import win, mac
 
-if win:
-    from tkinter import ttk
-    Button = ttk.Button
-elif mac:
-    from tkmacosx import Button
-    Button = Button
+# if win:
+#     from tkinter import ttk
+#     Button = ttk.Button
+# elif mac:
+#     from tkmacosx import Button
+#     Button = Button
+
+from tkinter import ttk
+Button = ttk.Button
 
 widget_color = [
     # 0 = Default

@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, PhotoImage
 import emoji
 
 from __version__ import __version__
@@ -24,11 +24,11 @@ def notavideo(invalid_file, valid_file):
     if win:
         notavideo.attributes("-topmost", True) 
 
-    invalid_files_list = emoji.emojize(":cross_mark:") + emoji.emojize("\n:cross_mark:").join(invalid_file)
+    invalid_files_list = emoji.emojize(":cross_mark: ") + emoji.emojize("\n:cross_mark: ").join(invalid_file)
     button_text = 'Close'
     
     if len(valid_file) != 0:
-        valid_files_list = emoji.emojize(":check_mark_button:") + emoji.emojize("\n:check_mark_button:").join(valid_file)
+        valid_files_list = emoji.emojize(":check_mark_button: ") + emoji.emojize("\n:check_mark_button: ").join(valid_file)
         valid_text = f"The following files will be processed:\n\n{valid_files_list}"
         button_text = 'Continue'
     else:
@@ -40,8 +40,8 @@ def notavideo(invalid_file, valid_file):
         f"{valid_text}"
     )
 
-    about_label = ttk.Label(notavideo, text=errortext,  anchor="center")
-    about_label.pack(pady=10)
+    display_text_label = ttk.Label(notavideo, text=errortext,  anchor="center", justify="center")
+    display_text_label.pack(pady=10)
 
     close_button = Button(notavideo, text=button_text, command=notavideo.destroy)
     close_button.pack(pady=10) 
@@ -54,10 +54,14 @@ def create_popup(root, title, width, height, switch, lift = 0):
     if win:
         popup.iconbitmap(icon)
     elif mac:
-        popup.iconphoto(True, icon)
+        popup.iconphoto(True, PhotoImage(file=icon))
 
     # popup.overrideredirect(True)
-    popup.attributes('-toolwindow', 1)
+    if win:
+        popup.attributes('-toolwindow', 1)
+    elif mac:
+        popup.attributes('-type', 'utility')
+
     center_window(popup, width, height)
 
     if switch == 1:
