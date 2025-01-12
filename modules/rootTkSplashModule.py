@@ -1,12 +1,12 @@
 from tkinterdnd2 import TkinterDnD
-from PIL import Image, ImageTk,ImageSequence
+from PIL import Image, ImageTk, ImageSequence
 from tkinter import ttk
 import tkinter as tk
 import os
 import sys
 
 from modules.TkModules import center_window, widget_color
-from modules.platformModules import win, mac
+from modules.platformModules import win, mac, bundle_path
 from modules.argsModule import args
 
 def set_args(argument = None):
@@ -20,13 +20,13 @@ root = TkinterDnD.Tk()
 print('TCL Library:', root.tk.exprstring('$tcl_library'))
 print('Tk Library:',root.tk.exprstring('$tk_library'))
 
-if win:
-    import sv_ttk
-    import darkdetect
-    import pywinstyles
-    sv_ttk.set_theme(darkdetect.theme())
-    print('sv_ttk.get_theme(): ', sv_ttk.get_theme())
 
+import sv_ttk
+import darkdetect
+sv_ttk.set_theme(darkdetect.theme())
+print('sv_ttk.get_theme(): ', sv_ttk.get_theme())
+if win:
+    import pywinstyles
     def apply_theme_to_titlebar():
         version = sys.getwindowsversion()
         print ('sys.getwindowsversion(): ', version)
@@ -63,8 +63,8 @@ def theme_emoji():
         print("Setting theme to dark")
         sv_ttk.use_dark_theme()
 
-print(style.theme_names())  # List all themes
-print(style.layout("TLabel"))  # Display layout for 'TLabel'
+# print(style.theme_names())  # List all themes
+# print(style.layout("TLabel"))  # Display layout for 'TLabel'
 
 root.withdraw()
 
@@ -83,15 +83,15 @@ if args is not None and args.Egg:
 center_window(splash_screen, splash_geo_x, splash_geo_y)
 
 gif_path = 'splash.gif'
-if hasattr(sys, '_MEIPASS'):
-    gif_path = os.path.join(sys._MEIPASS, gif_path)
+if bundle_path:
+    gif_path = os.path.join(bundle_path, gif_path)
 else:
     gif_path = './/splash//splash.gif'
 
 if args is not None and args.Egg:
     gif_path = 'splashEE.gif'
-    if hasattr(sys, '_MEIPASS'):
-        gif_path = os.path.join(sys._MEIPASS, gif_path)
+    if bundle_path:
+        gif_path = os.path.join(bundle_path, gif_path)
     else:
         gif_path = './/splash//splashEE.gif'
 

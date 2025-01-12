@@ -1,9 +1,8 @@
 from tkinter import ttk
+import tkinter as tk
 import os
 from idlelib.tooltip import Hovertip
 import sys
-from tkinter import ttk
-import tkinter as tk
 import emoji
 
 from modules.platformModules import win, mac
@@ -42,10 +41,10 @@ def about():
         f"{ffmpeg_text}"
     )
 
-    credits_label = ttk.Label(aboutmenu, text=credits_text, anchor="center")
+    credits_label = ttk.Label(aboutmenu, text=credits_text, anchor="center", justify="center")
     credits_label.pack(pady=10)
 
-    copyright_label = ttk.Label(aboutmenu, text=copyright_text,  anchor="center")
+    copyright_label = ttk.Label(aboutmenu, text=copyright_text,  anchor="center", justify="center")
     copyright_label.pack(pady=5)
 
     clickable_link_labels(
@@ -82,25 +81,25 @@ def watermark_label(parent_window, debug = ''):
     menu_bar = tk.Menu(root)
     
     about_menu = tk.Menu(menu_bar, tearoff=0)
-    if win:
-        from modules.rootTkSplashModule import sv_ttk, darkdetect
-        is_dark = True if darkdetect.theme() else False
-    
-        def toggle_theme():
-            global is_dark
-            if sv_ttk.get_theme() == "dark":
-                sv_ttk.use_light_theme()
-                is_dark = False
-            elif sv_ttk.get_theme() == "light":
-                sv_ttk.use_dark_theme()
-                is_dark = True
-                
-            theme_label = emoji.emojize(f"{':crescent_moon:' if is_dark else ':sun_with_face:'} - Toggle Theme")
-            about_menu.delete(0)
-            about_menu.insert_command(0, label=theme_label, command=toggle_theme)
+
+    from modules.rootTkSplashModule import sv_ttk, darkdetect
+    is_dark = True if darkdetect.theme() else False
+
+    def toggle_theme():
+        global is_dark
+        if sv_ttk.get_theme() == "dark":
+            sv_ttk.use_light_theme()
+            is_dark = False
+        elif sv_ttk.get_theme() == "light":
+            sv_ttk.use_dark_theme()
+            is_dark = True
             
-        about_menu.add_command(label=emoji.emojize(f"{':crescent_moon:' if is_dark else ':sun_with_face:'} - Toggle Theme"), command=toggle_theme)
-        about_menu.add_separator()
+        theme_label = emoji.emojize(f"{':crescent_moon:' if is_dark else ':sun_with_face:'} - Toggle Theme")
+        about_menu.delete(0)
+        about_menu.insert_command(0, label=theme_label, command=toggle_theme)
+
+    about_menu.add_command(label=emoji.emojize(f"{':crescent_moon:' if is_dark else ':sun_with_face:'} - Toggle Theme"), command=toggle_theme)
+    about_menu.add_separator()
     
     about_menu.add_command(label="About Me", command=about)
     about_menu.add_command(label="Check for Updates", command=CheckUpdates)
@@ -114,7 +113,7 @@ def watermark_label(parent_window, debug = ''):
     separator_wm = ttk.Separator(frame, orient="horizontal")
     separator_wm.pack(side=tk.TOP, fill=tk.X)
     
-    watermark_label = ttk.Label(frame, text=f"by {__author__}", style='WM.TLabel')
+    watermark_label = ttk.Label(frame, text=f" by {__author__}", style='WM.TLabel')
     watermark_label.pack(side=tk.LEFT, anchor=tk.SW)
     
     version_label = ttk.Label(frame, text=f"version: {__version__} {debug}", style='WM.TLabel')
