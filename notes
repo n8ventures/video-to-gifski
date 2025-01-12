@@ -29,7 +29,7 @@ iconutil -c icns icoDMG.iconset
 
 // make app
 rm -rf build dist
-python setup.py py2app
+python mac_py2app_setup.py py2app
 
 // create dmg for dist
 dmgbuild -s dmgbuild.py -D filesystem='UDZO' "N8's Video To Gifski 2.5.1" "N8's Video To Gifski 2.5.1.dmg"
