@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, ttk, colorchooser
+from tkinter import filedialog, ttk, colorchooser, PhotoImage
 from tkinterdnd2 import DND_FILES
 from PIL import Image, ImageTk
 import subprocess
@@ -17,6 +17,12 @@ import glob
 # version info
 from __version__ import __version__
 
+# splash screen module
+from modules.rootTkSplashModule import (
+    root,
+    splash_screen,
+    animate
+)
 # tk popups and settings
 from modules.PopupModules import (
     create_popup, 
@@ -47,19 +53,11 @@ from modules.dataBinaryModules import (
     play_gif,
     )
 
-# splash screen module
-from modules.rootTkSplashModule import (
-    root,
-    splash_screen,
-    animate
-)
-
 from modules.UpdaterModule import autoChecker
 
 
 if win:
     from modules.argsModule import args
-    import win32api
 
 debug = ''
 
@@ -87,6 +85,18 @@ running = False
 after_id = None
 loading_screen = None
 
+def remove_temp(force = False):
+    print('Removing temp...')
+    if force:
+        shutil.rmtree('temp') 
+        print("temp force-removed successfully.")
+    else:
+        if os.path.exists('temp'):
+            shutil.rmtree('temp') 
+            print("temp removed successfully.")
+        else:
+            print("temp does not exist.")
+
 def loading(root, texthere='', filenum=0, filestotal=0):
     global loading_screen, load_text_label
 
@@ -95,7 +105,7 @@ def loading(root, texthere='', filenum=0, filestotal=0):
             loading_screen = create_popup(root, "Converting...", 380, 150, 0)
             make_non_resizable(loading_screen)
             
-            load_text_label = ttk.Label(loading_screen, text='Converting...\nPlease wait.')
+            load_text_label = ttk.Label(loading_screen, text='Converting...\nPlease wait.', anchor="center", justify="center")
             load_text_label.pack(pady=20)
 
             update_loading(texthere, filenum, filestotal)
@@ -335,7 +345,7 @@ def parse_temp_data(temp_data):
         Timecode: {timecode}
         pixel format: {pix_fmt}'''
 
-    debug_gif_label = ttk.Label(debug_gif_window, text=debug_gif_text, justify=tk.LEFT)
+    debug_gif_label = ttk.Label(debug_gif_window, text=debug_gif_text, anchor="w")
     debug_gif_label.pack()
 
     close_button = Button(debug_gif_window, text="Close", command=debug_gif_window.destroy)
@@ -417,7 +427,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             loading_thread_switch(root, False)
 
             print("Conversion complete!")
-            shutil.rmtree('temp')
+            remove_temp(True)
             on_settings_window_close()
             try:
                 openOutputFolder(output_dir, output_full_path)
@@ -439,7 +449,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
                 
                 video_to_frames_seq(full_path, framerate)
                 vid_to_gif(framerate, gifQ, motionQ, lossyQ, output)
-                shutil.rmtree('temp')
+                remove_temp(True)
             
             loading_thread_switch(root, False)
             on_settings_window_close()
@@ -475,7 +485,7 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             shutil.copy2('temp/temp.gif', output_file.name)
             print("Conversion complete!")
             stop_gif_animation(preview_label)
-            shutil.rmtree('temp')
+            remove_temp(True)
             on_settings_window_close()
             try:
                 openOutputFolder(output_dir, output_full_path)
@@ -540,8 +550,10 @@ def on_settings_window_close():
     global settings_window_open
     settings_window_open = False
     settings_window.destroy()
+
     print('Settings Window is open?', settings_window_open)
     if mac:
+        remove_temp()
         root.deiconify()
 
 def open_settings_window(): 
@@ -575,11 +587,11 @@ def open_settings_window():
     watermark_label(settings_window, debug)
     make_non_resizable(settings_window)
 
-    preview_label = ttk.Label(settings_window, text = preview_label_text)
+    preview_label = ttk.Label(settings_window, text = preview_label_text, anchor="center", justify="center")
     preview_label.pack(pady=preview_label_pady)
     
-    fileSize_label = ttk.Label(settings_window, text = '')
-    fileDimension_label = ttk.Label(settings_window, text='')
+    fileSize_label = ttk.Label(settings_window, text = '', anchor="center")
+    fileDimension_label = ttk.Label(settings_window, text='', anchor="center")
     fileSize_label.pack()
     fileDimension_label.pack(pady=5)
     
@@ -589,7 +601,7 @@ def open_settings_window():
     play_gif_button.pack(pady=10)
     play_gif_button.config(state="disabled")
     
-    if args.debug and len(valid_files) == 1:
+    if win and args.debug and len(valid_files) == 1:
         play_gif_button.pack(side=tk.LEFT, pady=10)
         debug_gif_button = Button(playframe, text='Debug GIF', command=lambda: get_and_print_video_data('temp/temp.gif'))
         debug_gif_button.pack(side=tk.RIGHT, pady=10)
@@ -848,38 +860,23 @@ def open_settings_window():
         settings_window.update_idletasks()
 
     settings_window.protocol("WM_DELETE_WINDOW", lambda: on_settings_window_close())
-
-    def on_settings_close():
-        if os.path.exists('temp'):
-            shutil.rmtree('temp') 
-            print("temp removed successfully.")
-        else:
-            print("temp does not exist.")
-        settings_window.destroy()
-        on_settings_window_close()
-
-    if mac:
-        settings_window.grab_set()
-        settings_window.wait_visibility()
-        settings_window.protocol("WM_DELETE_WINDOW", on_settings_close)
-    
     root.withdraw()
-    
+
     if not invalid_files:
-        settings_window.grab_set()
-    settings_window.wait_window(settings_window)
-    
+        if mac:
+            settings_window.grab_set()
+            settings_window.wait_visibility()
+        elif win:
+            settings_window.grab_set()
 
+    if win:
+        settings_window.wait_window(settings_window)
+        root.deiconify()
 
-    if os.path.exists('temp'):
-        shutil.rmtree('temp') 
-        print("temp removed successfully.")
-    else:
-        print("temp does not exist.")
+loop_switch = False
+if win:
+    loop_switch = bool(args.Egg)
 
-    root.deiconify()
-
-loop_switch = bool(args.Egg)
 animate(0, loop_switch)
 # Create the main window
 def show_main():    
@@ -907,7 +904,7 @@ def show_main():
     if win:
         root.iconbitmap(icon)
     elif mac:
-        root.iconphoto(True, icon)
+        root.iconphoto(True, PhotoImage(file=icon))
     make_non_resizable(root)
     watermark_label(root, debug)
 
@@ -947,16 +944,16 @@ def show_main():
     if bundle_path:
         DnDLogo = os.path.join(bundle_path, DnDLogo)
     else:
-        DnDLogo = '.\\buildandsign\\ico\\ico3.png'
+        DnDLogo = './buildandsign/ico/ico3.png'
     imgYPos = 225
 
 
-    if args.Egg:
+    if win and args.Egg:
         DnDLogo = 'amor.png' 
         if hasattr(sys, '_MEIPASS'):
             DnDLogo = os.path.join(sys._MEIPASS, DnDLogo)
         else:
-            DnDLogo = '.\\buildandsign\\ico\\amor.png'
+            DnDLogo = './buildandsign/ico/amor.png'
 
         imgYPos = 200
 
@@ -972,12 +969,7 @@ def show_main():
     threading.Thread(target=autoChecker, daemon=True).start()    
 
 def on_closing():
-    if os.path.exists('temp'):
-        shutil.rmtree('temp')
-        print("temp removed successfully.")
-    else:
-        print("temp does not exist.")
-        
+    remove_temp()
     print("Closing the application.")
     
     atexit.unregister(on_closing)  # Unregister the atexit callback
