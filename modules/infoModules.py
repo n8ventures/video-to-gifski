@@ -91,7 +91,7 @@ def watermark_label(parent_window, debug = ''):
     menu_bar.add_cascade(label="More", menu=about_menu)
 
     from modules.rootTkSplashModule import sv_ttk, darkdetect
-    is_dark = True if darkdetect.theme() else False
+    is_dark = True if darkdetect.theme() == "Dark" else False
 
     def toggle_theme():
         global is_dark
