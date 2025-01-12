@@ -568,7 +568,7 @@ def open_settings_window():
     win_height = 650
     if len(valid_files) == 1:
         window_title = 'User Settings'
-        preview_label_text = 'Click the Apply & Preview button to load a GIF Preview.'
+        preview_label_text = 'Click the Apply & Preview button\nto load a GIF Preview.'
         export_label = 'Quick Export'
         preview_label_pady = 5
         if video_data['pix_fmt'] in alpha_formats:
@@ -583,7 +583,8 @@ def open_settings_window():
     settings_window = tk.Toplevel(root)
     settings_window.title(window_title)
     center_window(settings_window, 350, win_height)
-    settings_window.iconbitmap(icon)
+    if win:
+        settings_window.iconbitmap(icon)
     watermark_label(settings_window, debug)
     make_non_resizable(settings_window)
 
