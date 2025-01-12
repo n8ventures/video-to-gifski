@@ -550,7 +550,7 @@ def on_settings_window_close():
     global settings_window_open
     settings_window_open = False
     settings_window.destroy()
-
+    center_window(root, 425, 450)
     print('Settings Window is open?', settings_window_open)
     if mac:
         remove_temp()
@@ -581,8 +581,8 @@ def open_settings_window():
         win_height -= 25
     
     settings_window = tk.Toplevel(root)
-    settings_window.title(window_title)
     center_window(settings_window, 350, win_height)
+    settings_window.title(window_title)
     if win:
         settings_window.iconbitmap(icon)
     watermark_label(settings_window, debug)
@@ -896,7 +896,6 @@ def show_main():
 
     if any(char.isalpha() for char in __version__):
         root.title("N8's Video to Gifski (Beta)")
-
     else:
         root.title("N8's Video to Gifski")
 
