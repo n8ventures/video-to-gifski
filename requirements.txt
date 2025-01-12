@@ -2,6 +2,8 @@ altgraph==0.17.4
 certifi==2024.07.04
 charset-normalizer==3.3.2
 colorama==0.4.6
+darkdetect==0.8.0
+emoji==2.14.0
 ffmpeg-python==0.2.0
 future==1.0.0
 idna==3.7
@@ -14,8 +16,10 @@ PyMonCtl==0.7
 pywin32-ctypes==0.2.2
 PyWinBox==0.6
 PyWinCtl==0.3
+pywinstyles==1.8
 requests==2.32.0
 setuptools==70.3.0
+sv-ttk==2.5.5
 tk==0.1.0
 tkinterdnd2==0.4.2
 tqdm==4.66.3
