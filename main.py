@@ -963,6 +963,7 @@ def show_main():
     label.image = resized_image
     label.place(x=geo_width / 2, y=imgYPos, anchor=tk.CENTER)
 
+    root.update_idletasks()
     splash_screen.destroy()
     root.deiconify()
 
