@@ -32,6 +32,7 @@ def center_window(window, width, height):
     x_position = (screen_width - window_width) // 2
     y_position = (screen_height - window_height) // 2  
     window.geometry(f"{window_width}x{window_height}+{x_position}+{y_position-35}")
+    window.update_idletasks()
 
 def clickable_link_labels(window, text, link):
     mailto_label = ttk.Label(window, text=text, style="Alt.TLabel", cursor="hand2")
