@@ -53,8 +53,6 @@ def create_popup(root, title, width, height, switch, lift = 0):
 
     if win:
         popup.iconbitmap(icon)
-    elif mac:
-        popup.iconphoto(True, PhotoImage(file=icon))
 
     # popup.overrideredirect(True)
     if win:

@@ -59,6 +59,9 @@ def about():
     )
     if args is not None and args.Egg:
         egg_about(aboutmenu, geo_width, geo_len)
+        
+    if win:
+        aboutmenu.attributes("-topmost", True)
 
     close_button = Button(aboutmenu, text="Close", command=aboutmenu.destroy)
     close_button.pack(pady=10)

@@ -111,6 +111,9 @@ def CheckUpdates():
     buttonsFrame = ttk.Frame(updatemenu)
     buttonsFrame.pack(side=tk.BOTTOM, pady=10)
     
+    if win:
+        updatemenu.attributes("-topmost", True)
+    
     update_button = Button(buttonsFrame, text='Yes')
     close_button = Button(buttonsFrame, text="Close", command=updatemenu.destroy)
     close_button.pack(side=tk.RIGHT, padx=5)
