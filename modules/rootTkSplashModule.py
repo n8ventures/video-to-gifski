@@ -17,6 +17,8 @@ def set_args(argument = None):
     return True
 
 root = TkinterDnD.Tk()
+root.withdraw()
+
 print('TCL Library:', root.tk.exprstring('$tcl_library'))
 print('Tk Library:',root.tk.exprstring('$tk_library'))
 
@@ -65,8 +67,6 @@ def theme_emoji():
 
 # print(style.theme_names())  # List all themes
 # print(style.layout("TLabel"))  # Display layout for 'TLabel'
-
-root.withdraw()
 
 splash_screen = tk.Toplevel(root)
 splash_screen.overrideredirect(1) 
