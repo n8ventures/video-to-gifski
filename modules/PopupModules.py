@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, PhotoImage
+from tkinter import ttk
 import emoji
 
 from __version__ import __version__
@@ -48,8 +48,8 @@ def notavideo(invalid_file, valid_file):
 
 def create_popup(root, title, width, height, switch, lift = 0):
     popup = tk.Toplevel(root)
+    center_window(popup, width, height)
     popup.title(title)
-    popup.geometry(f"{width}x{height}")
 
     if win:
         popup.iconbitmap(icon)
@@ -60,10 +60,8 @@ def create_popup(root, title, width, height, switch, lift = 0):
     elif mac:
         popup.attributes('-type', 'utility')
 
-    center_window(popup, width, height)
-
     if switch == 1:
-        popup.bind("<FocusOut>", lambda e: popup.destroy())
+        popup.bind("<FocusOut>", lambda e: popup.after(200, popup.destroy))
     if lift == 1:
         popup.lift()
 
