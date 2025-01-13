@@ -1,4 +1,4 @@
-# video to Gifski
+# Video to Gifski
 Convert videos and export them into GIFs using Gifski.
 
 # Releases
@@ -10,13 +10,17 @@ or just directly download here without worry:
 
 [OSX (ARM/Apple Silicon)](https://github.com/n8ventures/video-to-gifski/releases/latest/download/MacOS.-.N8.Video.To.Gifski.dmg)
 
-[Windows](https://github.com/n8ventures/video-to-gifski/releases/latest/download/N8.s.Video.To.Gifski.exe)
-
-# How to use
+[Windows](https://github.com/n8ventures/video-to-gifski/releases/latest/download/N8sVideoToGifski.exe)
+<div align="center">
+<h1>How To Use</h1>
 
 ### 1. Open up the program, either choose the "Choose File" Button, or drag the video on the window!
 
 ![Main Menu](docs/howto/1.png)
+
+Since Version 4.0.0, you can batch-process multiple videos at once!
+
+![Batch Mode](docs/tag-4-0-0//MacOS_DragDrop.gif)
 
 ### 2. Choose your compression options
 I'd like to point out that enabling/checking Motion Quality and/or Lossy Quality affects the overall quality.
@@ -45,6 +49,7 @@ First instance of opening the video:
 
 ![Quick Export Button](docs/howto/4b.png)
 
+</div>
 
 ## Licenses
 
