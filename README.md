@@ -11,6 +11,45 @@ or just directly download here without worry:
 [OSX (ARM/Apple Silicon)](https://github.com/n8ventures/video-to-gifski/releases/latest/download/MacOS.-.N8.Video.To.Gifski.dmg)
 
 [Windows](https://github.com/n8ventures/video-to-gifski/releases/latest/download/N8sVideoToGifski.exe)
+
+## ⚠️ IMPORTANT for MacOS
+<details>
+<summary>Click to expand troubleshooting instructions</summary>
+
+  <img src="https://github.com/n8ventures/video-to-gifski/blob/main/docs/misc/macOS_dmgWarning.png" alt="macOS DMG Warning" width="250">
+
+   If you encounter anything like:
+
+   _"N8's Video To Gifski.app is damaged and can’t be opened"_
+
+   _"N8's Video To Gifski.app cannot be opened because the developer cannot be verified"_
+
+   _""N8's Video To Gifski" can't be opened because Apple cannot check it for malicious software."_
+
+   _""MacOS.-.N8.Video.To.Gifski.dmg" Not Opened."_ 
+
+   Just copy this code, and then paste and run this on your Terminal:
+
+   ### For The .DMG file:
+   (Assuming you've downloaded it on your Downloads Folder)
+   
+   `sudo xattr -dr com.apple.quarantine ~/Downloads/MacOS.-.N8.Video.To.Gifski.dmg`
+   
+   or
+   
+   `sudo xattr -dr com.apple.quarantine ~/Downloads/MacOS\.-\.N8.Video.To.Gifski.dmg`
+
+   ### For The Application:
+   `sudo xattr -dr com.apple.quarantine "~/Applications/N8's Video To Gifski.app"`
+
+   ### Alternatively,
+
+   right-click or ⌃(CTRL)+Click the .app/.dmg and click 'Open', a pop-up will appear, then click 'Open' again.
+
+   __More info here: https://support.apple.com/en-ph/guide/mac-help/mchleab3a043/mac__
+
+</details>
+
 <div align="center">
 <h1>How To Use</h1>
 
