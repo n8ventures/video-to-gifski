@@ -8,9 +8,9 @@ Download and check the latest release [here](https://github.com/n8ventures/video
 
 or just directly download here without worry:
 
-[OSX (ARM/Apple Silicon)](https://github.com/n8ventures/video-to-gifski/releases/latest/download/N8.s.Video.To.Gifski.dmg)
+[OSX (ARM/Apple Silicon)](https://github.com/n8ventures/video-to-gifski/releases/latest/download/MacOS.-.N8.Video.To.Gifski.dmg)
 
-[Windows](https://github.com/n8ventures/video-to-gifski/releases/latest/download/n8-vid-to-gif.exe)
+[Windows](https://github.com/n8ventures/video-to-gifski/releases/latest/download/N8.s.Video.To.Gifski.exe)
 
 # How to use
 
