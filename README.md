@@ -28,7 +28,7 @@ Also, you'll also have this option pop up if it detects videos with alpha channe
 ![Preunmultiply Filter](docs/howto/2b.png)
 
 ### 3. Preview the GIF
-Click on the `Apply & Preview` button, to apply the settings you adjusted and a preview frame should show along with the GIF Size and Dimensions.
+Click on the `Apply & Preview` button, to apply the settings you adjusted and a preview GIF should show along with the GIF Size and Dimensions.
 
 ![Settings Menu with Preview](docs/howto/3.gif)
 
