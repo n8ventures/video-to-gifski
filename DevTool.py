@@ -235,7 +235,7 @@ def buildAndSign():
     elif mac:
         # Remove build and dist folders
         printColor(Color.YELLOW, 'Building removing "build" folder...')
-        subprocess.run(['rm', '-rf', 'build', 'dist'], check=True)
+        subprocess.run(['rm', '-rf', 'build', 'dist', 'N8\'s Video To Gifski.dmg'], check=True)
         printColor(Color.GREEN, '"build" folder removed!')
         # Create App using py2app
         printColor(Color.CYAN, 'Building main.app...')
@@ -262,7 +262,7 @@ def buildAndSign():
         ], check=True)
         printColor(Color.GREEN, 'DMG Built!')
         
-        #Sign the DMG
+        # Sign the DMG
         printColor(Color.CYAN, 'signing the .dmg...')
         apple_dev = apple_dev
         dmg_path = os.path.abspath(r"./N8's Video To Gifski.dmg")
@@ -270,6 +270,12 @@ def buildAndSign():
             'codesign', '--sign', apple_dev, '--deep', '--force', '--timestamp', dmg_path
         ], check=True)
         printColor(Color.GREEN, '.dmg Signed!')
+        
+        # Rename DMG
+        printColor(Color.CYAN, 'renaming the .dmg...')
+        new_dmg_path = os.path.abspath(r"./MacOS - N8 Video To Gifski.dmg")
+        os.rename(dmg_path, new_dmg_path)
+        printColor(Color.GREEN, '.dmg renamed!')
 
     printColor(Color.GREEN, f'\n{__appname__} Build version {__version__} DONE!')
 
