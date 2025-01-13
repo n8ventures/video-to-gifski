@@ -68,9 +68,9 @@ else:
 # pyobjc-framework-Quartz.
 #
 if any(char.isalpha() for char in __version__):
-    icon = './buildandsign/dmg/icoDev-DMG.icns'
+    icon = './icons/mac/icoDev-DMG.icns'
 else:
-    icon = './buildandsign/dmg/icoDMG.icns'
+    icon = './icons/mac/icoDMG.icns'
 # Where to put the icons
 icon_locations = {appname: (120, 170), "Applications": (450, 170)}
 
