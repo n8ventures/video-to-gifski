@@ -26,11 +26,19 @@ def about():
         geo_width = 370
         geo_len= 410
 
-    aboutmenu = create_popup(root, "About Us!", geo_width, geo_len, 1)
+    aboutmenu = create_popup(root, "About Me!", geo_width, geo_len, 1)
     make_non_resizable(aboutmenu)
 
     gifski_text = f"- Gifski (https://gif.ski/)\nVersion: {__gifskiversion__}"
-    ffmpeg_text = f"- FFmpeg (https://ffmpeg.org/)\nVersion: {__ffmpegversion__}"
+    ffmpeg_text = "- FFmpeg (https://ffmpeg.org/)"
+    
+    if win:
+        ffmpeg_text += '\nby gyan.dev'
+    elif mac:
+        ffmpeg_text += '\nby martin-riedl.de'
+    
+    ffmpeg_text += f"\nVersion: {__ffmpegversion__}"
+
     copyright_text = (
     "This program is distributed under the MIT License.\n"
     "Copyright (c) 2024-2025 John Nathaniel Calvara"
