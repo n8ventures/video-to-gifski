@@ -8,6 +8,8 @@ else:
     icon = './icons/mac/ico.icns'
     app_name = __appname__
 
+tcl_tk_version = '8.6.16'
+
 APP = ['main.py']
 OPTIONS = {
     'iconfile': icon, 
@@ -21,7 +23,6 @@ OPTIONS = {
         'packaging', 
         'requests', 
         'pywinctl', 
-        'tkmacosx',
         'colour',
         'charset_normalizer',
         'colorama',
@@ -49,8 +50,8 @@ OPTIONS = {
         'PyInstaller'
     ],
     'frameworks':[
-        '/opt/homebrew/Cellar/tcl-tk@8/8.6.15/lib/libtk8.6.dylib',
-        '/opt/homebrew/Cellar/tcl-tk@8/8.6.15/lib/libtcl8.6.dylib',
+        f'/opt/homebrew/Cellar/tcl-tk@8/{tcl_tk_version}/lib/libtk8.6.dylib',
+        f'/opt/homebrew/Cellar/tcl-tk@8/{tcl_tk_version}/lib/libtcl8.6.dylib',
     ],
     'plist': {
         'NSHumanReadableCopyright': 
@@ -78,7 +79,7 @@ DATA_FILES=[
         './buildandsign/ico/ico3beta.png',
         './buildandsign/ico/motionteamph.png',
         ]),
-     ('../lib', ['/opt/homebrew/Cellar/tcl-tk@8/8.6.15/lib/']),
+     ('../lib', [f'/opt/homebrew/Cellar/tcl-tk@8/{tcl_tk_version}/lib/']),
         ]
 setup(
     app=APP,
