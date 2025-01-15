@@ -221,7 +221,7 @@ def video_to_frames_seq(input_file, framerate, preview = False):
     elif mac:
         subprocess.run(cmd)
 
-def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
+def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output, data=None):
     global matte_var
 
     if hasattr(output, 'name'):
@@ -245,6 +245,8 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
             "-q",
             "-r", str(int(fps)),
             "-Q", str(gifQuality),
+            "-W", str(data['width']),
+            "-H", str(data['height']),
             "--repeat", "0",
             ]
 
@@ -276,9 +278,10 @@ def vid_to_gif(fps, gifQuality, motionQuality, lossyQuality, output):
         subprocess.run(cmd)
 
 def get_and_print_video_data(file_path):
-    global video_data, valid_files, invalid_files
+    global video_data, valid_files, invalid_files, batch_video_data
     invalid_files = []
     valid_files = []
+    batch_video_data = []
 
     if file_path == '':
         print('No video File dropped.')
@@ -311,6 +314,10 @@ def get_and_print_video_data(file_path):
                 if video_data := get_video_data(valid_files[0][1]):
                     parse_video_data(video_data)
             else:
+                for filename, full_path in valid_files:  
+                    if batch_data := get_video_data(full_path):
+                        batch_video_data.append((filename, batch_data))
+                
                 open_settings_window()
 
         if mac:
@@ -438,18 +445,20 @@ def convert_and_save(fps, gif_quality, motion_quality, lossy_quality, input_file
             loading_thread_switch(root, True, input_file[0][0], 1, len(input_file))
 
             for filenum, (file_name, full_path) in enumerate(input_file, start=1):
-                output = os.path.normpath(
-                    os.path.join(
-                        output_directory, f"{os.path.splitext(file_name)[0]}.gif"
-                        )
-                    )
-                
-                if loading_screen:
-                    update_loading(file_name, filenum, len(input_file))
-                
-                video_to_frames_seq(full_path, framerate)
-                vid_to_gif(framerate, gifQ, motionQ, lossyQ, output)
-                remove_temp(True)
+                for file_name2, data in batch_video_data:
+                    if file_name == file_name2:
+                        output = os.path.normpath(
+                            os.path.join(
+                                output_directory, f"{os.path.splitext(file_name)[0]}.gif"
+                                )
+                            )
+                        
+                        if loading_screen:
+                            update_loading(file_name, filenum, len(input_file))
+                        
+                        video_to_frames_seq(full_path, framerate)
+                        vid_to_gif(framerate, gifQ, motionQ, lossyQ, output, data)
+                        remove_temp(True)
             
             loading_thread_switch(root, False)
             on_settings_window_close()
