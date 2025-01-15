@@ -1,5 +1,5 @@
-__version__ = "4.0.0"
-__versionMac__ = "4.0.0"
+__version__ = "4.0.1"
+__versionMac__ = "4.0.1"
 __appname__ = "N8\'s Video To Gifski"
 __author__= 'John Nathaniel Calvara'
 
