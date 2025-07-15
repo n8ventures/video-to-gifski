@@ -224,7 +224,7 @@ def buildAndSign():
         os.chdir('./dist')
 
         old_main = 'main.exe'
-        new_main = f'{__appname__}.exe'
+        new_main = f'{__appname__.replace("'", "").replace(" ", "")}.exe'
 
         if os.path.exists(new_main):
             os.remove(new_main)
