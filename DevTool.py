@@ -41,7 +41,7 @@ note = '''\
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,description=textwrap.dedent(note))
 
 console = 'False'
-ff = 'full'
+ff = 'Windows'
 
 python_directory = sys.prefix
 site_packages_path = os.path.join(python_directory, 'lib', 'site-packages') 
@@ -81,7 +81,7 @@ def genMainSpec(ff, console):
             ('.\\\\buildandsign\\\\bin\\\\{ff}\\\\ffplay.exe', '.'),
             ('.\\\\buildandsign\\\\bin\\\\{ff}\\\\ffmpeg.exe', '.'),
             ('.\\\\buildandsign\\\\bin\\\\{ff}\\\\ffprobe.exe', '.'),
-            ('.\\\\buildandsign\\\\bin\\\\gifski.exe', '.'),
+            ('.\\\\buildandsign\\\\bin\\\\{ff}\\\\gifski.exe', '.'),
         ],\n'''
     b ='''\
         datas=datas,
@@ -328,8 +328,8 @@ base_dir = os.path.abspath(os.path.dirname(__file__))
 
 def check_and_update_local():
     if win:
-        ffmpeg = '.\\buildandsign\\bin\\full\\ffmpeg.exe'
-        gifski= '.\\buildandsign\\bin\\gifski.exe'
+        ffmpeg = '.\\buildandsign\\bin\\Windows\\ffmpeg.exe'
+        gifski= '.\\buildandsign\\bin\\Windows\\gifski.exe'
     elif mac:
         MacOS_bin_dir = os.path.join(base_dir, 'buildandsign', 'bin', 'MacOS')
         ffmpeg = os.path.join(MacOS_bin_dir, 'ffmpeg')
@@ -581,8 +581,8 @@ if args.console:
 
 ffmpegRepo = ffmpeg_GyanDev()
 gifskiRepo = get_latest_release_version('ImageOptim', 'gifski')
-ffmpeg_dir = '.\\buildandsign\\bin\\full\\'
-gifski_dir = f'.\\buildandsign\\bin\\'
+ffmpeg_dir = '.\\buildandsign\\bin\\Windows\\'
+gifski_dir = ffmpeg_dir
 MacOS_bin_dir = f'./buildandsign/bin/MacOS/'
     
 if args.build:
