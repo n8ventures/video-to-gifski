@@ -6,9 +6,10 @@ import os
 import sys
 import sv_ttk
 import darkdetect
+import subprocess
 
 from modules.TkModules import center_window, widget_color
-from modules.platformModules import win, mac, bundle_path, icon
+from modules.platformModules import win, mac, bundle_path, icon, gifski, ffmpeg
 from modules.argsModule import args
 
 def set_args(argument = None):
@@ -20,6 +21,23 @@ def set_args(argument = None):
 
 root = TkinterDnD.Tk()
 root.withdraw()
+
+gifski_ver = subprocess.run(
+    [gifski, "--version"],
+    capture_output=True,   
+    text=True
+)
+
+ffmpeg_ver = subprocess.run(
+    [ffmpeg, "-version"],
+    capture_output=True,   
+    text=True
+)
+
+gifski_output = gifski_ver.stdout or gifski_ver.stderr
+ffmpeg_output = ffmpeg_ver.stdout or ffmpeg_ver.stderr
+print("Gifski Version:", gifski_output.strip())
+print("ffmpeg Version:", ffmpeg_output.splitlines()[0].strip())
 
 print('TCL Library:', root.tk.exprstring('$tcl_library'))
 print('Tk Library:',root.tk.exprstring('$tk_library'))
