@@ -239,7 +239,7 @@ def buildAndSign():
         printColor(Color.GREEN, '"build" folder removed!')
         # Create App using py2app
         printColor(Color.CYAN, 'Building main.app...')
-        subprocess.run(['python', 'mac_py2app_setup.py', 'py2app'], check=True)
+        subprocess.run([sys.executable, 'mac_py2app_setup.py', 'py2app'], check=True)
         printColor(Color.GREEN, 'main.app Built!')
         
         # Sign The .app
@@ -262,18 +262,19 @@ def buildAndSign():
         ], check=True)
         printColor(Color.GREEN, 'DMG Built!')
         
-        # Sign the DMG
-        printColor(Color.CYAN, 'signing the .dmg...')
-        apple_dev = apple_dev
-        dmg_path = os.path.abspath(r"./N8's Video To Gifski.dmg")
-        subprocess.run([
-            'codesign', '--sign', apple_dev, '--deep', '--force', '--timestamp', dmg_path
-        ], check=True)
-        printColor(Color.GREEN, '.dmg Signed!')
+        # # Sign the DMG
+        # printColor(Color.CYAN, 'signing the .dmg...')
+        # apple_dev = apple_dev
+        # dmg_path = os.path.abspath(r"./N8's Video To Gifski.dmg")
+        # subprocess.run([
+        #     'codesign', '--sign', apple_dev, '--deep', '--force', '--timestamp', dmg_path
+        # ], check=True)
+        # printColor(Color.GREEN, '.dmg Signed!')
         
         # Rename DMG
         printColor(Color.CYAN, 'renaming the .dmg...')
         new_dmg_path = os.path.abspath(r"./MacOS - N8 Video To Gifski.dmg")
+        dmg_path = os.path.abspath(r"./N8's Video To Gifski.dmg")
         os.rename(dmg_path, new_dmg_path)
         printColor(Color.GREEN, '.dmg renamed!')
 
