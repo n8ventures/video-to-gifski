@@ -28,7 +28,16 @@ def set_args(argument=None):
     return True
 
 
-_THEME_PATH = "buildandsign/themes/Marcel.json" if not bundle_path else os.path.join(bundle_path, "themes/Marcel.json")
+_THEME_PATH = (
+    "buildandsign/themes/Marcel.json"
+    if not bundle_path
+    else os.path.join(
+        bundle_path,
+        "assets",
+        "themes",
+        "Marcel.json",
+    )
+)
 
 with open(_THEME_PATH) as f:
     theme = json.load(f)
@@ -112,9 +121,9 @@ center_window(splash_screen, splash_geo_x, splash_geo_y)
 
 gif_path = "splash.gif"
 if bundle_path:
-    gif_path = os.path.join(bundle_path, gif_path)
+    gif_path = os.path.join(bundle_path, "assets", "splash", gif_path)
 else:
-    gif_path = ".//splash//splash.gif"
+    gif_path = "./buildandsign/splash/splash.gif"
 
 gif_img = Image.open(gif_path)
 gif_frames_rgba = [frame.convert("RGBA") for frame in ImageSequence.Iterator(gif_img)]

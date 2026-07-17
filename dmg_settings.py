@@ -1,15 +1,15 @@
 import os.path
 import sys
-import plistlib
-sys.path.append(os.path.abspath(os.path.dirname('__version__.py')))
+from pathlib import Path
 
-from __version__ import __versionMac__ as __version__
+# sys.path.append(os.path.abspath(os.path.dirname("__version__.py")))
+# from __version__ import __versionMac__ as __version__
 
 # Example settings file for dmgbuild
 #
 
-# Use like this: 
-#  dmgbuild -s dmgbuild.py -D filesystem='APFS' "N8's Video To Gifski (Beta)" "N8's Video To Gifski (Beta).dmg"
+# Use like this:
+#  dmgbuild -s dmg_settings.py "./dist/N8's Media Sniffer.app" "N8's Media Sniffer.dmg"
 
 # You can actually use this file for your own application (not just TextEdit)
 # by doing e.g.
@@ -18,36 +18,26 @@ from __version__ import __versionMac__ as __version__
 
 # .. Useful stuff ..............................................................
 
-if any(char.isalpha() for char in __version__):
-    application =  defines.get('app',"./dist/N8's Video To Gifski (Beta).app") # type: ignore
-else:
-    application =  defines.get('app',"./dist/N8's Video To Gifski.app") # type: ignore
+DIST_DIR = Path("dist")
+app_name = "N8's Video To Gifski"
 
+application = defines.get("app", f"./dist/{app_name}.app")  # noqa: F821 # type: ignore
 appname = os.path.basename(application)
+
 
 # .. Basics ....................................................................
 
-if any(char.isalpha() for char in __version__):
-    # Uncomment to override the output filename
-    filename = "N8's Video To Gifski (Beta).dmg"
-
-    # Uncomment to override the output volume name
-    volume_name = "N8's Video To Gifski (Beta)"
-else:
-    filename = "N8's Video To Gifski.dmg"
-    volume_name = "N8's Video To Gifski"
+filename = f"{app_name}.dmg"
+volume_name = app_name
 # Volume format (see hdiutil create -help)
-format = defines.get("format", "UDZO")  # type: ignore # noqa: F821
+format = defines.get("format", "ULFO")  # type: ignore # noqa: F821
 
+filesystem = defines.get("filesystem", "APFS")  # type: ignore # noqa: F821
 # Compression level (if relevant)
 compression_level = 9
 
-# Volume size
-size = defines.get("size", None) # type: ignore
-
 # Files to include
 files = [application]
-
 # Symlinks to create
 symlinks = {"Applications": "/Applications"}
 
@@ -55,10 +45,7 @@ symlinks = {"Applications": "/Applications"}
 # hide = [ 'Secret.data' ]
 
 # Files to hide the extension of
-if any(char.isalpha() for char in __version__):
-    hide_extension = [ "N8's Video To Gifski (Beta).app" ]
-else:
-     hide_extension = [ "N8's Video To Gifski.app" ]
+hide_extension = [appname]
 
 # Volume icon
 #
@@ -67,10 +54,7 @@ else:
 # will be used to badge the system's Removable Disk icon. Badge icons require
 # pyobjc-framework-Quartz.
 #
-if any(char.isalpha() for char in __version__):
-    icon = './icons/mac/icoDev-DMG.icns'
-else:
-    icon = './icons/mac/icoDMG.icns'
+icon = "./buildandsign/icons/MacOS/icoDMG.icns"
 # Where to put the icons
 icon_locations = {appname: (120, 170), "Applications": (450, 170)}
 
@@ -86,7 +70,7 @@ icon_locations = {appname: (120, 170), "Applications": (450, 170)}
 #    hsl(120,1,.5)    - HSL (hue saturation lightness) color
 #    hwb(300,0,0)     - HWB (hue whiteness blackness) color
 #    cmyk(0,1,0,0)    - CMYK color
-#    goldenrod        - X11/SVG named color 
+#    goldenrod        - X11/SVG named color
 #    builtin-arrow    - A simple built-in background with a blue arrow
 #    /foo/bar/baz.png - The path to an image file
 #
@@ -96,10 +80,7 @@ icon_locations = {appname: (120, 170), "Applications": (450, 170)}
 #
 # Other color components may be expressed either in the range 0 to 1, or
 # as percentages (e.g. 60% is equivalent to 0.6).
-if any(char.isalpha() for char in __version__):
-    background = "./buildandsign/dmg/DMGDev_BG.png"
-else:
-    background = "./buildandsign/dmg/DMG_BG.png"
+background = "./buildandsign/dmg/DMG_BG.png"
 
 show_status_bar = False
 show_tab_view = False

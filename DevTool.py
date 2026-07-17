@@ -1,782 +1,558 @@
-import textwrap
-import argparse
-import os
-import sys
+#!/usr/bin/env python3
+"""
+devtools.py — N8's Video To Gifski build tool
+----------------------------------------
+Usage:
+    python devtools.py          # build with auto-incremented count
+    python devtools.py --dry    # preview version string, don't build
+    python devtools.py --reset  # reset build counter to 0
+    python devtools.py --dmg    # build DMG after building the app
+"""
+
 import subprocess
-import requests
-import json
-from tqdm import tqdm
+import sys
+import os
 import re
-from __version__ import (
-    __version__,
-    __ffmpegversion__, 
-    __gifskiversion__, 
-    __appname__)
-from PIL import Image
+import json
+import argparse
 import shutil
+from datetime import datetime
+from pathlib import Path
 
-from modules.platformModules import win, mac
-class Color:
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    DARKCYAN = '\033[36m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
+from modules.platformModules import mac, win
 
-def printColor(COLOR, string):
-    print(COLOR + string + Color.END)
+# ── Config ────────────────────────────────────────────────────────────────────
 
-note = '''\
-    Hi, this has been created by N8 because he forgets shit. He\'s now made it availabe to create a full version of the program.
-    Anyways, here\'s all the need-to-know when exporting it into an .exe.
+SPEC_FILE = "N8VideoToGifski.spec"
+VERSION_FILE = Path("__version__.py")
+BUILD_FILE = Path("build_count.json")  # readable by the GUI too
+DIST_DIR = Path("dist")
+ROOT_DIR = Path(".")
+APP = "N8's Video To Gifski"
+EXT = ".app" if mac else ".exe"
 
-    Note: this only covers creating full versions of the program. But I do have plans to check internal updates using this script.
-    '''
+FINAL_DMG_NAME = "N8's Video To Gifski Installer"
+FINAL_DMG_FILE = f"{FINAL_DMG_NAME}.dmg"
+pre_existing_final_dmg = ROOT_DIR / FINAL_DMG_FILE
 
-parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,description=textwrap.dedent(note))
+# Signing — switch to "Developer ID Application: ..." when notarizing
+SIGNING_IDENTITY = "Developer ID Application: John Nathaniel Calvara (C9MNV8M79M)"
+ENTITLEMENTS_FILE = Path("entitlements.plist")
 
-console = 'False'
-ff = 'Windows'
+# Set to True when switching to Developer ID for notarization.
+# Adds --timestamp to the codesign command (required by Apple for notarization,
+# but causes errSecInternalComponent with Apple Development certs during long builds).
+IS_DIST_BUILD = False
 
-python_directory = sys.prefix
-site_packages_path = os.path.join(python_directory, 'lib', 'site-packages') 
-site_packages_path = site_packages_path.replace('\\', '\\\\')
-script_directory = os.path.dirname(os.path.realpath(__file__))
-    
-def genMainSpec(ff, console):
-    if any(char.isalpha() for char in __version__):
-        icon = '.\\\\icons\\\\win\\\\icoDev.ico'
-    else:
-        icon = '.\\\\icons\\\\win\\\\ico.ico'
+# Dylibs shipped by PaddlePaddle with SDK version (0,0,0) — invalid for
+# hardened-runtime signing. Must be re-signed individually after the build.
+RESIGN_DYLIBS = [
+    "libblas.dylib",
+    "liblapack.dylib",
+]
 
-    a = f'''\
-    # -*- mode: python ; coding: utf-8 -*-
-    from PyInstaller.utils.hooks import collect_data_files
-    
-    excludes = ['test.py', 'DevTool.py']
-    
-    datas = [ 
-        ('.\\\\icons\\\\win\\\\icoDev.ico', '.'),
-        ('.\\\\icons\\\\win\\\\ico.ico', '.'),
-        ('.\\\\splash\\\\splash.gif','.'),
-        ('.\\\\splash\\\\splashEE.gif','.'),
-        ('.\\\\buildandsign\\\\ico\\\\amor.png', '.'),
-        ('.\\\\buildandsign\\\\ico\\\\ico3.png', '.'),
-        ('.\\\\buildandsign\\\\ico\\\\motionteamph.png', '.'),
-        ('{site_packages_path}\\\\tkinterdnd2', 'tkinterdnd2'),
-        ('{site_packages_path}\\\\emoji','emoji'),
-        ('{site_packages_path}\\\\sv_ttk','sv_ttk')
-    ]
-    datas += collect_data_files('pyinstaller_hooks_contrib.collect')
 
-    a = Analysis( # type: ignore
-        ['main.py'],
-        pathex=[],
-        binaries=[
-            ('.\\\\buildandsign\\\\bin\\\\{ff}\\\\ffplay.exe', '.'),
-            ('.\\\\buildandsign\\\\bin\\\\{ff}\\\\ffmpeg.exe', '.'),
-            ('.\\\\buildandsign\\\\bin\\\\{ff}\\\\ffprobe.exe', '.'),
-            ('.\\\\buildandsign\\\\bin\\\\{ff}\\\\gifski.exe', '.'),
-        ],\n'''
-    b ='''\
-        datas=datas,
-        hiddenimports=[],
-        hookspath=[],
-        hooksconfig={},
-        runtime_hooks=[],
-        excludes=excludes,
-        noarchive=False,
-    )\n\n
+# ── Build Icons ───────────────────────────────────────────────────────────────────
+def build_icons():
+    from tools.icnsBuilder import pngtoicns, pngtoico
 
-    pyz = PYZ(a.pure) # type: ignore\n\n'''
-
-    c = f'''\
-        exe = EXE( # type: ignore
-        pyz,
-        a.scripts,
-        a.binaries,
-        a.datas,
-        [],
-        name='main',
-        debug={console},
-        bootloader_ignore_signals=False,
-        strip=False,
-        upx=True,
-        upx_exclude=[],
-        runtime_tmpdir=None,
-        console={console},
-        disable_windowed_traceback=False,
-        argv_emulation=False,
-        target_arch=None,
-        codesign_identity=None,
-        entitlements_file=None,
-        icon=['{icon}'],
-        version='__mainVersion.rc',
-        )'''
-    a = textwrap.dedent(a)
-    b = textwrap.dedent(b)
-    c = textwrap.dedent(c) 
-    with open('main.spec', 'w') as spec_file:
-        spec_file.write(a.__str__())
-        spec_file.write(b.__str__())
-        spec_file.write(c.__str__())
-
-def genMainRC():
-    version = __version__.split('.')
-    a = f'''
-    # UTF-8
-    # Please refer to __version__.py
-    # For more details about fixed file info 'ffi' see:
-    # http://msdn.microsoft.com/en-us/library/ms646997.aspx
-    VSVersionInfo(
-      ffi=FixedFileInfo(
-        # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
-        # Set not needed items to zero 0.
-        filevers=({version[0]}, {version[1]}, {version[2]}, 0),
-        prodvers=({version[0]}, {version[1]}, {version[2]}, 0),
-        # Contains a bitmask that specifies the valid bits 'flags'r
-        mask=0x3f,
-        # Contains a bitmask that specifies the Boolean attributes of the file.
-        flags=0x0,
-        # The operating system for which this file was designed.
-        # 0x4 - NT and there is no need to change it.
-        OS=0x4,
-        # The general type of file.
-        # 0x1 - the file is an application.
-        fileType=0x1,
-        # The function of the file.
-        # 0x0 - the function is not defined for this fileType
-        subtype=0x0,
-        # Creation date and time stamp.
-        date=(0, 0)
-        ),
-      kids=[
-        StringFileInfo(
-          [
-          StringTable(
-            '040904e4',
-            [StringStruct('CompanyName', 'N8VENTURES'),
-            StringStruct('FileDescription', 'N8\\'s Video to Gifski'),
-            StringStruct('FileVersion', '{__version__}'),
-            StringStruct('InternalName', 'N8\\'s Video To Gifski'),
-            StringStruct('LegalCopyright','Copyright © 2024-2025 John Nathaniel Calvara. Licensed under the MIT License.'),
-            StringStruct('OriginalFilename', 'N8\\'s Video To Gifski.exe'),
-            StringStruct('ProductName', 'N8\\'s Video to Gifski'),
-            StringStruct('ProductVersion', '{__version__}')])
-          ]), 
-        VarFileInfo([VarStruct('Translation', [1033, 1252])])
-      ]
-    )
-    '''
-    a = textwrap.dedent(a)
-    with open('__mainVersion.rc', 'w', encoding='utf-8') as rc_file:
-        rc_file.write(a.__str__())
-
-def buildAndSign():
-    def cert_pass():
-        while True:
-            if win:
-                response = input(f'{Color.YELLOW}Enter certificate password: {Color.END}')
-            elif mac:
-                response = input(f'{Color.YELLOW}Enter identity: {Color.END}')
-            if response:
-                return response
-            else:
-                print("No input. Please enter the password: ")
+    if mac:
+        ICONS_DIR = "./buildandsign/icons/MacOS/"
+        pngtoicns(f"{ICONS_DIR}icon.png", ICONS_DIR)
+        pngtoicns(f"{ICONS_DIR}icoDMG.png", ICONS_DIR)
+        print("  ✓ Mac Icons built using tools/icnsBuilder.py")
     if win:
-        build_main = 'pyinstaller ./main.spec'
+        ICONS_DIR = "./buildandsign/icons/Windows/"
+        pngtoico(f"{ICONS_DIR}icon.png", ICONS_DIR)
+        print("  ✓ Windows Icons built using tools/icnsBuilder.py")
 
-        printColor(Color.CYAN, 'Building main.exe...')
-        subprocess.run(build_main, shell=True)
-        printColor(Color.GREEN, 'main.exe Built!')
 
-        # Sign the executable using signtool
-        where_command= 'where /R "C:\\Program Files (x86)" signtool.*'
-        where_result = subprocess.run(where_command,capture_output=True, shell=True)
-        output_str = where_result.stdout.decode('utf-8')
-        output_lines = output_str.split('\r\n')
+# ── Build JSON ────────────────────────────────────────────────────────────────
 
-        if os.path.exists("C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.19041.0\\x64\\"):
-            os.chdir("C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.19041.0\\x64\\")
-            signtool_exe = 'signtool.exe'
-        else:
-            signtool_exe = output_lines[0]
 
-        # Construct the sign_command
+def read_build_file() -> dict:
+    if BUILD_FILE.exists():
         try:
-            password = cert_pass()
-            main_sign_command = f'{signtool_exe} sign /f "{script_directory}\\buildandsign\\certificate.pfx" /p {password} /tr http://timestamp.digicert.com /td sha256 /v "{script_directory}\\dist\\main.exe"'
-            printColor(Color.CYAN, 'Signing main.exe...')
-            subprocess.run(main_sign_command, shell=True)
-            printColor(Color.GREEN, 'main.exe signed!')
-
-        except Exception as e:
-            print("An error occurred while signing:", e)
+            return json.loads(BUILD_FILE.read_text())
+        except (json.JSONDecodeError, KeyError):
+            pass
+    return {"build_count": 0}
 
 
-        # rename newly built main.exe
-        os.chdir(script_directory)
-        os.chdir('./dist')
+def write_build_file(data: dict):
+    BUILD_FILE.write_text(json.dumps(data, indent=4))
 
-        old_main = 'main.exe'
-        new_main = f'{__appname__.replace("'", "").replace(" ", "")}.exe'
 
-        if os.path.exists(new_main):
-            os.remove(new_main)
-            printColor(Color.YELLOW, f'\nremoved {new_main}!')
+def bump_build_count() -> int:
+    data = read_build_file()
+    data["build_count"] = data.get("build_count", 0) + 1
+    write_build_file(data)
+    return data["build_count"]
 
-        # Rename the file after signing
-        os.rename(old_main, new_main)
-    elif mac:
-        # Remove build and dist folders
-        printColor(Color.YELLOW, 'Building removing "build" folder...')
-        subprocess.run(['rm', '-rf', 'build', 'dist', 'N8\'s Video To Gifski.dmg'], check=True)
-        printColor(Color.GREEN, '"build" folder removed!')
-        # Create App using py2app
-        printColor(Color.CYAN, 'Building main.app...')
-        subprocess.run([sys.executable, 'mac_py2app_setup.py', 'py2app'], check=True)
-        printColor(Color.GREEN, 'main.app Built!')
-        
-        # Sign The .app
-        printColor(Color.CYAN, 'signing the .app...')
-        apple_dev = cert_pass()
-        build_app_path = os.path.abspath(r"./dist/N8's Video To Gifski.app")
-        subprocess.run([
-            'codesign', '--sign', apple_dev, '--deep', '--force', '--timestamp', build_app_path
-        ], check=True)
-        printColor(Color.GREEN, '.app Signed!')
 
-        # Create DMG for distribution
-        printColor(Color.CYAN, 'Building DMG for distribution...')
-        subprocess.run([
-            'dmgbuild', 
-            '-s', 'dmgbuild.py', 
-            '-D', 'filesystem="UDZO"', 
-            "N8's Video To Gifski",
-            "N8's Video To Gifski.dmg"
-        ], check=True)
-        printColor(Color.GREEN, 'DMG Built!')
-        
-        # # Sign the DMG
-        # printColor(Color.CYAN, 'signing the .dmg...')
-        # apple_dev = apple_dev
-        # dmg_path = os.path.abspath(r"./N8's Video To Gifski.dmg")
-        # subprocess.run([
-        #     'codesign', '--sign', apple_dev, '--deep', '--force', '--timestamp', dmg_path
-        # ], check=True)
-        # printColor(Color.GREEN, '.dmg Signed!')
-        
-        # Rename DMG
-        printColor(Color.CYAN, 'renaming the .dmg...')
-        new_dmg_path = os.path.abspath(r"./MacOS - N8 Video To Gifski.dmg")
-        dmg_path = os.path.abspath(r"./N8's Video To Gifski.dmg")
-        os.rename(dmg_path, new_dmg_path)
-        printColor(Color.GREEN, '.dmg renamed!')
+def save_build_info(count: int, base_version: str, label: str, now: datetime):
+    """
+    Writes the full build record to build_count.json.
+    The GUI reads this file directly — no string parsing needed.
+    """
+    data = {
+        "build_count": count,
+        "build_label": label,
+        "base_version": base_version,
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M"),
+    }
+    write_build_file(data)
 
-    printColor(Color.GREEN, f'\n{__appname__} Build version {__version__} DONE!')
 
-def get_latest_release_version(repo_owner, repo_name):
-    global api_url
-    api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
-    response = requests.get(api_url)
+# ── Version helpers ───────────────────────────────────────────────────────────
 
-    if response.status_code != 200:
-        return '0.0.0'
-    release_info = json.loads(response.text)
-    return release_info.get('tag_name', '0.0.0')
 
-def ffmpeg_GyanDev():
-    gyan_api = 'https://www.gyan.dev/ffmpeg/builds/git-version'
-    response = requests.get(gyan_api)
-    if response.status_code != 200:
-        return '0.0.0'
-    release_info = response
-    return release_info.text
-    
-def yes_no_prompt(prompt):
-    while True:
-        response = input(f"{prompt} (y/n): ").strip().lower()
-        if response in ["yes", "y"]:
-            return True
-        elif response in ["no", "n"]:
-            return False
-        else:
-            print("Please enter 'yes' or 'no'.")
+def read_base_version() -> str:
+    """Reads __version__ from __version__.py without importing it."""
+    text = VERSION_FILE.read_text()
+    match = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', text, re.MULTILINE)
+    if not match:
+        raise ValueError(f"Could not parse __version__ from {VERSION_FILE}")
+    return match.group(1)
 
-def download_file(url, destination):
-    response = requests.get(url, stream=True)
-    total_size = int(response.headers.get('content-length', 0))
 
-    with open(destination, 'wb') as file, tqdm(
-            desc=f"Downloading {destination}",
-            total=total_size,  
-            unit='B',  
-            unit_scale=True,  
-            unit_divisor=1024,  
-            miniters=1, 
-            colour='green', 
-            ) as progress_bar:
-        for chunk in response.iter_content(chunk_size=1024):
-            file.write(chunk)
-            progress_bar.update(len(chunk))
+def make_build_label(base_version: str, count: int, now: datetime) -> str:
+    """
+    Produces a label like:  0.0.4a-B47.202606041423
+    Format: {base_version}-B{count}.{YYYYMMDD}{HHMM}
+    """
+    date_part = now.strftime("%Y%m%d")
+    time_part = now.strftime("%H%M")
+    return f"{base_version}-B{count}.{date_part}{time_part}"
 
-base_dir = os.path.abspath(os.path.dirname(__file__)) 
 
-def check_and_update_local():
-    if win:
-        ffmpeg = '.\\buildandsign\\bin\\Windows\\ffmpeg.exe'
-        gifski= '.\\buildandsign\\bin\\Windows\\gifski.exe'
-    elif mac:
-        MacOS_bin_dir = os.path.join(base_dir, 'buildandsign', 'bin', 'MacOS')
-        ffmpeg = os.path.join(MacOS_bin_dir, 'ffmpeg')
-        gifski = os.path.join(MacOS_bin_dir, 'gifski')
-
-    def get_ffmpeg_version():
-        cmd = [ffmpeg, '-version']
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode == 0:
-            version_info = result.stdout
-            if win:
-                version = re.search(r'ffmpeg version (\d{4}-\d{2}-\d{2}-git-\w+)', version_info)
-            elif mac:
-                version = re.search(r'ffmpeg version (\S+)', version_info)
-            
-            if version:
-                if win:
-                    return version[1]
-                elif mac:
-                    clean_version = version.group(1).split('-')[0] 
-                    clean_version += '-' 
-                    clean_version +=  version.group(1).split('-')[1] 
-                    clean_version += '-'
-                    clean_version +=  version.group(1).split('-')[2]
-                    return clean_version 
-
-            print("Version not found.")
-            return None
-        else:
-            print(f"Error: {result.stderr}")
-            return None
-
-    print('Current FFmpeg version: ', get_ffmpeg_version())
-
-    def get_gifski_version():
-        cmd = [gifski, '--version']
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode == 0:
-            version_info = result.stdout
-            version = re.search(r'(\d+(\.\d+)+)', version_info)
-            if version:
-                return version[1]
-            print("Version not found.")
-            return None
-        else:
-            print(f"Error: {result.stderr}")
-            return None
-
-    print('Current Gifski version: ', get_gifski_version())
-
-    def update__version__():
-        with open('__version__.py', 'r') as file:
-            lines = file.readlines()
-        for i, line in enumerate(lines):
-            if win:
-                if '__ffmpegversion__' in line:
-                    lines[i] = f'__ffmpegversion__ = \'{get_ffmpeg_version()}\'\n'
-                if '__gifskiversion__' in line:
-                    lines[i] = f'__gifskiversion__= \'{get_gifski_version()}\'\n'
-                    break
-            elif mac:
-                if '__ffmpegversion_Mac__' in line:
-                    lines[i] = f'__ffmpegversion_Mac__ = \'{get_ffmpeg_version()}\'\n'
-                if '__gifskiversion_Mac__' in line:
-                    lines[i] = f'__gifskiversion_Mac__= \'{get_gifski_version()}\''
-                    break
-        with open('__version__.py', 'w') as file:
-            file.writelines(lines)
-
-    update__version__()
-    print('Checking and updating local versions on __version__.py...')
-
-if win:
-    icoFolder = os.path.join(base_dir, 'buildandsign', 'ico')
-    iconsProdFolder = os.path.join(base_dir, 'icons', 'win')
-if mac:
-    icoFolder = os.path.join(base_dir, 'buildandsign', 'ico', 'MacOS')
-    iconsProdFolder = os.path.join(base_dir, 'icons', 'mac')
-
-def pngtoico(png):
-    # Prepare paths
-    mainDir = iconsProdFolder
-    output_dir = iconsProdFolder
-    iconset = f"{os.path.splitext(os.path.split(png)[1])[0]}.iconset"
-
-    # Easter Egg and Dev Icons
-    if png == os.path.join(icoFolder, 'ico2.png'):
-        output_ico = os.path.join(mainDir, 'Easter', 'ico.ico')
-        iconset = os.path.join('Easter', 'ico.iconset')
-    elif png == os.path.join(icoFolder, 'icobeta.png'):
-        output_ico = os.path.join(mainDir, 'icoDev.ico')
-        iconset = os.path.join('Easter', 'icoDev.iconset')
-    # Icons Proper
-    elif png == os.path.join(icoFolder, 'ico3.png'):
-        output_ico = os.path.join(mainDir, 'ico.ico')
-        iconset = 'ico.iconset'
-    elif png == os.path.join(icoFolder, 'ico3beta.png'):
-        output_ico = os.path.join(mainDir, 'icoDev.ico')
-        iconset = 'icoDev.iconset'
-    elif png == os.path.join(icoFolder, 'ico3Updater.png'):
-        output_ico = os.path.join(mainDir, 'icoUpdater.ico')
-    # Any Icons
-    else:
-        output_ico = os.path.join(mainDir, f'{os.path.splitext(os.path.basename(png))[0]}.ico')
-    
-    if win:
-        def resize_image(image_path, output_path, size):
-            with Image.open(image_path) as img:
-                resized_img = img.resize(size)
-                resized_img.save(output_path)      
-
-        image = png
-        sizes = [(16, 16), (32, 32), (48, 48), (128, 128), (256, 256)]
-
-        resize_folder = "resize"
-        os.makedirs(resize_folder, exist_ok=True)
-
-        for size in sizes:
-            output_path = os.path.join(resize_folder, f"resized_{size[0]}x{size[1]}.png")
-            resize_image(image, output_path, size)
-
-        resized_images = [os.path.join(resize_folder, f"resized_{size[0]}x{size[1]}.png") for size in sizes]
-        print(resized_images)
-        
-        cmd = ["magick"] + resized_images + ['-type','TrueColorAlpha', output_ico]
-        subprocess.run(cmd, check=True)
-        shutil.rmtree('resize')
-
-    elif mac:
-        iconset_dir = os.path.join(output_dir, iconset)
-        sizes = [
-        (16, 16), (32, 32), (32, 32), (64, 64), (128, 128),
-        (256, 256), (256, 256), (512, 512), (512, 512)
-        ]
-        output_files = [
-        "icon_16x16.png", "icon_16x16@2x.png", "icon_32x32.png", "icon_32x32@2x.png",
-        "icon_128x128.png", "icon_128x128@2x.png", "icon_256x256.png", "icon_256x256@2x.png",
-        "icon_512x512.png"
-        ]
-        
-        os.makedirs(iconset_dir, exist_ok=True)
-
-        for (width, height), output_file in zip(sizes, output_files):
-            command = ['sips', '-z', str(width), str(height), png, '--out', os.path.join(iconset_dir, output_file)]
-            subprocess.run(command, check=True)
-            
-        shutil.copy(png, os.path.join(iconset_dir, "icon_512x512@2x.png"))
-        iconutil_command = ['iconutil', '-c', 'icns', iconset_dir]
-        subprocess.run(iconutil_command, check=True)
-
-        shutil.rmtree(iconset_dir)
-
-parser.add_argument("-T", "--Test",action='store_true', help = "test modules on Windows. Test Signatures on MacOS")
-parser.add_argument("-B", "--build",action='store_true', help = "build the app.")
-parser.add_argument("-c", "--console",action='store_true', help = 'Enable console window. (for testing purposes. Please don\'t use the argument for final export.)')
-parser.add_argument("-U","--Update", action ='store_true', help ='Checks updates on binaries and will ask you to update.')
-parser.add_argument("-i","--icon", action ='store_true', help ='Updates and generates .ico files for the executables.')
-parser.add_argument('-v', '--version', action='version', help='Checks all the version the apps',
-                    version = textwrap.dedent(f"""\
-                    App Proper: {__version__}
-                    FFMPEG: {__ffmpegversion__}
-                    Gifski: {__gifskiversion__}
-                    """))
-
-args = parser.parse_args()
-
-if args.Test:
-    if win:
-        printColor(Color.CYAN, 'Generating mainVersion.rc...')
-        genMainRC()
-        printColor(Color.GREEN, 'mainVersion.rc Generated!')
+def update_changelog():
     if mac:
-        def sign_and_test(path):
-            """
-            Test the signing and validity of a .app or .dmg file.
-            """
-            codesign = 'codesign'
-            spctl = 'spctl'
+        subprocess.run(["git-cliff", "-o", "CHANGELOG.md"])
+        print("  ✓ CHANGELOG.md updated using git-cliff")
 
-            # Determine if path is .app or .dmg
-            is_app = path.endswith('.app')
-            is_dmg = path.endswith('.dmg')
 
-            steps = []
-            
-            steps.append("Verifying with CodeSign (Deep & Strict)")
-            steps.append("Displaying CodeSign Info")
-            if is_app:
-                steps.append("Verifying Executable in .app")
-            if is_app:
-                steps.append("Checking with Gatekeeper")
-            
+# ── Pre-build checks ──────────────────────────────────────────────────────────
+
+
+def check_prerequisites():
+    errors = []
+
+    if not Path(SPEC_FILE).exists():
+        errors.append(f"Spec file not found: {SPEC_FILE}")
+
+    if not VERSION_FILE.exists():
+        errors.append(f"Version file not found: {VERSION_FILE}")
+
+    if shutil.which("pyinstaller") is None:
+        errors.append("pyinstaller not found in PATH — is your venv active?")
+
+    if errors:
+        for e in errors:
+            print(f"  ✗ {e}")
+        sys.exit(1)
+
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+
+
+def run_pyinstaller(build_label: str) -> int:
+    env = os.environ.copy()
+    env["BUILD_VERSION"] = build_label  # spec reads via os.environ.get()
+
+    cmd = [
+        sys.executable,
+        "-m",
+        "PyInstaller",
+        "--clean",
+        "--noconfirm",
+        SPEC_FILE,
+    ]
+
+    print(f"\n  Running: {' '.join(cmd)}")
+    print(f"  BUILD_VERSION = {build_label}\n")
+    print("─" * 60)
+
+    result = subprocess.run(cmd, env=env)
+    return result.returncode
+
+
+# ── Post-build ────────────────────────────────────────────────────────────────
+
+
+def post_build_summary(build_label: str, count: int, success: bool):
+    print("\n" + "─" * 60)
+    app_path = DIST_DIR / f"{APP}{EXT}"
+
+    if success:
+        if app_path.is_dir():
+            size_mb = sum(f.stat().st_size for f in app_path.rglob("*") if f.is_file()) / 1_048_576
+        elif app_path.is_file():
+            size_mb = app_path.stat().st_size / 1_048_576
+        else:
+            size_mb = 0
+
+        print(f"  ✓ Build complete")
+        print(f"    Label   : {build_label}")
+        print(f"    Count   : {count}")
+        print(f"    Output  : {app_path}")
+        print(f"    Size    : {size_mb:.1f} MB")
+    else:
+        print(f"  ✗ Build FAILED  (label: {build_label})")
+        print(f"    build_count.json was already updated — decrement manually if needed")
+
+
+# ── Post-build SSL dylib conflict fix ────────────────────────────────────────
+
+
+def fix_ssl_dylib_conflict(app_path: Path):
+    """
+    Replace cv2's libssl/libcrypto symlinks with the correct Homebrew versions.
+
+    What happens without this:
+      - cv2 ships its own older libssl.3.dylib (pre-OpenSSL 3.3, missing
+        SSL_SESSION_get_time_ex).
+      - PyInstaller creates Contents/Frameworks/libssl.3.dylib as a symlink
+        pointing to cv2/.dylibs/libssl.3.dylib.
+      - Python's _ssl.cpython-313-darwin.so loads that symlink at runtime,
+        gets the wrong version, and crashes with "Symbol not found".
+
+    What this does:
+      - Replaces those top-level symlinks with the REAL Homebrew OpenSSL files
+        that _ssl was compiled against.
+      - cv2's own copies stay untouched in cv2/.dylibs/ for cv2's internal use.
+      - Both cv2 (via libsrt) and _ssl end up using the Homebrew version,
+        which is compatible with both.
+    """
+    frameworks = app_path / "Contents" / "Frameworks"
+
+    brew_root = Path("/opt/homebrew/opt/openssl@3/lib")
+    ssl_libs = ["libssl.3.dylib", "libcrypto.3.dylib"]
+
+    print("Fixing OpenSSL dylib conflict (cv2 vs Python _ssl)...")
+
+    if not brew_root.exists():
+        print(f"    ✗  Homebrew openssl@3 not found at {brew_root}")
+        print(f"       Run: brew install openssl@3")
+        return
+
+    for name in ssl_libs:
+        src = brew_root / name
+        dest = frameworks / name
+
+        if not src.exists():
+            print(f"    ⚠  {name} not found in Homebrew — skipping")
+            continue
+
+        if dest.is_symlink():
+            old_target = os.readlink(dest)
+            dest.unlink()
+            shutil.copy2(src, dest)
+            print(f"    ✓  {name}: symlink ({old_target}) → Homebrew real file")
+        elif dest.exists():
+            dest.unlink()
+            shutil.copy2(src, dest)
+            print(f"    ✓  {name}: replaced with Homebrew version")
+        else:
+            shutil.copy2(src, dest)
+            print(f"    ✓  {name}: added Homebrew version")
+
+
+# ── Post-build signing ────────────────────────────────────────────────────────
+
+
+def sign_app(app_path: Path):
+    """
+    Sign the .app bundle after PyInstaller build.
+
+    PyInstaller's internal signing always adds --timestamp, which contacts
+    Apple's timestamp server and requires the Keychain to stay unlocked for
+    the entire build. With Apple Development certificates this causes
+    errSecInternalComponent during long builds (Keychain auto-locks, or
+    timestamp server request fails mid-build).
+
+    By setting codesign_identity=None in the spec, PyInstaller builds unsigned
+    and we own the entire signing pass here with full control over flags.
+
+    Signing order matters on macOS:
+      1. Patch individual dylibs that have invalid SDK versions (PaddlePaddle)
+      2. Deep-sign the whole bundle (re-signs everything consistently)
+    """
+    print("\n  Signing app bundle...")
+
+    # ── Step 1: Patch known-bad paddle dylibs (SDK version 0,0,0)
+    # These must be signed individually before the bundle pass because
+    # codesign --deep would fail on them without a prior fix.
+    print("  Patching paddle dylibs with invalid SDK version...")
+    patched = 0
+    for name in RESIGN_DYLIBS:
+        matches = list(app_path.rglob(name))
+        if not matches:
+            print(f"    ⚠  Not found: {name} (skipping)")
+            continue
+        for dylib in matches:
+            result = subprocess.run(
+                ["codesign", "--force", "--sign", SIGNING_IDENTITY, str(dylib)],
+                capture_output=True,
+                text=True,
+            )
+            rel = dylib.relative_to(app_path)
+            if result.returncode == 0:
+                print(f"    ✓  {rel}")
+                patched += 1
+            else:
+                print(f"    ✗  {rel}: {result.stderr.strip()}")
+
+    # ── Step 2: Sign the whole bundle
+    print(f"\n  Deep-signing bundle ({patched} dylib(s) pre-patched)...")
+    cmd = [
+        "codesign",
+        "--force",
+        "--deep",
+        "--sign",
+        SIGNING_IDENTITY,
+        "--options",
+        "runtime",
+        # --timestamp is intentionally omitted for Apple Development certificates.
+        # Add it (and switch SIGNING_IDENTITY) when building for notarization:
+        #   "--timestamp",
+    ]
+    if ENTITLEMENTS_FILE.exists():
+        cmd += ["--entitlements", str(ENTITLEMENTS_FILE)]
+    if IS_DIST_BUILD:
+        cmd.append("--timestamp")
+    cmd.append(str(app_path))
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode == 0:
+        print(f"  ✓  Bundle signed")
+    else:
+        print(f"  ✗  Bundle signing failed:")
+        print(f"     {result.stderr.strip()}")
+
+
+def notarize_and_staple(target_path: Path):
+    """
+    Submit a signed .app (zipped) or .dmg to Apple's notary service, wait
+    for the result, then staple the ticket so Gatekeeper works offline.
+    """
+    submit_path = target_path
+    if target_path.suffix == ".app":
+        submit_path = target_path.with_suffix(".zip")
+        subprocess.run(["ditto", "-c", "-k", "--keepParent", str(target_path), str(submit_path)])
+
+    print(f"\n  Submitting {submit_path.name} to Apple notary service...")
+    result = subprocess.run(
+        [
+            "xcrun",
+            "notarytool",
+            "submit",
+            str(submit_path),
+            "--keychain-profile",
+            "n8ventures-notary",  # see setup note below
+            "--wait",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    print(result.stdout)
+    if result.returncode != 0 or "status: Accepted" not in result.stdout:
+        print(f"  ✗ Notarization failed:\n{result.stderr}")
+        return False
+
+    print(f"  Stapling ticket to {target_path.name}...")
+    subprocess.run(["xcrun", "stapler", "staple", str(target_path)])
+    return True
+
+
+# Note: Run this command first
+# xcrun notarytool store-credentials "n8ventures-notary" \
+#   --apple-id "n8ventures@gmail.com" \
+#   --team-id "28N6MRL39U" \
+#   --password "<app-specific password from appleid.apple.com>"
+
+
+#  BUILD DMG
+def build_dmg(app_name="N8's Video to Gifski"):
+    """
+    Build DMG by calling dmgbuild's Python API directly.
+
+    The subprocess approach fails with "Unable to detach device cleanly" because
+    capture_output=True pipes stdio, which interferes with hdiutil's disk
+    management when detaching the temporary mount. Calling the API directly
+    runs in the same process context and avoids this entirely.
+    """
+
+    try:
+        import dmgbuild as _dmgbuild
+    except ImportError:
+        print("  ✗ dmgbuild not installed — run: pip install dmgbuild")
+        return
+
+    app_src = (DIST_DIR / f"{app_name}.app").resolve()
+    dmg_out = (DIST_DIR / f"{app_name}.dmg").resolve()
+
+    if dmg_out.exists():
+        dmg_out.unlink()
+
+    print(f"  Building DMG from {app_src.name}...")
+    _dmgbuild.build_dmg(
+        filename=str(dmg_out),
+        volume_name=app_name,
+        settings_file="dmg_settings.py",
+        defines={"app": str(app_src)},  # absolute path → no move-to-root needed
+        detach_retries=10,  # extra retries in case Spotlight is busy
+    )
+    print(f"  ✓ DMG built: {dmg_out}")
+
+    if dmg_out.exists():
+        dmg_out.rename(DIST_DIR / FINAL_DMG_FILE)
+    else:
+        print(f"  DMG not found after build: {dmg_out}")
+        print("Obviously, dmgbuild still doesn't move it to the dist folder. Assuming it's in root...")
+
+        root_dmg = ROOT_DIR / f"{app_name}.dmg"
+
+        if pre_existing_final_dmg.exists():
+            print(f"  Found pre-existing DMG in root: {pre_existing_final_dmg}")
+            print(f"  Deleting pre-existing DMG...")
+            pre_existing_final_dmg.unlink()
+
+        if root_dmg.exists():
+            print(f"  Found DMG in root: {root_dmg}")
+            root_dmg.rename(pre_existing_final_dmg)
+
             try:
-                print(f"\n--- Testing Signature for: {path} ---")
-
-                # Loop through each step dynamically
-                for i, step in enumerate(steps, start=1):
-                    printColor(Color.CYAN, f"\n[{i}/{len(steps)}] {step}...")
-
-                    if step == "Verifying with CodeSign (Deep & Strict)":
-                        try:
-                            result = subprocess.run([codesign, '--deep', '--strict', path], capture_output=True, text=True, check=True)
-                            print(result.stdout)  # Print the successful output, if any
-                        except subprocess.CalledProcessError as e:
-                            if '':
-                                printColor(Color.YELLOW, 'Output is blank. I think we\'re good!')
-
-                    elif step == "Displaying CodeSign Info":
-                        subprocess.run([codesign, '--display', '--verbose=4', path], check=True)
-
-                    elif step == "Verifying Executable in .app" and is_app:
-                        app_exec_path = os.path.join(path, 'Contents/MacOS/N8\'s Video To Gifski')
-                        subprocess.run([codesign, '--verify', '--verbose=4', app_exec_path], check=True)
-
-                    elif step == "Checking with Gatekeeper" and is_app:
-                        try:
-                            spctl_result = subprocess.run([spctl, '--assess', '--type', 'execute', '--verbose=4', path],  capture_output=True, text=True, check=True)
-                            print(spctl_result.stdout)
-                        except subprocess.CalledProcessError as e:
-                            if re.search(r"rejected", spctl_result.stdout):
-                                printColor(Color.YELLOW, f"⚠️ Gatekeeper rejected the app: {path} (but continuing anyway)...")
-                            else:
-                                print(spctl_result.stdout)
-
-                printColor(Color.GREEN, f"\n✅ All tests passed for: {path}")
-            except subprocess.CalledProcessError as e:
-                if "rejected":
-                    pass
-                printColor(Color.RED, f"\n❌ Error while testing {path}:\n{e}")
+                print(f"  Setting DMG icon using 'fileicon'...")
+                subprocess.run(
+                    [
+                        "fileicon",
+                        "set",
+                        str(pre_existing_final_dmg),
+                        "buildandsign/icons/MacOS/icoDMG.icns",
+                    ],
+                    check=True,
+                )
             except Exception as e:
-                printColor(Color.RED, f"\n❌ Unexpected error: {str(e)}")
-        
-        printColor(Color.CYAN, 'Checking App for Signatures...')
-        build_app_path = os.path.abspath(r"./dist/N8's Video To Gifski.app")
-        sign_and_test(build_app_path)
-        printColor(Color.CYAN, 'App Signature Checked!')
+                print(f"  ✗ Failed to set DMG icon: {e}")
+                print("  Please ensure 'fileicon' is installed and available in PATH.")
+                print("  You can install it via Homebrew: brew install fileicon")
+        else:
+            print(f"  DMG not found in root either: {root_dmg}")
+            print("  Please check the dmgbuild output for errors.")
+            return
 
-        printColor(Color.CYAN, 'Checking DMG for Signatures...')
-        dmg_path = os.path.abspath(r"./N8's Video To Gifski.dmg")
-        sign_and_test(dmg_path)
-        printColor(Color.CYAN, 'DMG Signature Checked!')
 
-if args.console:
-    console = 'True'
-    if not args.build:
-        printColor(Color.YELLOW, 'You can\'t use this arguement alone. Use it with \'-b\'.(DevTool.py -c -b)')
+# ── CLI ───────────────────────────────────────────────────────────────────────
 
-ffmpegRepo = ffmpeg_GyanDev()
-gifskiRepo = get_latest_release_version('ImageOptim', 'gifski')
-ffmpeg_dir = '.\\buildandsign\\bin\\Windows\\'
-gifski_dir = ffmpeg_dir
-MacOS_bin_dir = f'./buildandsign/bin/MacOS/'
-    
-if args.build:
-    print('############ V E R I F Y I N G ############')
 
+def main():
+    parser = argparse.ArgumentParser(description="Video To Gifski build tool")
+    parser.add_argument("--dry", action="store_true", help="Preview version, skip build")
+    parser.add_argument("--reset", action="store_true", help="Reset build counter to 0")
+    parser.add_argument("--count", type=int, help="Override build count (doesn't save)")
+    parser.add_argument("--dmg", action="store_true", help="Build DMG after building the app")
+    args = parser.parse_args()
+
+    update_changelog()
+    build_icons()
+
+    if args.dmg:
+        build_dmg()
+        return
+
+    # ── Reset
+    if args.reset:
+        write_build_file({"build_count": 0})
+        print(f"  ✓ Build counter reset to 0")
+        return
+
+    check_prerequisites()
+
+    base_version = read_base_version()
+    now = datetime.now()
+
+    # ── Dry run
+    if args.dry:
+        next_count = read_build_file().get("build_count", 0) + 1
+        label = make_build_label(base_version, next_count, now)
+        print(f"\n  Dry run — next build would be:")
+        print(f"    Base version : {base_version}")
+        print(f"    Build count  : {next_count}")
+        print(f"    Full label   : {label}")
+        print(f"    Date / Time  : {now.strftime('%Y-%m-%d')} {now.strftime('%H:%M')}")
+        print(f"\n  (build_count.json not modified)\n")
+        return
+
+    # ── Real build
+    if args.count is not None:
+        count = args.count
+    else:
+        count = bump_build_count()
+
+    # If version is bumped, reset Build count.
+    if base_version != read_build_file().get("base_version", ""):
+        count = 1
+
+    label = make_build_label(base_version, count, now)
+
+    # Write the full record now — GUI can read this even from inside the app
+    save_build_info(count, base_version, label, now)
+
+    print(f"\n  N8's {APP} — {label}")
+    print("─" * 60)
     if win:
-        if not os.path.exists(f'{gifski_dir}gifski.exe'):
-            latest_file = f'gifski-{gifskiRepo}'
-            gifski_exe = 'gifski.exe'
+        from tools.generateRC import genMainRC
+        from __version__ import __version__
 
-            printColor(Color.YELLOW, 'gifski.exe NOT FOUND!')
-            printColor(Color.CYAN, 'downloading gifski.exe...')
-            if gifskiRepo == '0.0.0':
-                printColor(Color.RED,'Request timed out. Please try again later.')
-                print('Exiting Build process.')
-                sys.exit()
-            else:
-                download_file(f'https://gif.ski/gifski-{gifskiRepo}.zip', f'{gifski_dir}\\{latest_file}.zip')
-                printColor(Color.GREEN, 'Gifski Download complete!')
+        genMainRC(__version__, APP)
+        print(f"  ✓ .rc built!")
 
-                printColor(Color.CYAN, f'Extracting {latest_file}.zip...')
-                subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {gifski_dir}\\{latest_file}.zip -o{gifski_dir} win\\{gifski_exe}')
-                printColor(Color.GREEN, 'Latest Gifski binaries extracted!')
-                os.remove(os.path.join(gifski_dir, f'{latest_file}.zip'))
-        else:
-            printColor(Color.GREEN, 'gifski.exe Found!')
+    returncode = run_pyinstaller(label)
+    post_build_summary(label, count, success=(returncode == 0))
 
-        required_ffbins = ['ffmpeg.exe', 'ffplay.exe', 'ffprobe.exe']
-        if not all(os.path.exists(os.path.join(ffmpeg_dir, bin)) for bin in required_ffbins):
-            latest_file_full = f'ffmpeg-{ffmpegRepo}-full_build'
+    if returncode == 0:
+        app_path = DIST_DIR / f"{APP}{EXT}"
 
-            if ffmpegRepo == '0.0.0':
-                printColor(Color.RED,'Request timed out. Please try again later.')
-                print('Exiting Build process.')
-                sys.exit()
-            else:
-                download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z', os.path.join(ffmpeg_dir, f'{latest_file_full}.7z'))
-                printColor(Color.GREEN, 'FFMPEG Download complete!')
+        if mac:
+            fix_ssl_dylib_conflict(app_path)
+            sign_app(app_path)
 
-                printColor(Color.CYAN, f'Extracting {latest_file_full}.7z...')
-                subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {ffmpeg_dir}\\{latest_file_full}.7z -o{ffmpeg_dir} {latest_file_full}\\bin\\*')
-                printColor(Color.GREEN, 'Latest FFmpeg binaries extracted!')
-                os.remove(os.path.join(ffmpeg_dir, f'{latest_file_full}.7z'))
-        else:
-            for bin in required_ffbins:
-                printColor(Color.GREEN, f'{bin} Found!')
+            if IS_DIST_BUILD:
+                notarize_and_staple(app_path)
 
-    elif mac:
-        if not os.path.exists(f'{MacOS_bin_dir}gifski'):
-            latest_file = f'gifski-{gifskiRepo}'
-            gifski = 'gifski'
-            printColor(Color.RED, 'gifski.exe NOT FOUND!')
-            
-            print('Exiting Build process.')
-            sys.exit()
-        else:
-            printColor(Color.GREEN, 'gifski.exe Found!')
+            build_dmg()
 
-        required_ffbins = ['ffmpeg', 'ffplay', 'ffprobe']
-        if not all(os.path.exists(os.path.join(MacOS_bin_dir, bin)) for bin in required_ffbins):
-            printColor(Color.RED,f'{bin} not found!')
-            print('Exiting Build process.')
-            sys.exit()
-        else:
-            for bin in required_ffbins:
-                printColor(Color.GREEN, f'{bin} Found!')
+            version = read_base_version()
+            FINAL_DMG_FILE_name = f"{FINAL_DMG_NAME}-{version}"
 
-    printColor(Color.CYAN, 'Updating local versions...')
-    check_and_update_local()
-    printColor(Color.GREEN, 'Versions up to date!')
+            try:
+                print("  Checking if existing dmgs and zips are in Dist folder...")
+                dmg_in_dist = DIST_DIR / pre_existing_final_dmg
+                dmg_zip_in_dist = DIST_DIR / f"{FINAL_DMG_FILE_name}.zip"
+                dmg_in_dist.unlink(missing_ok=True)
+                dmg_zip_in_dist.unlink(missing_ok=True)
+            except Exception as e:
+                print(f"  ✗ Failed to delete dmgs: {e}")
 
-    printColor(Color.CYAN, 'Checking icons and files...')
+            try:
+                shutil.move(pre_existing_final_dmg, DIST_DIR)
+                print("  Moved DMG to dist folder.")
+            except Exception as e:
+                print(f"  ✗ Failed to Move DMG to dist folder: {e}")
 
-    icon_file = 'ico.ico'
-    if mac:
-        icon_file = 'ico.icns'
-    
-    if not os.path.exists(f'{iconsProdFolder}/{icon_file}'):
-        printColor(Color.YELLOW, f'{icon_file} NOT FOUND!')
-        printColor(Color.CYAN, f'building {icon_file}...')
-        pngtoico(f'{icoFolder}/ico3.png')
-        printColor(Color.GREEN, f'{icon_file} Ready!')
-    else:
-        printColor(Color.GREEN, f'{icon_file} Found!')
-    
-    if mac:
-        if not os.path.exists(f'{iconsProdFolder}/icoDMG.icns'):
-            printColor(Color.YELLOW, f'icoDMG.icns NOT FOUND!')
-            printColor(Color.CYAN, f'building icoDMG.icns...')
-            pngtoico(os.path.abspath('./buildandsign/dmg/icoDMG.png'))
-            printColor(Color.GREEN, f'icoDMG.icns Ready!')
-        else:
-            printColor(Color.GREEN, f'icoDMG.icns Found!')
+            dmg_path = DIST_DIR / f"{FINAL_DMG_NAME}.dmg"
+            if IS_DIST_BUILD:
+                subprocess.run(["codesign", "--force", "--sign", SIGNING_IDENTITY, "--timestamp", str(dmg_path)])
+                notarize_and_staple(dmg_path)
 
-    if win:
-        print('############ S P E C  F I L E S ############')
-        printColor(Color.CYAN, 'Generating main.spec...')
-        genMainSpec(ff, console)
-        printColor(Color.GREEN, 'main.spec generated!')
+            zip_output = DIST_DIR / f"{FINAL_DMG_FILE_name}.zip"
+            subprocess.run(["ditto", "-c", "-k", "--keepParent", str(dmg_path), str(zip_output)])
+            print("  ✓ Zipped final signed/notarized/stapled DMG")
 
-        print('############ V E R S I O N  R C  F I L E S ############')
-        printColor(Color.CYAN, 'Generating mainVersion.rc...')
-        genMainRC()
-        printColor(Color.GREEN, 'mainVersion.rc Generated!')
-
-    print('############ B U I L D  &  S I G N ############')
-    buildAndSign()
+    sys.exit(returncode)
 
 
-if args.Update:
-    currentFFmpeg = __ffmpegversion__
-    currentGifski = __gifskiversion__
-
-    # sevenZip = 'C:\\Program Files\\7-Zip\\7z.exe'
-    # if not os.exists(sevenZip):
-    #     sevenZip = '.\\buildandsign\\bins\\7z.exe'
-
-    #     if not os.exists(sevenZip):
-    #         print('Download and install: 7zip!')
-
-    print('Checking FFmpeg version...')
-    if currentFFmpeg == ffmpegRepo:
-        printColor(Color.CYAN, 'FFmpeg does not require an update at the moment.')
-    elif ffmpegRepo == '0.0.0':
-        printColor(Color.RED,'Request timed out. Please try again later.')
-    else:
-        printColor(Color.GREEN, f"New version of FFmpeg \'{ffmpegRepo}\' is available.")
-        if user_agrees := yes_no_prompt(
-            f"{Color.YELLOW}Do you want to download the FFmpeg update?{Color.END}"
-        ):
-            print("Downloading FFmpeg...")
-            # latest_file_essentials = f'ffmpeg-{ffmpegRepo}-essentials_build.7z'
-            latest_file_full = f'ffmpeg-{ffmpegRepo}-full_build'
-            # download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-essentials.7z', latest_file_essentials)
-            download_file('https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z', os.path.join(ffmpeg_dir, f'{latest_file_full}.7z'))
-            printColor(Color.GREEN, 'FFmpeg Download complete!')
-
-
-            ffmpeg_list = ['ffmpeg.exe', 'ffplay.exe', 'ffprobe.exe']
-            if all(os.path.exists(os.path.join(ffmpeg_dir, exe)) for exe in ffmpeg_list):
-                for exe in ffmpeg_list:
-                    printColor(Color.YELLOW, f'Removing {exe}...')
-                    os.remove(os.path.join(ffmpeg_dir, exe))
-                printColor(Color.GREEN, 'Old FFmpeg binaries removed!')
-            else:
-                printColor(Color.CYAN, 'Old FFmpeg binaries not found!')
-
-            printColor(Color.CYAN, f'Extracting {latest_file_full}.7z...')
-            subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {ffmpeg_dir}\\{latest_file_full}.7z -o{ffmpeg_dir} {latest_file_full}\\bin\\*')
-            printColor(Color.GREEN, 'Latest FFmpeg binaries extracted!')
-            os.remove(os.path.join(ffmpeg_dir, f'{latest_file_full}.7z'))
-
-        else:
-            print("Skipping FFmpeg update...")
-
-    print('Checking Gifski version...')
-    if currentGifski == gifskiRepo:
-        printColor(Color.CYAN,'Gifski does not require an update at the moment.')
-    elif gifskiRepo == '0.0.0':
-        printColor(Color.RED,'Request timed out. Please try again later.')
-    else:
-        printColor(Color.GREEN, f"New version of Gifski \'{gifskiRepo}\' is available.")
-        if user_agrees := yes_no_prompt(
-            f"{Color.YELLOW}Do you want to download the Gifski update?{Color.END}"
-        ):
-            latest_file = f'gifski-{gifskiRepo}'
-            download_file(f'https://gif.ski/gifski-{gifskiRepo}.zip', f'{gifski_dir}\\{latest_file}.zip')
-            printColor(Color.GREEN, 'Gifski Download complete!')
-            gifski_exe = 'gifski.exe'
-            if os.path.exists(f'{gifski_dir}\\{gifski_exe}'):
-                printColor(Color.YELLOW, f'Removing {gifski_exe}...')
-                os.remove(os.path.join(gifski_dir, gifski_exe))
-                printColor(Color.GREEN, 'Old Gifski binary removed!')
-            printColor(Color.CYAN, 'Old gifski binary not found!')
-
-            printColor(Color.CYAN, f'Extracting {latest_file}.zip...')
-            subprocess.run(f'C:\\Program Files\\7-Zip\\7z.exe e {gifski_dir}\\{latest_file}.zip -o{gifski_dir} win\\{gifski_exe}')
-            printColor(Color.GREEN, 'Latest Gifski binary extracted!')
-            os.remove(os.path.join(gifski_dir, f'{latest_file}.zip'))
-
-        else:
-            print("Skipping Gifski update...")
-
-    check_and_update_local()
-
-if args.icon:
-    if shutil.which('magick') is None:
-        print('Install ImageMagick please: https://imagemagick.org/script/download.php')
-    else:
-        # pngtoico(f'{icoFolder}ico2.png')
-        # pngtoico(f'{icoFolder}icobeta.png')
-        # pngtoico(f'{icoFolder}icoUpdater.png')
-        pngtoico(f'{icoFolder}/ico3Updater.png')
-        pngtoico(f'{icoFolder}/ico3.png')
-        pngtoico(f'{icoFolder}/ico3beta.png')
-
+if __name__ == "__main__":
+    main()
