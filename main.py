@@ -157,7 +157,7 @@ def loading(root, texthere="", filenum=0, filestotal=0):
 
 
 def update_loading(texthere="", filenum=0, filestotal=0):
-    max_length = 40
+    max_length = 45
     if len(texthere) > max_length:
         part_len = (max_length - 3) // 2
         texthere = texthere[:part_len] + "..." + texthere[-part_len:]
@@ -318,7 +318,7 @@ def vid_to_gif(
             "-r",
             str(int(fps)),
             "-Q",
-            str(gifQuality),
+            str(int(gifQuality)),
             "-W",
             str(data["width"]),
             "-H",
@@ -332,9 +332,9 @@ def vid_to_gif(
     if fast_var.get():
         cmd.append("--fast")
     if motion_var.get():
-        cmd.extend(["--motion-quality", int(str(motionQuality))])
+        cmd.extend(["--motion-quality", str(int(motionQuality))])
     if lossy_var.get():
-        cmd.extend(["--lossy-quality", int(str(lossyQuality))])
+        cmd.extend(["--lossy-quality", str(int(lossyQuality))])
     if enableMatte.get():
         if matte_var is None:
             matte_var = "#FFFFFF"
@@ -652,7 +652,7 @@ def apply_settings(mode):
 def choose_file():
     global file_path
     file_path = filedialog.askopenfilenames(
-        title="Select Video File",
+        title="Select Video File/s",
         filetypes=(
             ("Video files", "*" + " *".join(video_extensions)),
             ("All files", "*.*"),
@@ -684,23 +684,24 @@ def open_settings_window():
     if not settings_window_open:
         settings_window_open = True
         print("Settings Window is open?", settings_window_open)
-    win_width = 350
-    win_height = 650
+
+    win_width = 950
+    win_height = 520
+    SIDE_PANE_WIDTH = round(win_height / 3)
+    PREVIEW_PANE_WIDTH = win_width - (SIDE_PANE_WIDTH * 2)
+
     if len(valid_files) == 1:
         window_title = "User Settings"
         preview_label_text = "Click the Apply & Preview button\nto load a GIF Preview."
         export_label = "Quick Export"
         preview_label_pady = 5
-        if video_data["pix_fmt"] in alpha_formats:
-            win_height += 100
     else:
         window_title = "User Settings: Batch Mode"
         preview_label_text = (
-            "Multiple videos detected!\nAdjust the settings to apply\nthe same configuration to all GIFs converted!",
+            "Multiple videos detected!\nAdjust the settings to apply\n" "the same configuration to all GIFs converted!"
         )
         export_label = "Export"
         preview_label_pady = 20
-        win_height -= 25
 
     settings_window = ctk.CTkToplevel(root)
     center_window(settings_window, win_width, win_height)
@@ -710,28 +711,49 @@ def open_settings_window():
     watermark_label(settings_window, debug)
     make_non_resizable(settings_window)
 
+    # =================================================================
+    # MAIN FRAME — Setup
+    # =================================================================
+    main_frame = Frame(settings_window, fg_color="transparent", border_width=0)
+    main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+    main_frame.grid_columnconfigure(0, weight=0)  # required settings — fixed width
+    main_frame.grid_columnconfigure(1, weight=1)  # preview — expands to fill space
+    main_frame.grid_columnconfigure(2, weight=0)  # optional settings — fixed width
+    main_frame.grid_rowconfigure(0, weight=1)
+
+    required_frame = Frame(main_frame, border_width=0, width=SIDE_PANE_WIDTH, fg_color="transparent")
+    preview_frame = Frame(main_frame, border_width=0, width=PREVIEW_PANE_WIDTH)
+    optional_frame = Frame(main_frame, border_width=0, width=SIDE_PANE_WIDTH, fg_color="transparent")
+
+    required_frame.grid(row=0, column=0, sticky="ns", padx=(0, 10))
+    preview_frame.grid(row=0, column=1, sticky="nsew", padx=10)
+    optional_frame.grid(row=0, column=2, sticky="ns", padx=(10, 0))
+
+    # =================================================================
+    # MIDDLE COLUMN — Preview
+    # =================================================================
     preview_label = Label(
-        settings_window,
+        preview_frame,
         text=preview_label_text,
         anchor="center",
         justify="center",
     )
-    preview_label.pack(pady=preview_label_pady)
+    preview_label.pack(pady=preview_label_pady, fill="both", expand=True)
 
-    fileSize_label = Label(settings_window, text="", anchor="center")
-    fileDimension_label = Label(settings_window, text="", anchor="center")
-    fileSize_label.pack()
-    fileDimension_label.pack(pady=5)
+    fileSize_label = Label(preview_frame, text="", anchor="center")
+    fileDimension_label = Label(preview_frame, text="", anchor="center")
 
-    playframe = Frame(settings_window, fg_color="transparent", border_width=0)
-    playframe.pack()
+    fileDimension_label.pack(pady=5, side=ctk.BOTTOM)
+    fileSize_label.pack(pady=2, side=ctk.BOTTOM)
+
+    playframe = Frame(preview_frame, fg_color="transparent", border_width=0)
+
     play_gif_button = Button(
         playframe,
         text="No GIF loaded",
         command=lambda: play_gif("temp/temp.gif"),
     )
-    play_gif_button.pack(pady=10)
-    play_gif_button.configure(state="disabled")
 
     if win and args.debug and len(valid_files) == 1:
         play_gif_button.pack(side=ctk.LEFT, pady=10)
@@ -740,11 +762,17 @@ def open_settings_window():
             text="Debug GIF",
             command=lambda: get_and_print_video_data("temp/temp.gif"),
         )
-        debug_gif_button.pack(side=ctk.RIGHT, pady=10)
+        debug_gif_button.pack(side=ctk.RIGHT, pady=10, padx=5)
         debug_gif_button.configure(state="disabled")
 
-    separator1 = ttk.Separator(settings_window, orient="horizontal")
-    separator1.pack(fill="x", padx=20, pady=4)
+    # =================================================================
+    # LEFT COLUMN — Required settings + export/preview buttons
+    # =================================================================
+    required_label = Label(required_frame, text="Required Settings", font=("", 15, "bold"))
+    required_label.pack(pady=(0, 5))
+
+    separator1 = ttk.Separator(required_frame, orient="horizontal")
+    separator1.pack(fill="x", pady=4)
 
     def attach_slider_value_label(parent, slider, format_fn, initial_value=None):
         var = ctk.StringVar()
@@ -761,17 +789,17 @@ def open_settings_window():
         return var, label
 
     gif_quality_scale = Slider(
-        settings_window,
+        required_frame,
         from_=1,
         to=100,
-        width=300,
+        width=220,
         height=20,
         number_of_steps=99,
     )
     gif_quality_scale.set(90)
-    gif_quality_scale.pack()
+    gif_quality_scale.pack(pady=(5, 0))
     gif_quality_var, gif_quality_value_label = attach_slider_value_label(
-        settings_window,
+        required_frame,
         gif_quality_scale,
         lambda v: f"GIF Quality: {int(float(v))}",
     )
@@ -791,115 +819,124 @@ def open_settings_window():
                 other_widget.configure(state="disabled")
             else:
                 other_widget.configure(state="normal")
-
         elif cmode == "quality":
             if var.get() == 1:
                 widget.configure(state="normal", **NORMAL_FG)
             else:
                 widget.configure(state="disabled", **DISABLED_FG)
-
         elif cmode == "basic":
             if var.get() == 1:
                 widget.configure(state="normal")
             else:
                 widget.configure(state="disabled")
+        elif cmode == "pack":
+            if var.get() == 1:
+                widget.pack(pady=5)
+            else:
+                widget.pack_forget()
 
     if len(valid_files) != 1:
         fps_limit = 30
     else:
-        fps_limit = min(parsed_framerate, 60)
+        fps_limit = min(parsed_framerate, 50)
 
     fps = Slider(
-        settings_window,
+        required_frame,
         from_=1,
         to=fps_limit,
-        width=300,
+        width=220,
         height=20,
-        number_of_steps=fps_limit,
+        number_of_steps=fps_limit - 1,
     )
     fps.set(fps_limit)
-    fps.pack()
+    fps.pack(pady=(10, 0))
     fps_var, fps_value_label = attach_slider_value_label(
-        settings_window,
+        required_frame,
         fps,
         lambda v: f"FPS: {int(float(v))}",
     )
 
     if len(valid_files) == 1:
         scale_widget = Slider(
-            settings_window,
+            required_frame,
             from_=1,
             to=100,
-            width=300,
+            width=220,
             height=20,
             number_of_steps=198,
         )
         scale_widget.set(100)
-        scale_widget.pack()
+        scale_widget.pack(pady=(10, 0))
         scale_label_var = ctk.StringVar()
         scale_widget.configure(command=lambda value: update_scale_label(value))
-        scale_label_var.set(f"{video_data['width']}x{video_data['height']} - Scale: {scale_widget.get()}%")
-        scale_label = Label(settings_window, textvariable=scale_label_var)
+        scale_label_var.set(f"Scale: {scale_widget.get()}%\n({video_data['width']}x{video_data['height']})")
+        scale_label = Label(required_frame, textvariable=scale_label_var)
         scale_label.pack()
 
         def update_scale_label(value):
             global scaled_width, scaled_height
-
             width_value = video_data["width"]
             height_value = video_data["height"]
-
             if width_value and height_value:
-                # Calculate the scaled width based on the slider value
                 scaled_width = int(width_value * float(value) / 100)
-
-                # Maintain the aspect ratio
                 scaled_height = int((scaled_width / width_value) * height_value)
-
-                # Update the label text with the current size and percentage
-                text = f"{scaled_width}x{scaled_height} - Scale: {value}%"
+                text = f"Scale: {scale_widget.get()}%\n({scaled_width}x{scaled_height})"
                 scale_label_var.set(text)
 
         root.update_idletasks()
 
-    separator3 = ttk.Separator(settings_window, orient="horizontal")
-    separator3.pack(fill="x", padx=20, pady=2)
+    # Export / Preview buttons — anchored to the bottom of the required column
+    buttonsFrame = Frame(required_frame, fg_color="transparent", border_width=0)
+    buttonsFrame.pack(pady=(20, 0), fill="x", side=ctk.BOTTOM)
 
-    optionalFrame = Frame(
-        settings_window,
-        fg_color="transparent",
-        border_width=0,
+    test_button = Button(
+        buttonsFrame,
+        text="Apply & Preview",
+        command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start(),
     )
-    optionalFrame.pack()
-    optionalLabel = Label(optionalFrame, text="Optional Settings:")
-    optionalLabel.pack()
+
+    test_button.pack(pady=5)
+
+    apply_button = Button(
+        buttonsFrame,
+        text=export_label,
+        command=lambda: threading.Thread(target=apply_settings, args=("final",), daemon=True).start(),
+    )
+
+    apply_button.pack(pady=5)
+
+    # =================================================================
+    # RIGHT COLUMN — Optional settings
+    # =================================================================
+    optionalLabel = Label(optional_frame, text="Optional Settings", font=("", 15, "bold"))
+    optionalLabel.pack(pady=(0, 5))
+
+    sep_opt_top = ttk.Separator(optional_frame, orient="horizontal")
+    sep_opt_top.pack(fill="x", pady=4)
 
     motion_var = ctk.IntVar()
     motion_quality_scale = Slider(
-        optionalFrame,
+        optional_frame,
         from_=1,
         to=100,
         orientation=ctk.HORIZONTAL,
         number_of_steps=99,
-        width=300,  # Controls the total length
+        width=220,
         height=20,
     )
     motion_quality_scale.set(100)
-    motion_quality_scale.pack()
+    motion_quality_scale.pack(pady=(5, 0))
     motion_quality_scale.configure(state="disabled", **DISABLED_FG)
     motion_var_label_var, motion_value_label = attach_slider_value_label(
-        optionalFrame, motion_quality_scale, lambda v: f"Motion Quality: {int(float(v))}"
+        optional_frame, motion_quality_scale, lambda v: f"Motion Quality: {int(float(v))}"
     )
     motion_quality_checkbutton = ctk.CTkCheckBox(
-        optionalFrame,
+        optional_frame,
         text="Motion Quality",
         variable=motion_var,
-        command=lambda: update_checkbox_state(
-            motion_var,
-            motion_quality_scale,
-            cmode="quality",
-        ),
+        command=lambda: update_checkbox_state(motion_var, motion_quality_scale, cmode="quality"),
     )
-    motion_quality_checkbutton.pack()
+    motion_quality_checkbutton.pack(pady=5)
     Tooltip(
         motion_quality_checkbutton,
         message="Turn this on to fine-tune the Motion Quality (affects overall Quality.)",
@@ -909,128 +946,78 @@ def open_settings_window():
 
     lossy_var = ctk.IntVar()
     lossy_quality_scale = Slider(
-        optionalFrame,
+        optional_frame,
         from_=1,
         to=100,
         orientation=ctk.HORIZONTAL,
         number_of_steps=99,
-        width=300,
+        width=220,
         height=20,
     )
     lossy_quality_scale.set(100)
-    lossy_quality_scale.pack()
+    lossy_quality_scale.pack(pady=5)
     lossy_quality_scale.configure(state="disabled", **DISABLED_FG)
     lossy_var_label_var, lossy_value_label = attach_slider_value_label(
-        optionalFrame,
-        lossy_quality_scale,
-        lambda v: f"Lossy Quality: {int(float(v))}",
+        optional_frame, lossy_quality_scale, lambda v: f"Lossy Quality: {int(float(v))}"
     )
     lossy_quality_checkbutton = ctk.CTkCheckBox(
-        optionalFrame,
+        optional_frame,
         text="Lossy Quality",
         variable=lossy_var,
-        command=lambda: update_checkbox_state(
-            lossy_var,
-            lossy_quality_scale,
-            cmode="quality",
-        ),
+        command=lambda: update_checkbox_state(lossy_var, lossy_quality_scale, cmode="quality"),
     )
-    lossy_quality_checkbutton.pack()
+    lossy_quality_checkbutton.pack(pady=(2, 0))
     Tooltip(
         lossy_quality_scale,
         message="Turn this on to fine-tune the Lossy Quality (affects overall Quality.)",
         delay=0.3,
     )
-    Tooltip(
-        lossy_quality_checkbutton,
-        message="Lower values introduce noise and streaks.",
-        delay=0.3,
-    )
+    Tooltip(lossy_quality_checkbutton, message="Lower values introduce noise and streaks.", delay=0.3)
 
-    separator6 = ttk.Separator(settings_window, orient="horizontal")
-    separator6.pack(fill="x", padx=20, pady=2)
+    sep_opt_mid = ttk.Separator(optional_frame, orient="horizontal")
+    sep_opt_mid.pack(fill="x", pady=8)
 
-    spacer = Label(settings_window, text="Encode Quality:")
+    spacer = Label(optional_frame, text="Encode Quality", font=("", 15, "bold"))
     spacer.pack()
 
-    checkboxFrame = Frame(
-        settings_window,
-        fg_color="transparent",
-        border_width=0,
-    )
-    checkboxFrame.pack(pady=5)
+    checkboxFrame = Frame(optional_frame, fg_color="transparent", border_width=0)
+    checkboxFrame.pack(pady=5, fill="x")
 
     extra_var = ctk.IntVar()
     extra_checkbox = ctk.CTkCheckBox(
         checkboxFrame,
         variable=extra_var,
         text="Extra Quality",
-        command=lambda: update_checkbox_state(
-            extra_var,
-            extra_checkbox,
-            fast_var,
-            fast_checkbox,
-            cmode="encode",
-        ),
+        command=lambda: update_checkbox_state(extra_var, extra_checkbox, fast_var, fast_checkbox, cmode="encode"),
     )
     extra_checkbox.pack(side=ctk.LEFT)
-    Tooltip(
-        extra_checkbox,
-        message="Slower encoding, but 1% better quality.",
-        delay=0.3,
-    )
+    Tooltip(extra_checkbox, message="Slower encoding, but 1% better quality.", delay=0.3)
 
     fast_var = ctk.IntVar()
     fast_checkbox = ctk.CTkCheckBox(
         checkboxFrame,
         variable=fast_var,
         text="Fast Quality",
-        command=lambda: update_checkbox_state(
-            fast_var,
-            fast_checkbox,
-            extra_var,
-            extra_checkbox,
-            cmode="encode",
-        ),
+        command=lambda: update_checkbox_state(fast_var, fast_checkbox, extra_var, extra_checkbox, cmode="encode"),
     )
     fast_checkbox.pack(side=ctk.RIGHT)
-    Tooltip(
-        fast_checkbox,
-        message="Faster encoding, but 10% worse quality & larger file size.",
-        delay=0.3,
-    )
+    Tooltip(fast_checkbox, message="Faster encoding, but 10% worse quality & larger file size.", delay=0.3)
 
-    # iunpremultiply option
-    alphaFrame = Frame(
-        settings_window,
-        fg_color="transparent",
-        border_width=0,
-    )
-    separator2 = ttk.Separator(settings_window, orient="horizontal")
-
-    alphaLabel = Label(alphaFrame, text="Alpha Options:")
-
-    matteFrame = Frame(
-        settings_window,
-        fg_color="transparent",
-        border_width=0,
-    )
-
-    separator3 = ttk.Separator(settings_window, orient="horizontal")
+    # unpremultiply / matte options
+    alphaFrame = Frame(optional_frame, fg_color="transparent", border_width=0)
+    sep_alpha = ttk.Separator(optional_frame, orient="horizontal")
+    alphaLabel = Label(alphaFrame, text="Alpha Options", font=("", 15, "bold"))
+    matteFrame = Frame(optional_frame, fg_color="transparent", border_width=1)
+    matteSelectFrame = Frame(matteFrame, fg_color="transparent", border_width=0)
 
     safeAlpha = ctk.IntVar()
-    unprenmult_checkbox = ctk.CTkCheckBox(
-        alphaFrame,
-        variable=safeAlpha,
-        text="Unpremultiply",
-    )
+    unprenmult_checkbox = ctk.CTkCheckBox(alphaFrame, variable=safeAlpha, text="Unpremultiply")
 
     matte_var = None
 
     def pick_color():
         global matte_var
-        color = colorchooser.askcolor()[1]  # Ask the user to choose a color and get the hex code
-        print(color)
+        color = colorchooser.askcolor()[1]
         if color:
             matte_var = color
             matte_box_preview.configure(fg_color=color)
@@ -1039,113 +1026,81 @@ def open_settings_window():
     enableMatte = ctk.IntVar()
     matte_checkbox = ctk.CTkCheckBox(
         matteFrame,
-        text="",
+        text="Enable Matte",
         variable=enableMatte,
         command=lambda: update_checkbox_state(
-            enableMatte,
-            matte_button,
-            cmode="basic",
+            var=enableMatte,
+            widget=matteSelectFrame,
+            cmode="pack",
         ),
     )
-    matte_button = Button(matteFrame, text="Choose Matte", command=pick_color)
+    matte_button = Button(matteSelectFrame, text="", width=30, height=30, command=pick_color)
+    apply_emoji(matte_button, "🎨")
+
     matte_box_preview = ctk.CTkLabel(
-        matteFrame,
+        matteSelectFrame,
         text="",
         width=30,
         height=20,
         fg_color="white",
         border_width=2,
-        corner_radius=4,
+        corner_radius=8,
     )
 
     if len(valid_files) != 1 or video_data["pix_fmt"] in alpha_formats:
-        separator2.pack(fill="x", padx=20, pady=2)
-
-        alphaFrame.pack()
+        sep_alpha.pack(fill="x", pady=8)
+        alphaFrame.pack(fill="x")
         alphaLabel.pack()
         unprenmult_checkbox.pack(pady=5)
-        matteFrame.pack()
-        separator3.pack(fill="x", padx=20, pady=2)
-        matte_checkbox.pack(side=ctk.LEFT)
-        matte_box_preview.pack(padx=(0, 10), side=ctk.LEFT)
-        matte_button.pack(padx=(0, 5), side=ctk.RIGHT)
-        matte_button.configure(state="disabled")
+
+        matteFrame.pack(fill="x", pady=5)
+        matte_checkbox.pack(pady=5)
+
+        matteSelectFrame.pack(pady=5)
+        matteSelectFrame.pack_forget()
+
+        matte_box_preview.pack(padx=5, pady=5, side=ctk.LEFT)
+
+        matte_button.pack(padx=5, pady=5, side=ctk.RIGHT)
 
         Tooltip(
             unprenmult_checkbox,
             "It's like unmult but more precise.\nEnable this if your GIF has outlines.",
             delay=0.3,
         )
-        Tooltip(
-            matte_button,
-            message="Click here to color-pick your desired matte.",
-            delay=0.3,
-        )
-        Tooltip(
-            matte_checkbox,
-            message="Enable this if you have semitransparent pixels.",
-            delay=0.3,
-        )
+        Tooltip(matte_button, message="Click here to color-pick your desired matte.", delay=0.3)
+        Tooltip(matte_checkbox, message="Enable this if you have semitransparent pixels.", delay=0.3)
         Tooltip(matte_box_preview, message="#FFFFFF", delay=0.3)
 
         root.update_idletasks()
 
-    # Export and Preview Buttons
-    buttonsFrame = Frame(
-        settings_window,
-        fg_color="transparent",
-        border_width=0,
-    )
-    buttonsFrame.pack(pady=10)
-
-    apply_button = Button(
-        buttonsFrame,
-        text=export_label,
-        command=lambda: threading.Thread(
-            target=apply_settings,
-            args=("final",),
-            daemon=True,
-        ).start(),
-    )
-    apply_button.pack(side=ctk.LEFT, padx=5)
-
-    test_button = Button(
-        buttonsFrame,
-        text="Apply & Preview",
-        command=lambda: threading.Thread(
-            target=preview_gif_window,
-            daemon=True,
-        ).start(),
-    )
-    test_button.pack(side=ctk.RIGHT, padx=5)
-
+    # =================================================================
+    # Batch mode — hide what doesn't apply
+    # (pack_forget() still works fine — these widgets are packed WITHIN
+    # their column frame, the outer grid columns are untouched)
+    # =================================================================
     if len(valid_files) != 1:
         separator1.pack_forget()
-        # preview_label.pack_forget()
         fileSize_label.pack_forget()
         fileDimension_label.pack_forget()
         playframe.pack_forget()
         play_gif_button.pack_forget()
         test_button.pack_forget()
         apply_button.pack_forget()
-        apply_button.pack(side=ctk.TOP)
+        apply_button.pack(side=ctk.TOP, pady=(20, 0))
 
         root.update_idletasks()
 
     def preview_gif_window():
-        loading_thread_switch(
-            root,
-            True,
-            os.path.basename(valid_files[0][1]),
-        )
+        loading_thread_switch(root, True, os.path.basename(valid_files[0][1]))
         video_to_frames_seq(valid_files[0][1], fps.get())
 
         apply_settings("temp")
 
-        play_gif_button.configure(
-            state="normal",
-            text="Play GIF on Full Size",
-        )
+        playframe.pack(fill="x")
+
+        play_gif_button.pack(pady=10, side=ctk.BOTTOM, expand=True)
+        play_gif_button.configure(state="normal", text="Play GIF on Full Size")
 
         if win and args.debug:
             debug_gif_button.configure(state="normal")
@@ -1154,75 +1109,42 @@ def open_settings_window():
         imgW, imgH = img.size
         gcd = math.gcd(imgW, imgH)
         aspect_ratio_simplified = f"{imgW // gcd}:{imgH // gcd}"
-        height = 650
-        height += preview_height
-
-        if video_data["pix_fmt"] in alpha_formats:
-            height += 100
-
-        center_window(settings_window, 380, height)
 
         preview_label.configure(text="")
 
-        # Animate GIF preview Window
-        def animate_gif_preview(
-            frames,
-            widget,
-            frame_num,
-            loop,
-            frame_duration,
-        ):
+        def animate_gif_preview(frames, widget, frame_num, loop, frame_duration):
             frame = frames[frame_num]
             global running, after_id
             if not running:
                 return
 
-            ctk_frame = ctk.CTkImage(
-                light_image=frame,
-                dark_image=frame,
-                size=frame.size,
-            )
+            ctk_frame = ctk.CTkImage(light_image=frame, dark_image=frame, size=frame.size)
             widget.configure(image=ctk_frame)
-            widget.image = ctk_frame  # keep a reference so it isn't garbage-collected
+            widget.image = ctk_frame
 
             frame_num = (frame_num + 1) % len(frames)
             if loop or frame_num != 0:
                 after_id = widget.after(
-                    frame_duration,
-                    animate_gif_preview,
-                    frames,
-                    widget,
-                    frame_num,
-                    loop,
-                    frame_duration,
+                    frame_duration, animate_gif_preview, frames, widget, frame_num, loop, frame_duration
                 )
 
         def start_gif_animation(widget, loop=True, fps=30):
             global running
             running = True
-
             frames = load_gifpreview_frames()
             frame_duration = int(1000 // fps)
             animate_gif_preview(frames, widget, 0, loop, frame_duration)
 
         start_gif_animation(preview_label, loop=True, fps=fps.get())
 
-        apply_button.configure(
-            text="Save As...",
-            command=lambda: apply_settings("temp-final"),
-        )
+        apply_button.configure(text="Save As...", command=lambda: apply_settings("temp-final"))
 
         filesize = get_filesize("temp/temp.gif")
         fileSize_label.configure(text=f"GIF Size: {filesize}")
-        fileDimension_label.configure(
-            text=f"Dimensions: {imgW}x{imgH} ({aspect_ratio_simplified})",
-        )
+        fileDimension_label.configure(text=f"Dimensions: {imgW}x{imgH} ({aspect_ratio_simplified})")
         settings_window.update_idletasks()
 
-    settings_window.protocol(
-        "WM_DELETE_WINDOW",
-        lambda: on_settings_window_close(),
-    )
+    settings_window.protocol("WM_DELETE_WINDOW", lambda: on_settings_window_close())
     root.withdraw()
 
     if not invalid_files:
@@ -1312,7 +1234,7 @@ def show_main():
     spacer.pack(pady=10)
 
     # Create a button to choose a file
-    choose_button = Button(root, text="Choose Video File", command=choose_file)
+    choose_button = Button(root, text="Choose Video File/s", command=choose_file)
     choose_button.pack(pady=20)
 
     or_label = Label(root, text="Or")
