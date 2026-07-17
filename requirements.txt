@@ -1,31 +1,31 @@
-altgraph==0.17.4
-certifi==2024.07.04
+altgraph==0.17.5
+certifi==-2026.6.17
 charset-normalizer==3.3.2
 colorama==0.4.6
+colour==0.1.5
+CTkMenuBar==0.9
+customtkinter==6.0.0
 darkdetect==0.8.0
-emoji==2.14.0
-ffmpeg-python==0.2.0
+dmgbuild==1.6.7; sys_platform == 'darwin'
+emoji==2.15.0
 future==1.0.0
 idna==3.7
-packaging==23.2
-pefile==2023.2.7
-pillow==11.0.0
-pyinstaller==6.11.1
-pyinstaller-hooks-contrib==2024.9
-PyMonCtl==0.7
-pywin32-ctypes==0.2.2
-PyWinBox==0.6
-PyWinCtl==0.3
-pywinstyles==1.8
-requests==2.32.0
-setuptools==70.3.0
-sv-ttk==2.5.5
-tk==0.1.0
-tkinterdnd2==0.4.2
-tqdm==4.66.3
-typing_extensions==4.10.0
-urllib3==2.2.2
-Wand==0.6.13
+packaging==26.2
+pefile==2024.8.26
+pillow==12.3.0
+py2app==0.28.10; sys_platform == 'darwin'
+pyinstaller==6.21.0
+pyinstaller-hooks-contrib==2026.6
+PyMonCtl==0.7; sys_platform == 'windows'
+pywin32-ctypes==0.2.2; sys_platform == 'windows'
+PyWinBox==0.6; sys_platform == 'windows'
+PyWinCtl==0.3; sys_platform == 'windows'
+pywinstyles==1.8; sys_platform == 'windows'
+requests==2.34.2
+setuptools==83.0.0
+tkinterdnd2==0.6.2
+tqdm==4.68.4
+typing_extensions==4.16.0
+urllib3==2.7.0
+Wand==0.7.2
 tkmacosx==1.0.5
-py2app==0.28.8
-dmgbuild==1.6.1
