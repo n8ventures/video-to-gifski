@@ -1,5 +1,5 @@
 altgraph==0.17.5
-certifi==-2026.6.17
+certifi==2026.6.17
 charset-normalizer==3.3.2
 colorama==0.4.6
 colour==0.1.5
