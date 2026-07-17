@@ -35,7 +35,10 @@ if win:
 elif mac:
     from __version__ import __versionMac__ as __version__
 
-if is_running_from_bundle():
+# cache this once — is_running_from_bundle() was being called twice before
+bundle_path = is_running_from_bundle()
+
+if bundle_path:
     print("Running from a bundled application (.app/.exe)")
 else:
     print("Running from source (.py)")
@@ -66,21 +69,24 @@ platform_binaries = {
 # Default binaries based on the platform
 binaries = platform_binaries.get(current_platform, {})
 
-# Handle bundle paths for binaries and icon
-bundle_path = is_running_from_bundle()
-
 icon = None
 iconUpdater = None
 
-if any(char.isalpha() for char in __version__):
+platform_folder = "MacOS" if mac else "Windows"
+
+is_dev_build = any(char.isalpha() for char in __version__)
+
+if is_dev_build:
     if win:
         icon = (
             os.path.join(
                 bundle_path or "",
+                "assets",
+                "icons",
                 "icoDev.ico",
             )
             if bundle_path
-            else "./icons/win/icoDev.ico"
+            else "./buildandsign/icons/Windows/icoDev.ico"
         )
     elif mac:
         icon = (
@@ -89,13 +95,16 @@ if any(char.isalpha() for char in __version__):
                 "icon-dev.png",
             )
             if bundle_path
-            else "./buildandsign/ico/MacOS/icon-dev.png"
+            else "./buildandsign/icons/MacOS/icon-dev.png"
         )
 else:
     if win:
         icon = (
             os.path.join(
                 bundle_path or "",
+                "assets",
+                "icons",
+                platform_folder,
                 "ico.ico",
             )
             if bundle_path
@@ -105,26 +114,29 @@ else:
         icon = (
             os.path.join(
                 bundle_path or "",
+                "assets",
+                "icons",
+                platform_folder,
                 "icon.png",
             )
             if bundle_path
-            else "./buildandsign/ico/MacOS/icon.png"
+            else "./buildandsign/icons/MacOS/icon.png"
         )
+
 
 if bundle_path:
     binaries = {
         key: os.path.join(
             bundle_path,
+            "bin",
+            platform_folder,
             value,
         )
         for key, value in binaries.items()
     }
-    if win:
-        icon = os.path.join(bundle_path, icon)
 else:
     if win:
-        icon_path = "./icons/win/"
-        icon = os.path.join(icon_path, icon)
+        icon = os.path.join("./buildandsign/icons/Windows/", os.path.basename(icon))
     elif mac:
         MacOSbin = "./buildandsign/bin/macOS"
         binaries = {
@@ -182,7 +194,10 @@ def is_folder_open(path):
 
 
 def openOutputFolder(path, path2):
-    global win, mac
+    # NOTE: no longer does `global win` + reassigns win to a Window object.
+    # `win` is your Windows/macOS platform flag used everywhere else in the
+    # app — overwriting it here corrupted every later `if win:` check for
+    # the rest of the process's life once a matching window was found.
     if win:
         import pywinctl as pwc  # type: ignore
 
@@ -196,11 +211,10 @@ def openOutputFolder(path, path2):
 
             windows = pwc.getWindowsWithTitle(os.path.basename(path))
             if windows:
-                win = windows[0]
-                if win.minimize():
-                    win.restore(True)
-                win.activate(True)
-
+                matched_window = windows[0]
+                if matched_window.minimize():
+                    matched_window.restore(True)
+                matched_window.activate(True)
             else:
                 print("Window not found with specified title.")
                 print("Opening window: ", path2)
