@@ -42,6 +42,20 @@ DISABLED_FG = {
     "progress_color": tuple(theme["CTkButton"]["text_color_disabled"]),
     "button_color": tuple(theme["CTkButton"]["text_color_disabled"]),
 }
+ALT_FRAME_FG = {
+    "fg_color": tuple(theme["CTk"]["fg_color"][::-1]),
+}
+ALT_TEXT_COLOR = {
+    "text_color": tuple(theme["CTkLabel"]["text_color"][::-1]),
+}
+button_theme = theme["CTkButton"]
+ALT_BUTTON_COLOR = {
+    "fg_color": tuple(button_theme["fg_color"][::-1]),
+    "hover_color": tuple(button_theme["hover_color"][::-1]),
+    "border_color": tuple(button_theme["border_color"][::-1]),
+    "text_color": tuple(button_theme["text_color"][::-1]),
+    "text_color_disabled": tuple(button_theme["text_color_disabled"][::-1]),
+}
 
 
 ctk.set_appearance_mode("System")
