@@ -4,6 +4,7 @@ charset-normalizer==3.3.2
 colorama==0.4.6
 colour==0.1.5
 CTkMenuBar==0.9
+CTkToolTip==0.9
 customtkinter==6.0.0
 darkdetect==0.8.0
 dmgbuild==1.6.7; sys_platform == 'darwin'
