@@ -14,14 +14,13 @@ idna==3.7
 packaging==26.2
 pefile==2024.8.26
 pillow==12.3.0
-py2app==0.28.10; sys_platform == 'darwin'
 pyinstaller==6.21.0
 pyinstaller-hooks-contrib==2026.6
-PyMonCtl==0.7; sys_platform == 'windows'
-pywin32-ctypes==0.2.2; sys_platform == 'windows'
-PyWinBox==0.6; sys_platform == 'windows'
-PyWinCtl==0.3; sys_platform == 'windows'
-pywinstyles==1.8; sys_platform == 'windows'
+PyMonCtl==0.7; sys_platform == 'win32'
+pywin32-ctypes==0.2.2; sys_platform == 'win32'
+PyWinBox==0.6; sys_platform == 'win32'
+PyWinCtl==0.3; sys_platform == 'win32'
+pywinstyles==1.8; sys_platform == 'win32'
 requests==2.34.2
 setuptools==83.0.0
 tkinterdnd2==0.6.2
@@ -29,4 +28,3 @@ tqdm==4.68.4
 typing_extensions==4.16.0
 urllib3==2.7.0
 Wand==0.7.2
-tkmacosx==1.0.5
