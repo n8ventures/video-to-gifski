@@ -91,3 +91,48 @@ def apply_emoji(widget, emoji_char, text="", px=13, compound="left"):
     img = emoji_img(emoji_char, size=px)
     widget.configure(text=text, image=img, compound=compound)
     widget.image = img
+
+
+_fade_after_id = None  # tracks the in-flight animation so re-toggling mid-fade doesn't stack callbacks
+
+import tkinter as tk
+
+
+def animate_alpha(root, target, duration_ms, on_complete=None, steps=15):
+    """
+    Smoothly steps `root`'s alpha toward `target` over `duration_ms`.
+    Cancels any fade already in progress before starting a new one, so
+    rapid re-toggling can't stack conflicting animations.
+    """
+    global _fade_after_id
+    if _fade_after_id is not None:
+        try:
+            root.after_cancel(_fade_after_id)
+        except tk.TclError:
+            pass
+        _fade_after_id = None
+
+    try:
+        start = root.attributes("-alpha")
+    except tk.TclError:
+        start = 1.0
+
+    step_delay = max(1, duration_ms // steps)
+
+    def _step(i=0):
+        global _fade_after_id
+        try:
+            progress = i / steps
+            alpha = start + (target - start) * progress
+            root.attributes("-alpha", alpha)
+        except tk.TclError:
+            return  # window destroyed mid-animation — bail quietly
+
+        if i < steps:
+            _fade_after_id = root.after(step_delay, lambda: _step(i + 1))
+        else:
+            _fade_after_id = None
+            if on_complete:
+                on_complete()
+
+    _step()

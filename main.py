@@ -41,6 +41,7 @@ from modules.TkModules import (
     Label,
     Frame,
     Slider,
+    animate_alpha,
 )
 
 # platform-specific modules
@@ -53,6 +54,7 @@ from modules.platformModules import (
     gifski,
     openOutputFolder,
     temp_dir,
+    config_dir,
 )
 
 # info modules
@@ -72,6 +74,8 @@ from modules.UpdaterModule import autoChecker
 
 if win:
     from modules.argsModule import args
+
+from modules.configModule import set_setting
 
 debug = ""
 
@@ -1226,24 +1230,20 @@ def show_main():
 
     def _toggle_appearance():
         new_mode = "Light" if ctk.get_appearance_mode() == "Dark" else "Dark"
-        try:
-            root.attributes("-alpha", 0.0)
-        except tk.TclError:
-            pass
 
-        ctk.set_appearance_mode(new_mode)
-        theme_toggle_btn.configure(text="")
-        apply_emoji(
-            theme_toggle_btn,
-            emoji_char="☀️" if new_mode == "Dark" else "🌑",
-            px=15,
-        )
-        root.update_idletasks()  # force every widget to finish redrawing now, while hidden
+        def _swap_and_reveal():
+            ctk.set_appearance_mode(new_mode)
+            set_setting("appearance_mode", new_mode)
+            theme_toggle_btn.configure(text="")
+            apply_emoji(
+                theme_toggle_btn,
+                emoji_char="☀️" if new_mode == "Dark" else "🌑",
+                px=15,
+            )
+            root.update_idletasks()
+            animate_alpha(root, 1.0, duration_ms=250)
 
-        try:
-            root.after(60, lambda: root.attributes("-alpha", 1.0))
-        except tk.TclError:
-            pass
+        animate_alpha(root, 0.0, duration_ms=150, on_complete=_swap_and_reveal)
 
     theme_toggle_btn = ctk.CTkButton(
         root,
