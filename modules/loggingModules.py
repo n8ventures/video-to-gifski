@@ -78,7 +78,9 @@ import platform
 import shutil
 import string
 import subprocess
-import winreg
+
+if win:
+    import winreg
 
 
 def _run_powershell_json(command: str, timeout: int = 6):
