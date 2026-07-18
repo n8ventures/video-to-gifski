@@ -792,7 +792,7 @@ def open_settings_window():
     separator1 = ttk.Separator(required_frame, orient="horizontal")
     separator1.pack(fill="x", pady=4)
 
-    def attach_slider_value_label(parent, slider, format_fn, initial_value=None):
+    def attach_slider_value_label(parent, slider, format_fn, initial_value=None, disabled_text=None):
         var = ctk.StringVar()
         value = initial_value if initial_value is not None else slider.get()
         var.set(format_fn(value))
@@ -803,8 +803,14 @@ def open_settings_window():
         def _update(value):
             var.set(format_fn(value))
 
+        def set_disabled(is_disabled):
+            if is_disabled and disabled_text is not None:
+                var.set(disabled_text)
+            else:
+                var.set(format_fn(slider.get()))  # restore current value on re-enable
+
         slider.configure(command=_update)
-        return var, label
+        return var, label, set_disabled
 
     gif_quality_scale = Slider(
         required_frame,
@@ -816,7 +822,7 @@ def open_settings_window():
     )
     gif_quality_scale.set(90)
     gif_quality_scale.pack(pady=(5, 0))
-    gif_quality_var, gif_quality_value_label = attach_slider_value_label(
+    gif_quality_var, gif_quality_value_label, gif_set_disabled = attach_slider_value_label(
         required_frame,
         gif_quality_scale,
         lambda v: f"GIF Quality: {int(float(v))}",
@@ -830,6 +836,7 @@ def open_settings_window():
         other_var=None,
         other_widget=None,
         cmode=None,
+        set_disabled_fn=None,  # new
     ):
         if cmode == "encode":
             if var.get() == 1:
@@ -840,8 +847,12 @@ def open_settings_window():
         elif cmode == "quality":
             if var.get() == 1:
                 widget.configure(state="normal", **NORMAL_FG)
+                if set_disabled_fn:
+                    set_disabled_fn(False)
             else:
                 widget.configure(state="disabled", **DISABLED_FG)
+                if set_disabled_fn:
+                    set_disabled_fn(True)
         elif cmode == "basic":
             if var.get() == 1:
                 widget.configure(state="normal")
@@ -868,7 +879,7 @@ def open_settings_window():
     )
     fps.set(fps_limit)
     fps.pack(pady=(10, 0))
-    fps_var, fps_value_label = attach_slider_value_label(
+    fps_var, fps_value_label, fps_set_disabled = attach_slider_value_label(
         required_frame,
         fps,
         lambda v: f"FPS: {int(float(v))}",
@@ -961,15 +972,23 @@ def open_settings_window():
     motion_quality_scale.set(100)
     motion_quality_scale.pack(pady=(5, 0))
     motion_quality_scale.configure(state="disabled", **DISABLED_FG)
-    motion_var_label_var, motion_value_label = attach_slider_value_label(
-        optional_frame, motion_quality_scale, lambda v: f"Motion Quality: {int(float(v))}"
+    motion_var_label_var, motion_value_label, motion_set_disabled = attach_slider_value_label(
+        optional_frame,
+        motion_quality_scale,
+        lambda v: f"Motion Quality: {int(float(v))}",
+        disabled_text="Motion Quality: Disabled",
     )
     motion_quality_checkbutton = ctk.CTkCheckBox(
         optional_frame,
         text="Motion Quality",
         variable=motion_var,
-        command=lambda: update_checkbox_state(motion_var, motion_quality_scale, cmode="quality"),
+        command=lambda: update_checkbox_state(
+            motion_var, motion_quality_scale, cmode="quality", set_disabled_fn=motion_set_disabled
+        ),
     )
+
+    motion_set_disabled(True)
+
     motion_quality_checkbutton.pack(pady=5)
     Tooltip(
         motion_quality_checkbutton,
@@ -991,16 +1010,25 @@ def open_settings_window():
     lossy_quality_scale.set(100)
     lossy_quality_scale.pack(pady=5)
     lossy_quality_scale.configure(state="disabled", **DISABLED_FG)
-    lossy_var_label_var, lossy_value_label = attach_slider_value_label(
-        optional_frame, lossy_quality_scale, lambda v: f"Lossy Quality: {int(float(v))}"
+    lossy_var_label_var, lossy_value_label, lossy_set_disabled = attach_slider_value_label(
+        optional_frame,
+        lossy_quality_scale,
+        lambda v: f"Lossy Quality: {int(float(v))}",
+        disabled_text="Lossy Quality: Disabled",
     )
+    lossy_set_disabled(True)
+
     lossy_quality_checkbutton = ctk.CTkCheckBox(
         optional_frame,
         text="Lossy Quality",
         variable=lossy_var,
-        command=lambda: update_checkbox_state(lossy_var, lossy_quality_scale, cmode="quality"),
+        command=lambda: update_checkbox_state(
+            lossy_var, lossy_quality_scale, cmode="quality", set_disabled_fn=lossy_set_disabled
+        ),
     )
+
     lossy_quality_checkbutton.pack(pady=(2, 0))
+
     Tooltip(
         lossy_quality_scale,
         message="Turn this on to fine-tune the Lossy Quality (affects overall Quality.)",
