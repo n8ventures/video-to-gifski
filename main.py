@@ -360,9 +360,10 @@ def vid_to_gif(
 
         cmd.extend(["--matte", matte_var])
 
-    if input_files := glob.glob(os.path.join(temp_dir, "frames*.png")):
+    frame_pattern = os.path.join(temp_dir, "frames*.png")
+    if glob.glob(frame_pattern):
         cmd.extend(["-o", output_file])
-        cmd.extend(input_files)
+        cmd.append(frame_pattern)
 
     if win:
         # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
