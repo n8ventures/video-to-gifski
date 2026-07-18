@@ -175,8 +175,7 @@ buildandsign/bin/macOS/*
 !buildandsign/bin/macOS/*.*
 buildandsign/bin/full/*.exe
 buildandsign/bin/lite/*.exe
-__mainVersion.rc
-__updaterVersion.rc
+*.rc
 .DS_Store
 *.dmg
 bugtesting/*
