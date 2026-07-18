@@ -50,7 +50,7 @@ datas += collect_data_files("CTkToolTip")
 # PyInstaller preserves the executable bit and treats them as Mach-O
 # binaries (picked up by your codesigning step in devtools.py, same as any
 # other binary in the bundle). No more static_ffmpeg / runtime download.
-
+icon = None
 if mac:
     binaries += [
         ("buildandsign/bin/MacOS/ffmpeg", "bin/MacOS"),
