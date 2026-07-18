@@ -1,4 +1,4 @@
-__version__ = "5.0.0"
+__version__ = "5.0.1"
 __versionMac__ = "5.0.0"
 __appname__ = "N8's Video To Gifski"
 __internal_app_name__ = "dev.n8ventures.N8VideoToGifski"
