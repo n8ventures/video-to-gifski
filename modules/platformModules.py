@@ -3,12 +3,15 @@ import sys
 import platform
 import subprocess
 import tkinter as tk
+import tempfile
 
 # Check the platform
 current_platform = platform.system()
 
 win = current_platform == "Windows"
 mac = current_platform == "Darwin"
+
+from __version__ import __appname__, __internal_app_name__
 
 
 def is_running_from_bundle():
@@ -125,6 +128,8 @@ else:
 
 
 if bundle_path:
+    log_dir = os.path.expanduser(f"~/Library/Application Support/{__appname__}/Logs")
+    temp_dir = os.path.join(tempfile.gettempdir(), __appname__)
     binaries = {
         key: os.path.join(
             bundle_path,
@@ -135,6 +140,10 @@ if bundle_path:
         for key, value in binaries.items()
     }
 else:
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    temp_dir = os.path.join(base_dir, "temp")
+    log_dir = os.path.join(base_dir, "logs")
+
     if win:
         icon = os.path.join("./buildandsign/icons/Windows/", os.path.basename(icon))
     elif mac:
@@ -146,6 +155,9 @@ else:
             )
             for key, value in binaries.items()
         }
+
+os.makedirs(temp_dir, exist_ok=True)
+os.makedirs(log_dir, exist_ok=True)
 
 ffprobe = binaries.get("ffprobe")
 ffplay = binaries.get("ffplay")
