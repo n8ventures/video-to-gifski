@@ -4,6 +4,7 @@ import customtkinter as ctk
 
 from modules.platformModules import win, mac, icon
 from modules.TkModules import make_non_resizable, open_link, center_window
+from packaging.version import parse as parse_version, InvalidVersion
 
 if win:
     from __version__ import __version__
@@ -16,8 +17,8 @@ global release, prerelease, n8_repo
 def _fetch_releases():
     global release, prerelease
     try:
-        release = get_latest_release_version(pr=False)
-        prerelease = get_latest_release_version(pr=True, filter_keywords=["osx", "beta"])
+        release = get_latest_release_version(want_prerelease=False)
+        prerelease = get_latest_release_version(want_prerelease=True)
     except Exception:
         release = {"tag_name": "0.0.0", "has_dmg_zip": False, "has_exe": False, "html_url": ""}
         prerelease = {"tag_name": "0.0.0", "has_dmg_zip": False, "has_exe": False, "html_url": ""}
@@ -51,15 +52,23 @@ def create_popup(root, title, width, height, switch, lift=0):
     return popup
 
 
-def parse_version(v):
-    return tuple(int(x) if x.isdigit() else x for x in v.strip("v").split("."))
+def safe_parse_version(v):
+    """
+    Wraps packaging.version.parse with a fallback for tags that don't
+    parse as valid versions at all (e.g. a malformed or unexpected tag
+    format) — returns version "0.0.0" rather than crashing the caller.
+    """
+    try:
+        return parse_version(v.lstrip("v"))
+    except InvalidVersion:
+        return parse_version("0.0.0")
 
 
-def get_latest_release_version(pr=False, filter_keywords=None, require_dmg=False):
+def get_latest_release_version(want_prerelease=False):
     try:
         response = requests.get(n8_repo)
         response.raise_for_status()
-    except:
+    except Exception:
         return {"tag_name": "0.0.0", "has_dmg_zip": False, "has_exe": False, "html_url": ""}
 
     releases = json.loads(response.text)
@@ -68,17 +77,15 @@ def get_latest_release_version(pr=False, filter_keywords=None, require_dmg=False
         return {"tag_name": "0.0.0", "has_dmg_zip": False, "has_exe": False, "html_url": ""}
 
     for release in releases:
-        if pr or not release.get("prerelease", False):
+        if release.get("prerelease", False) == want_prerelease:
             tag_name = release.get("tag_name", "0.0.0")
             assets = release.get("assets", [])
-            has_dmg_zip = any(asset["name"].endswith(".dmg.zip") for asset in assets)
+            has_dmg_zip = any(
+                asset["name"].lower().endswith(".zip") and "macos" in asset["name"].lower() for asset in assets
+            )
             has_exe = any(asset["name"].endswith(".exe") for asset in assets)
             html_url = release.get("html_url", "")
-
-            if (
-                filter_keywords is None or all(keyword.lower() in tag_name.lower() for keyword in filter_keywords)
-            ) and (not require_dmg or has_dmg_zip):
-                return {"tag_name": tag_name, "has_dmg_zip": has_dmg_zip, "has_exe": has_exe, "html_url": html_url}
+            return {"tag_name": tag_name, "has_dmg_zip": has_dmg_zip, "has_exe": has_exe, "html_url": html_url}
 
     return {"tag_name": "0.0.0", "has_dmg_zip": False, "has_exe": False, "html_url": ""}
 
@@ -86,8 +93,11 @@ def get_latest_release_version(pr=False, filter_keywords=None, require_dmg=False
 def CheckUpdates(root):
     global release, prerelease
     _fetch_releases()
-    has_prerelease_latest = "beta" in prerelease["tag_name"].lower() and prerelease["has_dmg_zip"]
-    has_release_latest = release["has_dmg_zip"]
+    has_prerelease_latest = prerelease["tag_name"] != "0.0.0" and (
+        prerelease["has_exe"] if win else prerelease["has_dmg_zip"]
+    )
+    has_release_latest = release["has_exe"] if win else release["has_dmg_zip"]
+
     print(f"Pre-release: {has_prerelease_latest}\nRelease: {has_release_latest}")
     print(f"compare: {__version__ in prerelease['tag_name']}")
     print("\n-- DEBUG DATA --\n\n")
@@ -140,8 +150,8 @@ def CheckUpdates(root):
             prerelease_version = prerelease_parts[0]
             prerelease_tag = prerelease_parts[2] if len(prerelease_parts) > 2 else ""
 
-            current_version = parse_version(current_version)
-            prerelease_version = parse_version(prerelease_version)
+            current_version = safe_parse_version(current_version)
+            prerelease_version = safe_parse_version(prerelease_version)
 
             if current_version >= prerelease_version:
                 print("PASS 1-A: CURRENT IS HIGHER OR EQUAL VS ONLINE")
@@ -182,8 +192,8 @@ def CheckUpdates(root):
         current_version = current_version_parts[0]
         release_version = release["tag_name"]
 
-        current_version = parse_version(current_version)
-        release_version = parse_version(release_version)
+        current_version = safe_parse_version(current_version)
+        release_version = safe_parse_version(release_version)
 
         if current_version >= release_version:
             print("PASS 0-A: STABLE IS HIGHER OR EQUAL VS ONLINE")
@@ -213,23 +223,25 @@ def CheckUpdates(root):
         latest_version_display.configure(text="You're up to date!")
 
 
-has_beta = ("beta" or "alpha") in __version__.lower()
+has_beta = any(char.isalpha() for char in __version__)
 print(f"Has Beta? {has_beta}")
 
 
 def autoChecker(root):
     _fetch_releases()
-    has_prerelease_latest = "beta" in prerelease["tag_name"].lower() and prerelease["has_dmg_zip"]
-    has_release_latest = release["has_dmg_zip"]
+    has_prerelease_latest = prerelease["tag_name"] != "0.0.0" and (
+        prerelease["has_exe"] if win else prerelease["has_dmg_zip"]
+    )
+    has_release_latest = release["has_exe"] if win else release["has_dmg_zip"]  # ← was missing
 
     if has_beta:
         if has_prerelease_latest:
             current_version_parts = __version__.split("-")
-            current_version = parse_version(current_version_parts[0])
+            current_version = safe_parse_version(current_version_parts[0])
             current_tag = current_version_parts[1] if len(current_version_parts) > 1 else ""
 
             prerelease_parts = prerelease["tag_name"].split("-")
-            prerelease_version = parse_version(prerelease_parts[0])
+            prerelease_version = safe_parse_version(prerelease_parts[0])
             prerelease_tag = prerelease_parts[2] if len(prerelease_parts) > 2 else ""
 
             if current_version < prerelease_version or (
@@ -237,7 +249,7 @@ def autoChecker(root):
             ):
                 root.after(0, lambda: CheckUpdates(root))
     elif has_release_latest:
-        current_version = parse_version(__version__.split("-")[0])
-        release_version = parse_version(release["tag_name"])
+        current_version = safe_parse_version(__version__.split("-")[0])
+        release_version = safe_parse_version(release["tag_name"])
         if current_version < release_version:
             root.after(0, lambda: CheckUpdates(root))
