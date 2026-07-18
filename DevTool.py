@@ -60,11 +60,12 @@ def build_icons():
         ICONS_DIR = "./buildandsign/icons/MacOS/"
         pngtoicns(f"{ICONS_DIR}icon.png", ICONS_DIR)
         pngtoicns(f"{ICONS_DIR}icoDMG.png", ICONS_DIR)
-        print("  ✓ Mac Icons built using tools/icnsBuilder.py")
+        print("  ✓ Mac Icons built using tools/icnsBuilder.py - pngtoicns")
     if win:
         ICONS_DIR = "./buildandsign/icons/Windows/"
         pngtoico(f"{ICONS_DIR}icon.png", ICONS_DIR)
-        print("  ✓ Windows Icons built using tools/icnsBuilder.py")
+        pngtoico(f"{ICONS_DIR}icon-dev.png", ICONS_DIR)
+        print("  ✓ Windows Icons built using tools/icnsBuilder.py - pngtoico")
 
 
 # ── Build JSON ────────────────────────────────────────────────────────────────
@@ -183,7 +184,7 @@ def run_pyinstaller(build_label: str) -> int:
 
 def post_build_summary(build_label: str, count: int, success: bool):
     print("\n" + "─" * 60)
-    app_path = DIST_DIR / f"{APP}{EXT}"
+    app_path = DIST_DIR / f"{APP.replace(" ", "").replace("'","") if win else APP}{EXT}"
 
     if success:
         if app_path.is_dir():
