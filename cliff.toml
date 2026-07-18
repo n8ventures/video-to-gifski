@@ -1,0 +1,18 @@
+[git]
+filter_unconventional = false
+# Loops backward through history so the newest version bumps stay at the top
+sort_commits = "newest"
+
+[changelog]
+body = """
+{% for commit in commits %}
+  {# Checks if the commit message matches a standard version number like 0.0.1 #}
+  {% if commit.message is matching("^\\d+\\.\\d+\\.\\d+$") %}
+    
+    ## Version {{ commit.message }} 
+  {% else %}
+    {# Formats everyday changes neatly under your version blocks #}
+    -  ([{{ commit.id | truncate(length=7, end="") }}]({{ commit.id }}))
+  {% endif %} {{ commit.message | upper_first }}
+{% endfor %}
+"""
