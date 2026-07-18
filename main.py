@@ -290,7 +290,6 @@ def video_to_frames_seq(input_file, framerate, preview=False):
         cmd.append(os.path.join(preview_folder, "preview%04d.png"))
 
     if win:
-        # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
         if args.debug:
             print(cmd)
@@ -361,12 +360,12 @@ def vid_to_gif(
         cmd.extend(["--matte", matte_var])
 
     frame_pattern = os.path.join(temp_dir, "frames*.png")
-    if glob.glob(frame_pattern):
-        cmd.extend(["-o", output_file])
-        cmd.append(frame_pattern)
 
     if win:
-        # subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if glob.glob(frame_pattern):
+            cmd.extend(["-o", output_file])
+            cmd.append(frame_pattern)
+
         subprocess.run(
             cmd,
             creationflags=subprocess.CREATE_NO_WINDOW,
@@ -374,6 +373,11 @@ def vid_to_gif(
         if args.debug:
             print(cmd)
     elif mac:
+        input_files = sorted(glob.glob(frame_pattern))
+        if input_files:
+            cmd.extend(["-o", output_file])
+            cmd.extend(input_files)
+
         subprocess.run(cmd)
 
 
