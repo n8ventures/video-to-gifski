@@ -8,12 +8,7 @@ import ssl
 import requests
 
 from __version__ import __version__, __appname__, __author__, __internal_app_name__
-from modules.platformModules import temp_dir, log_dir
-
-try:
-    from modules.platformModules import paddlex_dir
-except:
-    paddlex_dir = None
+from modules.platformModules import temp_dir, log_dir, config_dir, win, mac
 
 # How many sessions to retain on disk (1 STD + 1 DEBUG file each).
 _LOG_SESSIONS_TO_KEEP = 5
@@ -76,9 +71,219 @@ class _TimestampedStream:
 # ---------------------------------------------------------------------------
 # Hardware info
 # ---------------------------------------------------------------------------
+import ctypes
+import json
+import os
+import platform
+import shutil
+import string
+import subprocess
+import winreg
 
 
-def _get_hw_info() -> str:
+def _run_powershell_json(command: str, timeout: int = 6):
+    """
+    Runs a PowerShell command that ends in `| ConvertTo-Json` and returns
+    the parsed result. Returns None on any failure (missing powershell,
+    timeout, empty output, malformed JSON, etc.) so callers can treat this
+    as just another optional lookup.
+
+    ConvertTo-Json returns a single JSON object (not a list) when there's
+    only one result, and a list when there's more than one — this
+    normalizes both into a list so callers don't have to special-case it.
+    """
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", command],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        output = result.stdout.strip()
+        if not output:
+            return None
+        parsed = json.loads(output)
+        if isinstance(parsed, dict):
+            return [parsed]
+        return parsed
+    except Exception:
+        return None
+
+
+def _get_hw_info_windows() -> str:
+    """
+    Windows equivalent of _get_hw_info_mac(). Returns a formatted
+    multi-line string with CPU (name + core/thread counts), GPU(s), RAM,
+    storage (every drive, not just the boot volume), and OS version/build.
+    All lookups are wrapped in try/except so a single failure never
+    crashes the log initialiser.
+
+    Uses PowerShell's Get-CimInstance for CPU/GPU details rather than
+    `wmic` — wmic has been deprecated since Windows 10 21H1 and is
+    outright missing on some newer Windows 11 builds, while
+    Get-CimInstance has been the supported path since PowerShell 3.0 and
+    ships on every currently-supported Windows version.
+    """
+    lines = []
+
+    # --- CPU ---
+    chip = ""
+    cores = threads = None
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"HARDWARE\DESCRIPTION\System\CentralProcessor\0",
+        ) as key:
+            chip, _ = winreg.QueryValueEx(key, "ProcessorNameString")
+            chip = chip.strip()
+    except Exception:
+        pass
+
+    if not chip:
+        chip = os.environ.get("PROCESSOR_IDENTIFIER", "")
+
+    cpu_info = _run_powershell_json(
+        "Get-CimInstance Win32_Processor | "
+        "Select-Object NumberOfCores,NumberOfLogicalProcessors,MaxClockSpeed | "
+        "ConvertTo-Json"
+    )
+    if cpu_info:
+        cpu0 = cpu_info[0]
+        cores = cpu0.get("NumberOfCores")
+        threads = cpu0.get("NumberOfLogicalProcessors")
+        clock = cpu0.get("MaxClockSpeed")  # MHz
+    else:
+        clock = None
+
+    if cores and threads:
+        core_thread_str = f" ({cores}C/{threads}T"
+        core_thread_str += f" @ {clock / 1000:.2f} GHz)" if clock else ")"
+    else:
+        # Fallback: os.cpu_count() only gives logical (thread) count, no
+        # physical core split, but it's always available with zero deps.
+        core_thread_str = f" ({os.cpu_count()} logical CPUs)" if os.cpu_count() else ""
+
+    lines.append(f"  Chip    : {chip or 'Unknown'}{core_thread_str}")
+
+    # --- GPU ---
+    gpu_info = _run_powershell_json(
+        "Get-CimInstance Win32_VideoController | " "Select-Object Name,DriverVersion,AdapterRAM | " "ConvertTo-Json"
+    )
+    if gpu_info:
+        gpu_lines = []
+        for gpu in gpu_info:
+            name = gpu.get("Name", "Unknown GPU")
+            driver = gpu.get("DriverVersion", "")
+            vram_bytes = gpu.get("AdapterRAM")
+            # Win32_VideoController.AdapterRAM is a 32-bit field and
+            # commonly reports wrong/capped values (e.g. 4GB cards showing
+            # as ~4294967295 or wrapping to a small number) on newer
+            # drivers — treat it as "nice if accurate" rather than ground
+            # truth, and just omit it when it looks obviously wrong.
+            vram_str = ""
+            if isinstance(vram_bytes, int) and 0 < vram_bytes < 64 * (1024**3):
+                vram_str = f", {vram_bytes // (1024 ** 3)} GB VRAM"
+            driver_str = f", driver {driver}" if driver else ""
+            gpu_lines.append(f"{name}{vram_str}{driver_str}")
+        lines.append(f"  GPU     : {' | '.join(gpu_lines)}")
+    else:
+        lines.append("  GPU     : Unknown")
+
+    # --- RAM ---
+    ram = "Unknown"
+    try:
+
+        class MEMORYSTATUSEX(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("sullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+
+        mem_status = MEMORYSTATUSEX()
+        mem_status.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(mem_status)):
+            ram = f"{mem_status.ullTotalPhys // (1024 ** 3)} GB"
+    except Exception:
+        pass
+
+    # Optional: RAM speed, if available — physical memory modules can
+    # report inconsistent/missing Speed on some systems, so this is
+    # best-effort and appended only when present.
+    ram_speed_info = _run_powershell_json("Get-CimInstance Win32_PhysicalMemory | Select-Object Speed | ConvertTo-Json")
+    if ram_speed_info:
+        speeds = {m.get("Speed") for m in ram_speed_info if m.get("Speed")}
+        if speeds:
+            ram += f" @ {'/'.join(str(s) for s in sorted(speeds))} MHz"
+
+    lines.append(f"  RAM     : {ram}")
+
+    # --- Storage (every drive, not just the boot volume) ---
+    # GetLogicalDrives() returns a bitmask where bit 0 = A:, bit 1 = B:,
+    # etc. — the standard low-level way to enumerate drive letters without
+    # pulling in pywin32 as a dependency.
+    storage_lines = []
+    try:
+        bitmask = ctypes.windll.kernel32.GetLogicalDrives()
+        gb = 1024**3
+        for i, letter in enumerate(string.ascii_uppercase):
+            if not (bitmask >> i) & 1:
+                continue
+            drive = f"{letter}:\\"
+            try:
+                total, used, free = shutil.disk_usage(drive)
+                if total == 0:
+                    continue  # empty optical/card readers report 0 total — skip
+                storage_lines.append(f"{drive} {total // gb} GB total | {used // gb} GB used | {free // gb} GB free")
+            except Exception:
+                continue  # unready drive (e.g. empty DVD drive) — skip silently
+    except Exception:
+        pass
+
+    if storage_lines:
+        lines.append("  Storage :")
+        for line in storage_lines:
+            lines.append(f"    {line}")
+    else:
+        lines.append("  Storage : Unknown")
+
+    # --- Windows version ---
+    win_ver = "Unknown"
+    try:
+        release, version, _, _ = platform.win32_ver()
+        win_ver = f"{release} (build {version})" if release else "Unknown"
+    except Exception:
+        pass
+
+    # Optional: edition (Home/Pro/Enterprise) — nice extra detail, not
+    # critical, so failure here shouldn't blank out win_ver above.
+    edition = ""
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SOFTWARE\Microsoft\Windows NT\CurrentVersion",
+        ) as key:
+            edition, _ = winreg.QueryValueEx(key, "ProductName")
+    except Exception:
+        pass
+
+    os_str = edition.strip() if edition else f"Windows {win_ver}"
+    if edition and win_ver != "Unknown":
+        os_str += f"  ({win_ver})"
+
+    lines.append(f"  OS      : {os_str}  ({platform.machine()})")
+
+    return "\n".join(lines)
+
+
+def _get_hw_info_mac() -> str:
     """
     Returns a formatted multi-line string with chip, RAM, storage, and OS.
     All lookups are wrapped in try/except so a single failure never crashes
@@ -157,6 +362,14 @@ def _get_hw_info() -> str:
     lines.append(f"  OS      : macOS {mac_ver}  ({platform.machine()})")
 
     return "\n".join(lines)
+
+
+def _get_hw_info() -> str:
+    if win:
+        return _get_hw_info_windows()
+    elif mac:
+        return _get_hw_info_mac()
+    return "  Unknown platform"
 
 
 # ---------------------------------------------------------------------------
@@ -266,8 +479,8 @@ def _init_log() -> None:
     print("  --- Hardware ---")
     print(hw_info)
     print("  --- Paths ---")
-    print(f"  Paddlex       : {paddlex_dir or '(dev mode — using default path)'}")
     print(f"  Temp          : {temp_dir}")
+    print(f"  Config        : {config_dir}")
     print(f"  Logs          : {log_dir}")
     print(f"  Log file      : {log_path or '(dev mode — no file)'}")
     print("  --- Network ---")
