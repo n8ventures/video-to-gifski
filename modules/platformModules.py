@@ -145,6 +145,7 @@ if bundle_path:
         )
         for key, value in binaries.items()
     }
+
 else:
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     temp_dir = os.path.join(base_dir, "temp")
@@ -152,7 +153,16 @@ else:
     config_dir = os.path.join(base_dir, "config")
 
     if win:
+        WindowsBin = "./buildandsign/bin/Windows"
         icon = os.path.join("./buildandsign/icons/Windows/", os.path.basename(icon))
+        binaries = {
+            key: os.path.join(
+                WindowsBin,
+                value,
+            )
+            for key, value in binaries.items()
+        }
+
     elif mac:
         MacOSbin = "./buildandsign/bin/macOS"
         binaries = {
