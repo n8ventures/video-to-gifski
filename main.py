@@ -44,7 +44,16 @@ from modules.TkModules import (
 )
 
 # platform-specific modules
-from modules.platformModules import win, mac, bundle_path, icon, ffmpeg, gifski, openOutputFolder
+from modules.platformModules import (
+    win,
+    mac,
+    bundle_path,
+    icon,
+    ffmpeg,
+    gifski,
+    openOutputFolder,
+    temp_dir,
+)
 
 # info modules
 from modules.infoModules import watermark_label
@@ -94,6 +103,10 @@ running = False
 after_id = None
 loading_screen = None
 
+# --- TEMP PATHS
+temp_gif = os.path.join(temp_dir, "temp.gif")
+preview_folder = os.path.join(temp_dir, "preview")
+
 
 def Tooltip(widget, message, delay, **kwargs):
     # NOTE: Due to Tk9.0 i will be temporarily disable this until CustomTkinter finds a way to restore transparency.
@@ -113,17 +126,21 @@ def Tooltip(widget, message, delay, **kwargs):
     )
 
 
-def remove_temp(force=False):
-    print("Removing temp...")
+def remove_temp(path_to_clean, force=False):
+    print(f"Removing temp at: {path_to_clean}")
+
     if force:
-        shutil.rmtree("temp")
-        print("temp force-removed successfully.")
+        shutil.rmtree(path_to_clean, ignore_errors=True)
+        print("Temp force-removed successfully.")
     else:
-        if os.path.exists("temp"):
-            shutil.rmtree("temp")
-            print("temp removed successfully.")
+        if os.path.exists(path_to_clean):
+            try:
+                shutil.rmtree(path_to_clean)
+                print("Temp removed successfully.")
+            except OSError as e:
+                print(f"Error removing temp: {e}")
         else:
-            print("temp does not exist.")
+            print("Temp does not exist.")
 
 
 def loading(root, texthere="", filenum=0, filestotal=0):
@@ -204,7 +221,7 @@ def stop_gif_animation(widget):
 
 
 def load_gifpreview_frames():
-    folder = "temp/preview"
+    folder = preview_folder
     frame_files = sorted(
         [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".png")],
     )
@@ -214,17 +231,14 @@ def load_gifpreview_frames():
 def video_to_frames_seq(input_file, framerate, preview=False):
     global preview_height, preview_weight
 
-    temp_folder = "temp"
-    preview_folder = "temp/preview"
-
     if preview == False:
         stop_gif_animation(preview_label)
-        if os.path.exists(temp_folder) and os.listdir(temp_folder):
-            shutil.rmtree(temp_folder)
+        if os.path.exists(temp_dir) and os.listdir(temp_dir):
+            shutil.rmtree(temp_dir)
     else:
         os.makedirs(preview_folder, exist_ok=True)
 
-    os.makedirs(temp_folder, exist_ok=True)
+    os.makedirs(temp_dir, exist_ok=True)
 
     cmd = [
         ffmpeg,
@@ -267,7 +281,7 @@ def video_to_frames_seq(input_file, framerate, preview=False):
     cmd.append(",".join(filtergraph))
 
     if preview == False:
-        cmd.append(os.path.join(temp_folder, "frames%04d.png"))
+        cmd.append(os.path.join(temp_dir, "frames%04d.png"))
     else:
         cmd.append(os.path.join(preview_folder, "preview%04d.png"))
 
@@ -342,7 +356,7 @@ def vid_to_gif(
 
         cmd.extend(["--matte", matte_var])
 
-    if input_files := glob.glob("temp/frames*.png"):
+    if input_files := glob.glob(os.path.join(temp_dir, "frames*.png")):
         cmd.extend(["-o", output_file])
         cmd.extend(input_files)
 
@@ -371,7 +385,7 @@ def get_and_print_video_data(file_path):
     print(f"Files: {file_path}")
 
     if isinstance(file_path, str):
-        if file_path and is_video_file(file_path) and file_path == "temp/temp.gif":
+        if file_path and is_video_file(file_path) and file_path == temp_gif:
             if temp_data := get_video_data(file_path):
                 parse_temp_data(temp_data)
     else:
@@ -528,7 +542,7 @@ def convert_and_save(
             loading_thread_switch(root, False)
 
             print("Conversion complete!")
-            remove_temp(True)
+            remove_temp(temp_dir, True)
             on_settings_window_close()
             try:
                 openOutputFolder(output_dir, output_full_path)
@@ -553,7 +567,7 @@ def convert_and_save(
 
                         video_to_frames_seq(full_path, framerate)
                         vid_to_gif(framerate, gifQ, motionQ, lossyQ, output, data)
-                        remove_temp(True)
+                        remove_temp(temp_dir, True)
 
             loading_thread_switch(root, False)
             on_settings_window_close()
@@ -563,7 +577,7 @@ def convert_and_save(
                 print(f"Error: {e}")
 
     elif mode == "temp":
-        output_file = "temp/temp.gif"
+        output_file = temp_gif
         print(output_file)
 
         vid_to_gif(framerate, gifQ, motionQ, lossyQ, output_file)
@@ -585,10 +599,10 @@ def convert_and_save(
             output_full_path = os.path.abspath(output_file.name)
             output_dir = os.path.dirname(output_file.name)
 
-            shutil.copy2("temp/temp.gif", output_file.name)
+            shutil.copy2(temp_gif, output_file.name)
             print("Conversion complete!")
             stop_gif_animation(preview_label)
-            remove_temp(True)
+            remove_temp(temp_dir, True)
             on_settings_window_close()
             try:
                 openOutputFolder(output_dir, output_full_path)
@@ -671,7 +685,7 @@ def on_settings_window_close():
     center_window(root, 425, 450)
     print("Settings Window is open?", settings_window_open)
     if mac:
-        remove_temp()
+        remove_temp(temp_dir)
         root.deiconify()
 
 
@@ -752,7 +766,7 @@ def open_settings_window():
     play_gif_button = Button(
         playframe,
         text="No GIF loaded",
-        command=lambda: play_gif("temp/temp.gif"),
+        command=lambda: play_gif(temp_gif),
     )
 
     if win and args.debug and len(valid_files) == 1:
@@ -760,7 +774,7 @@ def open_settings_window():
         debug_gif_button = Button(
             playframe,
             text="Debug GIF",
-            command=lambda: get_and_print_video_data("temp/temp.gif"),
+            command=lambda: get_and_print_video_data(temp_gif),
         )
         debug_gif_button.pack(side=ctk.RIGHT, pady=10, padx=5)
         debug_gif_button.configure(state="disabled")
@@ -891,19 +905,35 @@ def open_settings_window():
 
     test_button = Button(
         buttonsFrame,
-        text="Apply & Preview",
+        text="",
         command=lambda: threading.Thread(target=preview_gif_window, daemon=True).start(),
     )
+    apply_emoji(test_button, "▶️", text="Apply & Preview")
 
     test_button.pack(pady=5)
 
-    apply_button = Button(
-        buttonsFrame,
-        text=export_label,
-        command=lambda: threading.Thread(target=apply_settings, args=("final",), daemon=True).start(),
+    settings_window.bind(
+        "<space>",
+        lambda event: threading.Thread(target=preview_gif_window, daemon=True).start(),
     )
 
+    apply_button = Button(
+        buttonsFrame,
+        text="",
+        command=lambda: threading.Thread(target=apply_settings, args=("final",), daemon=True).start(),
+    )
+    apply_emoji(apply_button, "💾", text=f"{export_label}")
+
     apply_button.pack(pady=5)
+
+    settings_window.bind(
+        "<Control-s>",
+        lambda event: threading.Thread(target=apply_settings, args=("final",), daemon=True).start(),
+    )
+    settings_window.bind(
+        "<Command-s>",
+        lambda event: threading.Thread(target=apply_settings, args=("final",), daemon=True).start(),
+    )
 
     # =================================================================
     # RIGHT COLUMN — Optional settings
@@ -1080,6 +1110,7 @@ def open_settings_window():
     # their column frame, the outer grid columns are untouched)
     # =================================================================
     if len(valid_files) != 1:
+        settings_window.unbind("<space>")
         separator1.pack_forget()
         fileSize_label.pack_forget()
         fileDimension_label.pack_forget()
@@ -1137,9 +1168,10 @@ def open_settings_window():
 
         start_gif_animation(preview_label, loop=True, fps=fps.get())
 
-        apply_button.configure(text="Save As...", command=lambda: apply_settings("temp-final"))
+        apply_button.configure(text="", command=lambda: apply_settings("temp-final"))
+        apply_emoji(apply_button, "💾", text=f"Save As...")
 
-        filesize = get_filesize("temp/temp.gif")
+        filesize = get_filesize(temp_gif)
         fileSize_label.configure(text=f"GIF Size: {filesize}")
         fileDimension_label.configure(text=f"Dimensions: {imgW}x{imgH} ({aspect_ratio_simplified})")
         settings_window.update_idletasks()
@@ -1265,9 +1297,9 @@ def show_main():
     platform = "MacOS" if mac else "Windows"
     DnDLogo = "icon-dev.png" if any(char.isalpha() for char in __version__) else "icon.png"
     if bundle_path:
-        DnDLogo = os.path.join(bundle_path, DnDLogo)
+        DnDLogo = os.path.join(bundle_path, "assets", "icons", platform, DnDLogo)
     else:
-        DnDLogo = f"./buildandsign/ico/{platform}/{DnDLogo}"
+        DnDLogo = f"./buildandsign/icons/{platform}/{DnDLogo}"
     imgYPos = 225
 
     img_to_pil = Image.open(DnDLogo)
@@ -1284,11 +1316,11 @@ def show_main():
     splash_screen.destroy()
     root.deiconify()
 
-    threading.Thread(target=autoChecker, daemon=True).start()
+    autoChecker(root)
 
 
 def on_closing():
-    remove_temp()
+    remove_temp(temp_dir)
     print("Closing the application.")
 
     atexit.unregister(on_closing)  # Unregister the atexit callback
