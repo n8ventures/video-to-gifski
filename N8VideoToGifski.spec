@@ -11,7 +11,11 @@ from PyInstaller.utils.hooks import (
 )
 from importlib.metadata import PackageNotFoundError
 from modules.platformModules import mac, win
-from __version__ import __versionMac__ as __version__
+
+if mac:
+    from __version__ import __versionMac__ as __version__
+elif win:
+    from __version__ import __version__
 from __version__ import __author__, __appname__, __internal_app_name__
 
 block_cipher = None
@@ -35,7 +39,6 @@ hiddenimports = []
 # Include python-docx package data (templates) used for the "Save As DOCX" export
 datas += safe_copy_metadata("pillow")
 datas += safe_copy_metadata("packaging")
-datas += safe_copy_metadata("scipy")
 datas += safe_copy_metadata("emoji")
 datas += safe_copy_metadata("tqdm")
 
@@ -98,7 +101,7 @@ exe = EXE(  # type: ignore
     a.binaries if win else [],
     a.datas if win else [],
     exclude_binaries=not win,
-    name=f"{__appname__}",
+    name=f"{__appname__}" if mac else f"{__appname__.replace(" ", "").replace("'","")}",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
