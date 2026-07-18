@@ -108,10 +108,10 @@ else:
                 "assets",
                 "icons",
                 platform_folder,
-                "ico.ico",
+                "icon.ico",
             )
             if bundle_path
-            else "ico.ico"
+            else "icon.ico"
         )
     elif mac:
         icon = (
@@ -128,7 +128,13 @@ else:
 
 
 if bundle_path:
-    log_dir = os.path.expanduser(f"~/Library/Application Support/{__appname__}/Logs")
+    if mac:
+        log_dir = os.path.expanduser(f"~/Library/Application Support/{__appname__}/Logs")
+        config_dir = os.path.expanduser(f"~/Library/Application Support/{__appname__}/Config")
+    elif win:
+        log_dir = os.path.join(os.environ["LOCALAPPDATA"], __appname__, "Logs")
+        config_dir = os.path.join(os.environ["LOCALAPPDATA"], __appname__, "Config")
+
     temp_dir = os.path.join(tempfile.gettempdir(), __appname__)
     binaries = {
         key: os.path.join(
@@ -143,6 +149,7 @@ else:
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     temp_dir = os.path.join(base_dir, "temp")
     log_dir = os.path.join(base_dir, "logs")
+    config_dir = os.path.join(base_dir, "config")
 
     if win:
         icon = os.path.join("./buildandsign/icons/Windows/", os.path.basename(icon))
@@ -158,6 +165,7 @@ else:
 
 os.makedirs(temp_dir, exist_ok=True)
 os.makedirs(log_dir, exist_ok=True)
+os.makedirs(config_dir, exist_ok=True)
 
 ffprobe = binaries.get("ffprobe")
 ffplay = binaries.get("ffplay")
