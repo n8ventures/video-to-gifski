@@ -5,6 +5,10 @@ import os
 import subprocess
 import json
 
+from modules.loggingModules import _init_log
+
+_init_log()
+
 from modules.TkModules import center_window
 from modules.platformModules import win, mac, bundle_path, icon, gifski, ffmpeg
 from modules.argsModule import args
