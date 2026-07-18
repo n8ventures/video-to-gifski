@@ -12,7 +12,7 @@ _init_log()
 from modules.TkModules import center_window
 from modules.platformModules import win, mac, bundle_path, icon, gifski, ffmpeg
 from modules.argsModule import args
-
+from modules.configModule import get_setting
 
 import customtkinter as ctk
 from tkinterdnd2 import TkinterDnD, DND_ALL
@@ -71,7 +71,7 @@ ALT_BUTTON_COLOR = {
 }
 
 
-ctk.set_appearance_mode("System")
+ctk.set_appearance_mode(get_setting("appearance_mode", "System"))
 ctk.set_default_color_theme(_THEME_PATH)
 
 root = CTk()
@@ -81,13 +81,23 @@ gifski_ver = None
 ffmpeg_ver = None
 try:
     if gifski:
-        gifski_ver = subprocess.run([str(gifski), "--version"], capture_output=True, text=True)
+        if mac:
+            gifski_ver = subprocess.run([str(gifski), "--version"], capture_output=True, text=True)
+        if win:
+            gifski_ver = subprocess.run(
+                [str(gifski), "--version"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW
+            )
 except Exception:
     gifski_ver = None
 
 try:
     if ffmpeg:
-        ffmpeg_ver = subprocess.run([str(ffmpeg), "-version"], capture_output=True, text=True)
+        if mac:
+            ffmpeg_ver = subprocess.run([str(ffmpeg), "-version"], capture_output=True, text=True)
+        if win:
+            ffmpeg_ver = subprocess.run(
+                [str(ffmpeg), "-version"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW
+            )
 except Exception:
     ffmpeg_ver = None
 
