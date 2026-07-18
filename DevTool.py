@@ -619,8 +619,8 @@ def main():
                 subprocess.run(["codesign", "--force", "--sign", SIGNING_IDENTITY, "--timestamp", str(dmg_path)])
                 notarize_and_staple(dmg_path)
 
-            zip_output = f"{FINAL_DMG_FILE_name}.zip"
-            subprocess.run(["ditto", "-c", "-k", "--keepParent", str(dmg_path), str(zip_output)])
+            zip_output = DIST_DIR / f"{FINAL_DMG_FILE_name}.zip"
+            subprocess.run(["ditto", "-c", "-k", str(dmg_path), str(zip_output)])
             print("  ✓ Zipped final signed/notarized/stapled DMG")
 
     sys.exit(returncode)
