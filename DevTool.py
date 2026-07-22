@@ -571,7 +571,7 @@ def main():
     # Write the full record now — GUI can read this even from inside the app
     save_build_info(count, base_version, label, now)
 
-    print(f"\n  N8's {APP} — {label}")
+    print(f"\n {APP} — {label}")
     print("─" * 60)
     if win:
         from tools.generateRC import genMainRC
