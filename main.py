@@ -15,9 +15,6 @@ import math
 import re
 import glob
 
-# version info
-from __version__ import __version__
-
 # splash screen module
 from modules.rootTkSplashModule import (
     root,
@@ -56,6 +53,12 @@ from modules.platformModules import (
     temp_dir,
     config_dir,
 )
+
+# version info
+if win:
+    from __version__ import __version__
+else:
+    from __version__ import __versionMac__ as __version__
 
 # info modules
 from modules.infoModules import watermark_label

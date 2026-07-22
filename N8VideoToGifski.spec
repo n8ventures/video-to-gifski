@@ -11,12 +11,18 @@ from PyInstaller.utils.hooks import (
 )
 from importlib.metadata import PackageNotFoundError
 from modules.platformModules import mac, win
+from __version__ import __author__, __appname__, __internal_app_name__
 
 if mac:
     from __version__ import __versionMac__ as __version__
 elif win:
     from __version__ import __version__
-from __version__ import __author__, __appname__, __internal_app_name__
+
+
+is_dev_build = any(char.isalpha() for char in __version__)
+
+if is_dev_build:
+    __appname__ = f"{__appname__} (Beta)"
 
 block_cipher = None
 
@@ -45,15 +51,11 @@ datas += safe_copy_metadata("tqdm")
 datas += collect_data_files("certifi")
 datas += collect_data_files("customtkinter")
 datas += collect_data_files("tkinterdnd2")
-datas += collect_data_files("CTkToolTip")
+# datas += collect_data_files("CTkToolTip")
 
 
-# ffmpeg/ffprobe — fetched once at build time (ffmpeg.martin-riedl.de, arm64)
-# into bin/Silicon/, bundled here as `binaries` rather than `datas` so
-# PyInstaller preserves the executable bit and treats them as Mach-O
-# binaries (picked up by your codesigning step in devtools.py, same as any
-# other binary in the bundle). No more static_ffmpeg / runtime download.
 icon = None
+
 if mac:
     binaries += [
         ("buildandsign/bin/MacOS/ffmpeg", "bin/MacOS"),
@@ -65,7 +67,14 @@ if mac:
         ("buildandsign/icons/MacOS/icon.icns", "assets/icons/MacOS"),
         ("buildandsign/icons/MacOS/icon.png", "assets/icons/MacOS"),
     ]
-    icon = "buildandsign/icons/MacOS/icon.icns"
+    if is_dev_build:
+        icon = "buildandsign/icons/MacOS/icon-dev.icns"
+        datas += [
+            ("buildandsign/icons/MacOS/icon-dev.icns", "assets/icons/MacOS"),
+            ("buildandsign/icons/MacOS/icon-dev.png", "assets/icons/MacOS"),
+        ]
+    else:
+        icon = "buildandsign/icons/MacOS/icon.icns"
 if win:
     binaries += [
         ("buildandsign/bin/Windows/ffmpeg.exe", "bin/Windows"),
@@ -77,7 +86,15 @@ if win:
         ("buildandsign/icons/Windows/icon.ico", "assets/icons/Windows"),
         ("buildandsign/icons/Windows/icon.png", "assets/icons/Windows"),
     ]
-    icon = "buildandsign/icons/Windows/icon.ico"
+    if is_dev_build:
+        icon = "buildandsign/icons/Windows/icon-dev.ico"
+        datas += [
+            ("buildandsign/icons/Windows/icon-dev.ico", "assets/icons/Windows"),
+            ("buildandsign/icons/Windows/icon-dev.png", "assets/icons/Windows"),
+        ]
+    else:
+        icon = "buildandsign/icons/Windows/icon.ico"
+
 
 a = Analysis(  # type: ignore
     ["main.py"],

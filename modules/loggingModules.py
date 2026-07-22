@@ -7,8 +7,13 @@ from datetime import datetime
 import ssl
 import requests
 
-from __version__ import __version__, __appname__, __author__, __internal_app_name__
+from __version__ import __appname__, __author__, __internal_app_name__
 from modules.platformModules import temp_dir, log_dir, config_dir, win, mac
+
+if win:
+    from __version__ import __version__
+elif mac:
+    from __version__ import __versionMac__ as __version__
 
 # How many sessions to retain on disk (1 STD + 1 DEBUG file each).
 _LOG_SESSIONS_TO_KEEP = 5

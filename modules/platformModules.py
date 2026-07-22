@@ -7,9 +7,11 @@ import tempfile
 
 # Check the platform
 current_platform = platform.system()
+architecture = platform.machine().lower()
 
 win = current_platform == "Windows"
 mac = current_platform == "Darwin"
+intel = architecture in ("x86_64", "amd64")
 
 from __version__ import __appname__, __internal_app_name__
 
@@ -86,15 +88,19 @@ if is_dev_build:
                 bundle_path or "",
                 "assets",
                 "icons",
-                "icoDev.ico",
+                platform_folder,
+                "icon-dev.ico",
             )
             if bundle_path
-            else "./buildandsign/icons/Windows/icoDev.ico"
+            else "./buildandsign/icons/Windows/icon-dev.ico"
         )
     elif mac:
         icon = (
             os.path.join(
                 bundle_path or "",
+                "assets",
+                "icons",
+                platform_folder,
                 "icon-dev.png",
             )
             if bundle_path
