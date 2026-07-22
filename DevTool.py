@@ -145,18 +145,20 @@ def make_build_label(base_version: str, count: int, now: datetime) -> str:
 def get_brew_openssl_root() -> Path:
     """Return the best Homebrew OpenSSL path for the current build.
 
-    Prefer Intel Homebrew on x86_64 builds, fall back to ARM Homebrew if needed.
+    Prefer Intel Homebrew on x86_64 builds (/usr/local), and ARM Homebrew on
+    Apple Silicon builds (/opt/homebrew). If the preferred prefix is not
+    installed, fall back to the other existing Homebrew prefix.
     """
-    candidates = [
-        Path("/usr/local/opt/openssl@3/lib"),
-        Path("/opt/homebrew/opt/openssl@3/lib"),
-    ]
+    intel_prefix = Path("/usr/local/opt/openssl@3/lib")
+    arm_prefix = Path("/opt/homebrew/opt/openssl@3/lib")
 
-    for candidate in candidates:
+    ordered = [intel_prefix, arm_prefix] if intel else [arm_prefix, intel_prefix]
+
+    for candidate in ordered:
         if candidate.exists():
             return candidate
 
-    return candidates[-1]
+    return ordered[-1]
 
 
 def update_changelog():
