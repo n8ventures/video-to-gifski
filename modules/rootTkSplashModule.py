@@ -124,10 +124,6 @@ if any(char.isalpha() for char in __version__):
 else:
     root.title("N8's Video to Gifski")
 
-
-# print(style.theme_names())  # List all themes
-# print(style.layout("TLabel"))  # Display layout for 'TLabel'
-
 splash_screen = ctk.CTkToplevel(root)
 splash_screen.overrideredirect(True)
 splash_screen.attributes("-topmost", True)  # Keep the window on top
