@@ -118,7 +118,7 @@ exe = EXE(  # type: ignore
     a.binaries if win else [],
     a.datas if win else [],
     exclude_binaries=not win,
-    name=f"{__appname__}" if mac else f"{__appname__.replace(" ", "").replace("'","")}",
+    name=f"{__appname__}",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

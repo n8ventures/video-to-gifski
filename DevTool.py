@@ -217,7 +217,7 @@ def run_pyinstaller(build_label: str) -> int:
 
 def post_build_summary(build_label: str, count: int, success: bool):
     print("\n" + "─" * 60)
-    app_path = DIST_DIR / f"{APP.replace(" ", "").replace("'","") if win else APP}{EXT}"
+    app_path = DIST_DIR / f"{APP}{EXT}"
 
     if success:
         if app_path.is_dir():
@@ -642,6 +642,11 @@ def main():
 
     if returncode == 0:
         app_path = DIST_DIR / f"{APP}{EXT}"
+
+        if win:
+            renamed_app_path = DIST_DIR / f"{APP.replace(" ", "").replace("'","") if win else APP}{EXT}"
+            renamed_app_path.unlink(missing_ok=True)
+            app_path.rename(renamed_app_path)
 
         if mac:
             fix_ssl_dylib_conflict(app_path)
