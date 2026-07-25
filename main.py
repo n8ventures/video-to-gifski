@@ -1254,11 +1254,6 @@ def show_main():
         elif mac:
             get_and_print_video_data(file_path)
 
-    if any(char.isalpha() for char in __version__):
-        root.title("N8's Video to Gifski (Beta)")
-    else:
-        root.title("N8's Video to Gifski")
-
     geo_width = 425
     center_window(root, geo_width, 450)
     make_non_resizable(root)

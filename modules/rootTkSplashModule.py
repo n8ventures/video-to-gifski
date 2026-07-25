@@ -17,6 +17,11 @@ from modules.configModule import get_setting
 import customtkinter as ctk
 from tkinterdnd2 import TkinterDnD, DND_ALL
 
+if win:
+    from __version__ import __version__
+else:
+    from __version__ import __versionMac__ as __version__
+
 
 class CTk(ctk.CTk, TkinterDnD.DnDWrapper):
     def __init__(self, *args, **kwargs):
@@ -114,6 +119,11 @@ if win:
 elif mac:
     root.iconphoto(True, PhotoImage(file=icon))
 
+if any(char.isalpha() for char in __version__):
+    root.title("N8's Video to Gifski (Beta)")
+else:
+    root.title("N8's Video to Gifski")
+
 
 # print(style.theme_names())  # List all themes
 # print(style.layout("TLabel"))  # Display layout for 'TLabel'
@@ -123,6 +133,13 @@ splash_screen.overrideredirect(True)
 splash_screen.attributes("-topmost", True)  # Keep the window on top
 if win:
     splash_screen.attributes("-transparentcolor", "white")
+
+    if any(char.isalpha() for char in __version__):
+        splash_screen.title("N8's Video to Gifski (Beta)")
+    else:
+        splash_screen.title("N8's Video to Gifski")
+
+    splash_screen.iconbitmap(icon)
 elif mac:
     # NOTE: since tk9.0, transparency is broken.
     splash_screen.attributes("-transparent", "true")
