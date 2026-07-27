@@ -109,6 +109,7 @@ video_data = None
 running = False
 after_id = None
 loading_screen = None
+_last_frame_extraction_key = None
 
 # --- TEMP PATHS
 temp_gif = os.path.join(temp_dir, "temp.gif")
@@ -130,6 +131,15 @@ def Tooltip(widget, message, delay, **kwargs):
         border_width=2,
         corner_radius=40,
         **kwargs,
+    )
+
+
+def _extraction_key():
+    return (
+        valid_files[0][1],  # source file — switching videos must always re-extract
+        fps.get(),
+        scale_widget.get() if len(valid_files) == 1 else None,
+        safeAlpha.get(),
     )
 
 
@@ -386,6 +396,10 @@ def vid_to_gif(
 
 def get_and_print_video_data(file_path):
     global video_data, valid_files, invalid_files, batch_video_data
+    global _last_frame_extraction_key
+
+    _last_frame_extraction_key = None
+
     invalid_files = []
     valid_files = []
     batch_video_data = []
@@ -1163,8 +1177,19 @@ def open_settings_window():
         root.update_idletasks()
 
     def preview_gif_window():
+        global _last_frame_extraction_key
         loading_thread_switch(root, True, os.path.basename(valid_files[0][1]))
-        video_to_frames_seq(valid_files[0][1], fps.get())
+
+        stop_gif_animation(preview_label)
+
+        current_key = _extraction_key()
+        frames_exist = bool(glob.glob(os.path.join(temp_dir, "frames*.png")))
+
+        if current_key != _last_frame_extraction_key or not frames_exist:
+            video_to_frames_seq(valid_files[0][1], fps.get())
+            _last_frame_extraction_key = current_key
+        else:
+            print("Skipping ffmpeg re-extraction — FPS/Scale/Unpremultiply unchanged.")
 
         apply_settings("temp")
 
