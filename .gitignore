@@ -180,3 +180,4 @@ buildandsign/bin/lite/*.exe
 *.dmg
 bugtesting/*
 ae/*
+page_cache/

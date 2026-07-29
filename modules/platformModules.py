@@ -142,6 +142,7 @@ if bundle_path:
         config_dir = os.path.join(os.environ["LOCALAPPDATA"], __appname__, "Config")
 
     temp_dir = os.path.join(tempfile.gettempdir(), __appname__)
+    page_cache_dir = os.path.join(tempfile.gettempdir(), f"{__appname__}-PageCache")
     binaries = {
         key: os.path.join(
             bundle_path,
@@ -155,6 +156,7 @@ if bundle_path:
 else:
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     temp_dir = os.path.join(base_dir, "temp")
+    page_cache_dir = os.path.join(base_dir, "page_cache")
     log_dir = os.path.join(base_dir, "logs")
     config_dir = os.path.join(base_dir, "config")
 
@@ -182,6 +184,7 @@ else:
 os.makedirs(temp_dir, exist_ok=True)
 os.makedirs(log_dir, exist_ok=True)
 os.makedirs(config_dir, exist_ok=True)
+os.makedirs(page_cache_dir, exist_ok=True)
 
 ffprobe = binaries.get("ffprobe")
 ffplay = binaries.get("ffplay")

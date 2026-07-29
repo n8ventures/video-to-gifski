@@ -52,6 +52,7 @@ from modules.platformModules import (
     openOutputFolder,
     temp_dir,
     config_dir,
+    page_cache_dir,
 )
 
 # version info
@@ -80,28 +81,25 @@ if win:
 
 from modules.configModule import set_setting
 
-debug = ""
-
-if win and args.debug:
-    debug = "(Debug Mode)"
-    if args.checkthreads:
-
-        def list_current_threads():
-            while True:
-                print("-" * 20)
-                print("Current threads:")
-                for thread in threading.enumerate():
-                    print(thread.name)
-                print("-" * 20)
-                time.sleep(3)
-
-        threading.Thread(
-            name="thread checker",
-            target=list_current_threads,
-            daemon=True,
-        ).start()
-
 print("Current version:", __version__)
+
+
+def print_cmd(cmd, data=""):
+    """
+    Prints the gifski/ffmpeg command, but collapses a long run of frame
+    PNGs into a compact "first .. last (N frames)" summary instead of
+    dumping every single path inline — unreadable once a video has more
+    than a handful of extracted frames.
+    """
+    frame_paths = [c for c in cmd if isinstance(c, str) and re.search(r"frames\d+\.png$", c)]
+    if len(frame_paths) > 2:
+        non_frame_parts = [c for c in cmd if c not in frame_paths]
+        summary = (
+            f"[{os.path.basename(frame_paths[0])} .. {os.path.basename(frame_paths[-1])} ({len(frame_paths)} frames)]"
+        )
+        print(non_frame_parts + [summary])
+    else:
+        print(f"{data}\n{cmd}")
 
 
 global mode
@@ -136,9 +134,9 @@ def Tooltip(widget, message, delay, **kwargs):
 
 def _extraction_key():
     return (
-        valid_files[0][1],  # source file — switching videos must always re-extract
+        valid_files[current_video_index][1],
         fps.get(),
-        scale_widget.get() if len(valid_files) == 1 else None,
+        scale_widget.get(),
         safeAlpha.get(),
     )
 
@@ -160,8 +158,9 @@ def remove_temp(path_to_clean, force=False):
             print("Temp does not exist.")
 
 
+# loading and preview functions
 def loading(root, texthere="", filenum=0, filestotal=0):
-    global loading_screen, load_text_label
+    global loading_screen, load_text_label, progress_bar
 
     if loading_event.is_set():
         if not loading_screen:
@@ -185,6 +184,7 @@ def loading(root, texthere="", filenum=0, filestotal=0):
             print("starting loading popup")
     else:
         if loading_screen:
+            progress_bar.stop()
             loading_screen.destroy()
             loading_screen = None
             print("loading popup dead")
@@ -226,7 +226,7 @@ def loading_thread_switch(root, switch, texthere="", filenum=0, filestotal=0):
     else:
         print("killing loading popup")
         loading_event.clear()
-        root.after(0, loading(root))
+        root.after(0, loading, root)
 
 
 def stop_gif_animation(widget):
@@ -245,7 +245,32 @@ def load_gifpreview_frames():
     return [Image.open(frame_file) for frame_file in frame_files]
 
 
-def video_to_frames_seq(input_file, framerate, preview=False):
+def animate_gif_preview(frames, widget, frame_num, loop, frame_duration):
+    frame = frames[frame_num]
+    global running, after_id
+    if not running:
+        return
+
+    ctk_frame = ctk.CTkImage(light_image=frame, dark_image=frame, size=frame.size)
+    widget.configure(image=ctk_frame)
+    widget.image = ctk_frame
+
+    frame_num = (frame_num + 1) % len(frames)
+    if loop or frame_num != 0:
+        after_id = widget.after(frame_duration, animate_gif_preview, frames, widget, frame_num, loop, frame_duration)
+
+
+def start_gif_animation(widget, loop=True, fps=30, frames=None):
+    global running
+    running = True
+    if frames is None:
+        frames = load_gifpreview_frames()
+    frame_duration = int(1000 // fps)
+    animate_gif_preview(frames, widget, 0, loop, frame_duration)
+
+
+# core process
+def video_to_frames_seq(input_file, framerate, apply_scale=None, preview=False):
     global preview_height, preview_weight
 
     if preview == False:
@@ -269,10 +294,9 @@ def video_to_frames_seq(input_file, framerate, preview=False):
     filtergraph = [f"fps={str(framerate)}"]
 
     if preview == False:
-        if len(valid_files) == 1 and scale_widget.get() != 100:
-            filtergraph.append(
-                f"scale={scaled_width}:{scaled_height},setsar=1",
-            )
+        should_scale = apply_scale if apply_scale is not None else (len(valid_files) == 1 and scale_widget.get() != 100)
+        if should_scale:
+            filtergraph.append(f"scale={scaled_width}:{scaled_height},setsar=1")
     else:
         aspect_ratio = scaled_width / scaled_height
 
@@ -304,11 +328,11 @@ def video_to_frames_seq(input_file, framerate, preview=False):
 
     if win:
         subprocess.run(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
-        if args.debug:
-            print(cmd)
 
     elif mac:
         subprocess.run(cmd)
+
+    print_cmd(cmd, "### FFMPEG: ")
 
 
 def vid_to_gif(
@@ -326,7 +350,7 @@ def vid_to_gif(
     elif isinstance(output, str):
         output_file = output
 
-    if len(valid_files) == 1:
+    if data is None:
         cmd = [
             gifski,
             "-q",
@@ -383,8 +407,7 @@ def vid_to_gif(
             cmd,
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
-        if args.debug:
-            print(cmd)
+
     elif mac:
         input_files = sorted(glob.glob(frame_pattern))
         if input_files:
@@ -393,16 +416,26 @@ def vid_to_gif(
 
         subprocess.run(cmd)
 
+    print_cmd(cmd, "### GIFSKI: ")
+
 
 def get_and_print_video_data(file_path):
     global video_data, valid_files, invalid_files, batch_video_data
     global _last_frame_extraction_key
+    global advanced_mode, current_video_index
 
     _last_frame_extraction_key = None
 
     invalid_files = []
     valid_files = []
     batch_video_data = []
+
+    per_video_settings.clear()
+    page_preview_cache.clear()
+    advanced_mode = False
+    current_video_index = 0
+    if os.path.exists(page_cache_dir):
+        shutil.rmtree(page_cache_dir)
 
     if file_path == "":
         print("No video File dropped.")
@@ -582,17 +615,25 @@ def convert_and_save(
                 for file_name2, data in batch_video_data:
                     if file_name == file_name2:
                         output = os.path.normpath(
-                            os.path.join(
-                                output_directory,
-                                f"{os.path.splitext(file_name)[0]}.gif",
-                            )
+                            os.path.join(output_directory, f"{os.path.splitext(file_name)[0]}.gif")
                         )
-
                         if loading_screen:
                             update_loading(file_name, filenum, len(input_file))
 
-                        video_to_frames_seq(full_path, framerate)
-                        vid_to_gif(framerate, gifQ, motionQ, lossyQ, output, data)
+                        if advanced_mode:
+                            s = per_video_settings.get(file_name, _default_video_settings())
+                            w = int(data["width"] * s["scale"] / 100)
+                            h = int((w / data["width"]) * data["height"])
+                            global scaled_width, scaled_height
+                            scaled_width, scaled_height = w, h
+                            video_to_frames_seq(full_path, s["fps"], apply_scale=(s["scale"] != 100))
+                            vid_to_gif(
+                                s["fps"], s["gif_quality"], s["motion_quality"], s["lossy_quality"], output, data
+                            )
+                        else:
+                            video_to_frames_seq(full_path, framerate)
+                            vid_to_gif(framerate, gifQ, motionQ, lossyQ, output, data)
+
                         remove_temp(temp_dir, True)
 
             loading_thread_switch(root, False)
@@ -630,6 +671,31 @@ def convert_and_save(
             stop_gif_animation(preview_label)
             remove_temp(temp_dir, True)
             on_settings_window_close()
+            try:
+                openOutputFolder(output_dir, output_full_path)
+            except OSError as e:
+                print(f"Error: {e}")
+
+    elif mode == "advanced-save":
+        filename = input_file[current_video_index][0]
+        cached = page_preview_cache.get(filename)
+        source_gif = cached["gif_path"] if cached else temp_gif
+        file = input_file[current_video_index][1]
+        output_file = filedialog.asksaveasfile(
+            defaultextension=".gif",
+            initialdir=f"{os.path.dirname(file)}",
+            initialfile=f"{os.path.splitext(os.path.basename(file))[0]}.gif",
+            filetypes=[("GIF files", "*.gif")],
+        )
+
+        if output_file:
+            output_file.close()
+            shutil.copy2(source_gif, output_file.name)
+            output_full_path = os.path.abspath(output_file.name)
+            output_dir = os.path.dirname(output_file.name)
+
+            shutil.copy2(temp_gif, output_file.name)
+            print(f"Saved '{os.path.basename(file)}' individually.")
             try:
                 openOutputFolder(output_dir, output_full_path)
             except OSError as e:
@@ -701,6 +767,31 @@ def choose_file():
     get_and_print_video_data(file_path)
 
 
+# pagination (batch mode)
+per_video_settings = {}  # filename -> dict of that file's settings
+current_video_index = 0
+advanced_mode = False
+page_preview_cache = {}
+
+
+def _default_video_settings(fps_hint=30):
+    return {
+        "fps": fps_hint,
+        "scale": 100,
+        "gif_quality": 90,
+        "motion_enabled": 0,
+        "motion_quality": 100,
+        "lossy_enabled": 0,
+        "lossy_quality": 100,
+        "extra": 0,
+        "fast": 0,
+        "unpremultiply": 0,
+        "matte_enabled": 0,
+        "matte_color": None,
+    }
+
+
+# settings window
 settings_window_open = False
 
 
@@ -748,7 +839,7 @@ def open_settings_window():
     settings_window.title(window_title)
     if win:
         settings_window.iconbitmap(icon)
-    watermark_label(settings_window, debug)
+    watermark_label(settings_window)
     make_non_resizable(settings_window)
 
     # =================================================================
@@ -795,15 +886,15 @@ def open_settings_window():
         command=lambda: play_gif(temp_gif),
     )
 
-    if win and args.debug and len(valid_files) == 1:
-        play_gif_button.pack(side=ctk.LEFT, pady=10)
-        debug_gif_button = Button(
-            playframe,
-            text="Debug GIF",
-            command=lambda: get_and_print_video_data(temp_gif),
-        )
-        debug_gif_button.pack(side=ctk.RIGHT, pady=10, padx=5)
-        debug_gif_button.configure(state="disabled")
+    page_label = Label(preview_frame, text="")
+
+    prev_chevron = ctk.CTkLabel(preview_frame, text="", cursor="hand2")
+    apply_emoji(prev_chevron, "◀", px=20)
+    next_chevron = ctk.CTkLabel(preview_frame, text="", cursor="hand2")
+    apply_emoji(next_chevron, "▶", px=20)
+
+    prev_chevron.bind("<Button-1>", lambda e: _navigate(-1))
+    next_chevron.bind("<Button-1>", lambda e: _navigate(1))
 
     # =================================================================
     # LEFT COLUMN — Required settings + export/preview buttons
@@ -829,10 +920,10 @@ def open_settings_window():
             if is_disabled and disabled_text is not None:
                 var.set(disabled_text)
             else:
-                var.set(format_fn(slider.get()))  # restore current value on re-enable
+                var.set(format_fn(slider.get()))
 
         slider.configure(command=_update)
-        return var, label, set_disabled
+        return var, label, set_disabled, _update
 
     gif_quality_scale = Slider(
         required_frame,
@@ -844,7 +935,7 @@ def open_settings_window():
     )
     gif_quality_scale.set(90)
     gif_quality_scale.pack(pady=(5, 0))
-    gif_quality_var, gif_quality_value_label, gif_set_disabled = attach_slider_value_label(
+    gif_quality_var, gif_quality_value_label, _, gif_quality_update = attach_slider_value_label(
         required_frame,
         gif_quality_scale,
         lambda v: f"GIF Quality: {int(float(v))}",
@@ -901,40 +992,51 @@ def open_settings_window():
     )
     fps.set(fps_limit)
     fps.pack(pady=(10, 0))
-    fps_var, fps_value_label, fps_set_disabled = attach_slider_value_label(
+    fps_var, fps_value_label, _, fps_update = attach_slider_value_label(
         required_frame,
         fps,
         lambda v: f"FPS: {int(float(v))}",
     )
 
-    if len(valid_files) == 1:
-        scale_widget = Slider(
-            required_frame,
-            from_=1,
-            to=100,
-            width=220,
-            height=20,
-            number_of_steps=198,
-        )
-        scale_widget.set(100)
-        scale_widget.pack(pady=(10, 0))
-        scale_label_var = ctk.StringVar()
-        scale_widget.configure(command=lambda value: update_scale_label(value))
-        scale_label_var.set(f"Scale: {scale_widget.get()}%\n({video_data['width']}x{video_data['height']})")
-        scale_label = Label(required_frame, textvariable=scale_label_var)
-        scale_label.pack()
+    def _current_source_dims():
+        """Width/height of whichever file is on-screen right now — single file or current batch page."""
+        if len(valid_files) == 1:
+            return video_data["width"], video_data["height"]
 
-        def update_scale_label(value):
-            global scaled_width, scaled_height
-            width_value = video_data["width"]
-            height_value = video_data["height"]
-            if width_value and height_value:
-                scaled_width = int(width_value * float(value) / 100)
-                scaled_height = int((scaled_width / width_value) * height_value)
-                text = f"Scale: {scale_widget.get()}%\n({scaled_width}x{scaled_height})"
-                scale_label_var.set(text)
+        _, file_data = batch_video_data[current_video_index]
+        return file_data["width"], file_data["height"]
 
-        root.update_idletasks()
+    scale_widget = Slider(
+        required_frame,
+        from_=1,
+        to=100,
+        width=220,
+        height=20,
+        number_of_steps=198,
+    )
+    scale_widget = Slider(required_frame, from_=1, to=100, width=220, height=20, number_of_steps=198)
+    scale_widget.set(100)
+    scale_widget.pack(pady=(10, 0))
+    scale_label_var = ctk.StringVar()
+
+    def update_scale_label(value):
+        global scaled_width, scaled_height
+        width_value, height_value = _current_source_dims()
+        if width_value and height_value:
+            scaled_width = int(width_value * float(value) / 100)
+            scaled_height = int((scaled_width / width_value) * height_value)
+            scale_label_var.set(f"Scale: {value}%\n({scaled_width}x{scaled_height})")
+
+    scale_widget.configure(command=lambda value: update_scale_label(value))
+    update_scale_label(100)
+    scale_label = Label(required_frame, textvariable=scale_label_var)
+    scale_label.pack()
+
+    if len(valid_files) != 1:
+        scale_widget.pack_forget()
+        scale_label.pack_forget()
+
+    root.update_idletasks()
 
     # Export / Preview buttons — anchored to the bottom of the required column
     buttonsFrame = Frame(required_frame, fg_color="transparent", border_width=0)
@@ -962,6 +1064,14 @@ def open_settings_window():
     apply_emoji(apply_button, "💾", text=f"{export_label}")
 
     apply_button.pack(pady=5)
+
+    save_current_button = Button(
+        buttonsFrame,
+        text="",
+        command=lambda: threading.Thread(target=lambda: apply_settings("advanced-save"), daemon=True).start(),
+    )
+    apply_emoji(save_current_button, "💾", text="Save As...")
+    save_current_button.configure(state="disabled")
 
     settings_window.bind(
         "<Control-s>",
@@ -994,7 +1104,7 @@ def open_settings_window():
     motion_quality_scale.set(100)
     motion_quality_scale.pack(pady=(5, 0))
     motion_quality_scale.configure(state="disabled", **DISABLED_FG)
-    motion_var_label_var, motion_value_label, motion_set_disabled = attach_slider_value_label(
+    motion_var_label_var, motion_value_label, motion_set_disabled, motion_update = attach_slider_value_label(
         optional_frame,
         motion_quality_scale,
         lambda v: f"Motion Quality: {int(float(v))}",
@@ -1032,7 +1142,7 @@ def open_settings_window():
     lossy_quality_scale.set(100)
     lossy_quality_scale.pack(pady=5)
     lossy_quality_scale.configure(state="disabled", **DISABLED_FG)
-    lossy_var_label_var, lossy_value_label, lossy_set_disabled = attach_slider_value_label(
+    lossy_var_label_var, lossy_value_label, lossy_set_disabled, lossy_update = attach_slider_value_label(
         optional_frame,
         lossy_quality_scale,
         lambda v: f"Lossy Quality: {int(float(v))}",
@@ -1163,6 +1273,113 @@ def open_settings_window():
     # (pack_forget() still works fine — these widgets are packed WITHIN
     # their column frame, the outer grid columns are untouched)
     # =================================================================
+
+    # Pagination Functions
+    def _capture_page_settings():
+        return {
+            "fps": fps.get(),
+            "scale": scale_widget.get(),
+            "gif_quality": gif_quality_scale.get(),
+            "motion_enabled": motion_var.get(),
+            "motion_quality": motion_quality_scale.get(),
+            "lossy_enabled": lossy_var.get(),
+            "lossy_quality": lossy_quality_scale.get(),
+            "extra": extra_var.get(),
+            "fast": fast_var.get(),
+            "unpremultiply": safeAlpha.get(),
+            "matte_enabled": enableMatte.get(),
+            "matte_color": matte_var,
+        }
+
+    def _apply_page_settings(settings):
+        global matte_var
+        fps.set(settings["fps"])
+        fps_update(settings["fps"])
+        scale_widget.set(settings["scale"])
+        update_scale_label(settings["scale"])
+        gif_quality_scale.set(settings["gif_quality"])
+        gif_quality_update(settings["gif_quality"])
+
+        motion_var.set(settings["motion_enabled"])
+        motion_quality_scale.set(settings["motion_quality"])
+        update_checkbox_state(motion_var, motion_quality_scale, cmode="quality", set_disabled_fn=motion_set_disabled)
+        motion_update(settings["motion_quality"])
+
+        lossy_var.set(settings["lossy_enabled"])
+        lossy_quality_scale.set(settings["lossy_quality"])
+        update_checkbox_state(lossy_var, lossy_quality_scale, cmode="quality", set_disabled_fn=lossy_set_disabled)
+        lossy_update(settings["lossy_quality"])
+
+        extra_var.set(settings["extra"])
+        fast_var.set(settings["fast"])
+        safeAlpha.set(settings["unpremultiply"])
+        enableMatte.set(settings["matte_enabled"])
+        matte_var = settings["matte_color"]
+        if matte_var:
+            matte_box_preview.configure(fg_color=matte_var)
+        update_checkbox_state(enableMatte, matte_button, cmode="basic")
+
+    def _update_alpha_visibility(index):
+        _, file_data = batch_video_data[index]
+        needs_alpha = file_data["pix_fmt"] in alpha_formats
+
+        if needs_alpha:
+            sep_alpha.pack(fill="x", pady=8)
+            alphaFrame.pack(fill="x")
+            matteFrame.pack(fill="x")
+        else:
+            sep_alpha.pack_forget()
+            alphaFrame.pack_forget()
+            matteFrame.pack_forget()
+
+    def _load_page(index):
+        global current_video_index
+        stop_gif_animation(preview_label)
+        current_video_index = index
+        filename, _ = valid_files[index]
+
+        _, file_data = batch_video_data[index]
+        try:
+            native_fps = min(int(round(eval(file_data["r_frame_rate"]))), 50)
+        except Exception:
+            native_fps = 30
+
+        settings = per_video_settings.setdefault(filename, _default_video_settings(native_fps))
+        _apply_page_settings(settings)
+        _update_alpha_visibility(index)
+
+        max_length = 45
+        filename_text = filename
+        if len(filename) > max_length:
+            part_len = (max_length - 3) // 2
+            filename_text = filename[:part_len] + "..." + filename[-part_len:]
+
+        page_label.configure(text=f"{filename_text}  ({index + 1}/{len(valid_files)})")
+
+        cached = page_preview_cache.get(filename)
+        if cached:
+            preview_label.configure(text="")
+            fileSize_label.configure(text=cached["filesize_text"])
+            fileDimension_label.configure(text=cached["dimensions_text"])
+            play_gif_button.configure(
+                state="normal", text="Play GIF on Full Size", command=lambda p=cached["gif_path"]: play_gif(p)
+            )
+            save_current_button.configure(state="normal")
+            start_gif_animation(preview_label, loop=True, fps=cached["fps"], frames=cached["frames"])
+        else:
+            preview_label.configure(
+                text="Click the Apply & Preview button\nto load a GIF Preview.\n(Advanced Mode)", image=""
+            )
+            play_gif_button.configure(state="disabled", text="No GIF loaded")
+            fileSize_label.configure(text="")
+            fileDimension_label.configure(text="")
+            save_current_button.configure(state="disabled")
+
+    def _navigate(delta):
+        if not advanced_mode or len(valid_files) <= 1:
+            return
+        _load_page((current_video_index + delta) % len(valid_files))
+
     if len(valid_files) != 1:
         settings_window.unbind("<space>")
         separator1.pack_forget()
@@ -1174,11 +1391,73 @@ def open_settings_window():
         apply_button.pack_forget()
         apply_button.pack(side=ctk.TOP, pady=(20, 0))
 
+        def _toggle_advanced():
+            global advanced_mode
+            advanced_mode = not advanced_mode
+            if advanced_mode:
+                for fname, _ in valid_files:
+                    per_video_settings.setdefault(fname, _capture_page_settings())
+
+                page_label.pack(pady=(10, 0))
+                prev_chevron.place(relx=0.0, rely=0.5, anchor="w")
+                next_chevron.place(relx=1.0, rely=0.5, anchor="e")
+
+                fileSize_label.pack(pady=2, side=ctk.BOTTOM)
+                fileDimension_label.pack(pady=5, side=ctk.BOTTOM)
+                scale_widget.pack(pady=(10, 0))
+                scale_label.pack()
+
+                advanced_button.pack_forget()
+                advanced_button.pack(pady=(30, 0))
+                advanced_button.configure(text="Uniform Settings")
+
+                test_button.pack_forget()
+                save_current_button.pack_forget()
+                apply_button.pack_forget()
+                test_button.pack(pady=5)
+                save_current_button.pack(pady=5)
+                apply_button.pack(pady=5)
+                apply_emoji(apply_button, "💾", text=f"Export All")
+
+                _load_page(0)
+                settings_window.bind("<Left>", lambda e: _navigate(-1))
+                settings_window.bind("<Right>", lambda e: _navigate(1))
+            else:
+                preview_label.configure(
+                    text="Multiple videos detected!\nAdjust the settings to apply\n"
+                    "the same configuration to all GIFs converted!"
+                )
+                page_label.pack_forget()
+                prev_chevron.place_forget()
+                next_chevron.place_forget()
+
+                advanced_button.pack_forget()
+                advanced_button.pack(pady=(15, 0))
+                advanced_button.configure(text="Advanced Settings")
+
+                fileSize_label.pack_forget()
+                fileDimension_label.pack_forget()
+                scale_widget.pack_forget()
+                scale_label.pack_forget()
+                playframe.pack_forget()
+                test_button.pack_forget()
+                save_current_button.pack_forget()
+                apply_button.pack_forget()
+                apply_button.pack(side=ctk.TOP, pady=(20, 0))
+                apply_button.configure(text="Export All")
+
+                settings_window.unbind("<Left>")
+                settings_window.unbind("<Right>")
+
+        advanced_button = Button(required_frame, text="Advanced Settings", command=_toggle_advanced)
+        advanced_button.pack(pady=(15, 0))
+
         root.update_idletasks()
 
     def preview_gif_window():
         global _last_frame_extraction_key
-        loading_thread_switch(root, True, os.path.basename(valid_files[0][1]))
+        current_file = valid_files[current_video_index][1]
+        loading_thread_switch(root, True, os.path.basename(current_file))
 
         stop_gif_animation(preview_label)
 
@@ -1186,7 +1465,7 @@ def open_settings_window():
         frames_exist = bool(glob.glob(os.path.join(temp_dir, "frames*.png")))
 
         if current_key != _last_frame_extraction_key or not frames_exist:
-            video_to_frames_seq(valid_files[0][1], fps.get())
+            video_to_frames_seq(current_file, fps.get(), apply_scale=(scale_widget.get() != 100))
             _last_frame_extraction_key = current_key
         else:
             print("Skipping ffmpeg re-extraction — FPS/Scale/Unpremultiply unchanged.")
@@ -1198,9 +1477,6 @@ def open_settings_window():
         play_gif_button.pack(pady=10, side=ctk.BOTTOM, expand=True)
         play_gif_button.configure(state="normal", text="Play GIF on Full Size")
 
-        if win and args.debug:
-            debug_gif_button.configure(state="normal")
-
         img = Image.open(output_file)
         imgW, imgH = img.size
         gcd = math.gcd(imgW, imgH)
@@ -1208,37 +1484,38 @@ def open_settings_window():
 
         preview_label.configure(text="")
 
-        def animate_gif_preview(frames, widget, frame_num, loop, frame_duration):
-            frame = frames[frame_num]
-            global running, after_id
-            if not running:
-                return
-
-            ctk_frame = ctk.CTkImage(light_image=frame, dark_image=frame, size=frame.size)
-            widget.configure(image=ctk_frame)
-            widget.image = ctk_frame
-
-            frame_num = (frame_num + 1) % len(frames)
-            if loop or frame_num != 0:
-                after_id = widget.after(
-                    frame_duration, animate_gif_preview, frames, widget, frame_num, loop, frame_duration
-                )
-
-        def start_gif_animation(widget, loop=True, fps=30):
-            global running
-            running = True
-            frames = load_gifpreview_frames()
-            frame_duration = int(1000 // fps)
-            animate_gif_preview(frames, widget, 0, loop, frame_duration)
-
-        start_gif_animation(preview_label, loop=True, fps=fps.get())
-
-        apply_button.configure(text="", command=lambda: apply_settings("temp-final"))
-        apply_emoji(apply_button, "💾", text=f"Save As...")
+        frames = load_gifpreview_frames()
+        start_gif_animation(preview_label, loop=True, fps=fps.get(), frames=frames)
 
         filesize = get_filesize(temp_gif)
-        fileSize_label.configure(text=f"GIF Size: {filesize}")
-        fileDimension_label.configure(text=f"Dimensions: {imgW}x{imgH} ({aspect_ratio_simplified})")
+        fileSize_text = f"GIF Size: {filesize}"
+        fileDimension_text = f"Dimensions: {imgW}x{imgH} ({aspect_ratio_simplified})"
+        fileSize_label.configure(text=fileSize_text)
+        fileDimension_label.configure(text=fileDimension_text)
+
+        if len(valid_files) == 1:
+            apply_button.configure(text="", command=lambda: apply_settings("temp-final"))
+            apply_emoji(apply_button, "💾", text="Save As...")
+        else:
+            save_current_button.configure(state="normal")
+
+            filename = valid_files[current_video_index][0]
+            per_video_settings[filename] = _capture_page_settings()
+
+            cached_gif_path = os.path.join(page_cache_dir, f"{os.path.splitext(filename)[0]}.gif")
+            os.makedirs(page_cache_dir, exist_ok=True)
+            shutil.copy2(temp_gif, cached_gif_path)
+
+            page_preview_cache[filename] = {
+                "frames": frames,
+                "fps": fps.get(),
+                "filesize_text": fileSize_text,
+                "dimensions_text": fileDimension_text,
+                "gif_path": cached_gif_path,
+            }
+
+            play_gif_button.configure(command=lambda p=cached_gif_path: play_gif(p))
+
         settings_window.update_idletasks()
 
     settings_window.protocol("WM_DELETE_WINDOW", lambda: on_settings_window_close())
@@ -1282,7 +1559,7 @@ def show_main():
     geo_width = 425
     center_window(root, geo_width, 450)
     make_non_resizable(root)
-    watermark_label(root, debug)
+    watermark_label(root)
 
     def _toggle_appearance():
         new_mode = "Light" if ctk.get_appearance_mode() == "Dark" else "Dark"
@@ -1377,6 +1654,7 @@ def show_main():
 
 def on_closing():
     remove_temp(temp_dir)
+    remove_temp(page_cache_dir)
     print("Closing the application.")
 
     atexit.unregister(on_closing)  # Unregister the atexit callback
