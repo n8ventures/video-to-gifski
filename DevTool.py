@@ -28,6 +28,12 @@ if mac:
 
 is_dev_build = any(char.isalpha() for char in __version__script)
 
+
+import platform
+
+PLATFORM = platform.system()
+ARCH = platform.machine().lower()
+
 # ── Config ────────────────────────────────────────────────────────────────────
 
 SPEC_FILE = "N8VideoToGifski.spec"
@@ -54,7 +60,7 @@ ENTITLEMENTS_FILE = Path("entitlements.plist")
 # Set to True when switching to Developer ID for notarization.
 # Adds --timestamp to the codesign command (required by Apple for notarization,
 # but causes errSecInternalComponent with Apple Development certs during long builds).
-IS_DIST_BUILD = False
+IS_DIST_BUILD = True
 
 # Dylibs shipped by PaddlePaddle with SDK version (0,0,0) — invalid for
 # hardened-runtime signing. Must be re-signed individually after the build.
@@ -228,10 +234,12 @@ def post_build_summary(build_label: str, count: int, success: bool):
             size_mb = 0
 
         print(f"  ✓ Build complete")
-        print(f"    Label   : {build_label}")
-        print(f"    Count   : {count}")
-        print(f"    Output  : {app_path}")
-        print(f"    Size    : {size_mb:.1f} MB")
+        print(f"    Label        : {build_label}")
+        print(f"    Count        : {count}")
+        print(f"    Platform     : {PLATFORM}")
+        print(f"    Architecture : {ARCH}")
+        print(f"    Output       : {app_path}")
+        print(f"    Size         : {size_mb:.1f} MB")
     else:
         print(f"  ✗ Build FAILED  (label: {build_label})")
         print(f"    build_count.json was already updated — decrement manually if needed")
@@ -658,7 +666,7 @@ def main():
 
             build_dmg()
 
-            FINAL_DMG_FILE_name = f"{FINAL_DMG_NAME}-{__version__script}"
+            FINAL_DMG_FILE_name = f"{ARCH}-{FINAL_DMG_NAME}-{__version__script}"
 
             try:
                 print("  Checking if existing dmgs and zips are in Dist folder...")
@@ -679,10 +687,11 @@ def main():
             if IS_DIST_BUILD:
                 subprocess.run(["codesign", "--force", "--sign", SIGNING_IDENTITY, "--timestamp", str(dmg_path)])
                 notarize_and_staple(dmg_path)
+                print("  ✓ signed/notarized/stapled DMG")
 
             zip_output = DIST_DIR / f"MacOS-{FINAL_DMG_FILE_name.replace(" ", ".").replace("'",".")}.zip"
             subprocess.run(["ditto", "-c", "-k", str(dmg_path), str(zip_output)])
-            print("  ✓ Zipped final signed/notarized/stapled DMG")
+            print("  ✓ Zipped final DMG")
 
     sys.exit(returncode)
 
