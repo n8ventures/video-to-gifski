@@ -1401,6 +1401,8 @@ def open_settings_window():
         except Exception:
             native_fps = 30
 
+        fps.configure(to=native_fps, number_of_steps=native_fps)
+
         settings = per_video_settings.setdefault(filename, _default_video_settings(native_fps))
         _apply_page_settings(settings)
         _update_alpha_visibility(index)
@@ -1448,8 +1450,17 @@ def open_settings_window():
             global advanced_mode
             advanced_mode = not advanced_mode
             if advanced_mode:
+                uniform_settings = _capture_page_settings()
                 for fname, _ in valid_files:
-                    per_video_settings.setdefault(fname, _capture_page_settings())
+                    if fname not in per_video_settings:
+                        file_data = next((d for f, d in batch_video_data if f == fname), None)
+                        try:
+                            native_fps = min(int(round(eval(file_data["r_frame_rate"]))), 50) if file_data else 30
+                        except Exception:
+                            native_fps = 30
+                        seeded = dict(uniform_settings)
+                        seeded["fps"] = native_fps
+                        per_video_settings[fname] = seeded
 
                 page_label.pack(pady=(2, 0))
                 prev_chevron.place(relx=0.0, rely=0.5, anchor="w")
@@ -1525,6 +1536,11 @@ def open_settings_window():
                 apply_button.configure(
                     command=lambda: threading.Thread(target=apply_settings, args=("final",), daemon=True).start()
                 )
+
+                new_fps_value = min(fps.get(), 30)
+                fps.configure(to=30, number_of_steps=30)
+                fps.set(new_fps_value)
+                fps_update(new_fps_value)
 
                 settings_window.unbind("<Left>")
                 settings_window.unbind("<Right>")
