@@ -1322,7 +1322,7 @@ def open_settings_window():
         matte_var = settings["matte_color"]
         if matte_var:
             matte_box_preview.configure(fg_color=matte_var)
-        update_checkbox_state(enableMatte, matte_button, cmode="basic")
+        update_checkbox_state(enableMatte, matteSelectFrame, cmode="pack")
 
     def _update_alpha_visibility(index):
         _, file_data = batch_video_data[index]
