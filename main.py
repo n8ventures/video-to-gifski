@@ -242,7 +242,12 @@ def load_gifpreview_frames():
     frame_files = sorted(
         [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".png")],
     )
-    return [Image.open(frame_file) for frame_file in frame_files]
+    frames = []
+    for frame_file in frame_files:
+        img = Image.open(frame_file)
+        img.load()
+        frames.append(img)
+    return frames
 
 
 def animate_gif_preview(frames, widget, frame_num, loop, frame_duration):
@@ -1338,8 +1343,12 @@ def open_settings_window():
         page_preview_cache.pop(filename, None)  # stale — settings changed, old render no longer matches
 
         stop_gif_animation(preview_label)
+
         preview_label.configure(text="", image="")
-        apply_emoji(preview_label, "✅", text="Settings applied.\nClick Load Preview to see it.")
+        if mac:
+            apply_emoji(preview_label, "✅", text="Settings applied.\nClick Load Preview to see it.")
+        if win:
+            preview_label.configure(text="Settings applied.\nClick Load Preview to see it.", image="")
 
         play_gif_button.configure(state="normal", text="", command=_load_preview_current_page)
         apply_emoji(play_gif_button, "▶️", text="Load Preview")
