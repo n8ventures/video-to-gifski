@@ -1616,6 +1616,15 @@ def open_settings_window():
 
         settings_window.update_idletasks()
 
+    def _resync_slider_visuals():
+        gif_quality_scale.set(gif_quality_scale.get())
+        fps.set(fps.get())
+        scale_widget.set(scale_widget.get())
+        motion_quality_scale.set(motion_quality_scale.get())
+        lossy_quality_scale.set(lossy_quality_scale.get())
+
+    settings_window.after_idle(_resync_slider_visuals)
+
     settings_window.protocol("WM_DELETE_WINDOW", lambda: on_settings_window_close())
     root.withdraw()
 
