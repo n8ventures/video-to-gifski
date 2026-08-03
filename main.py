@@ -841,6 +841,7 @@ def open_settings_window():
         preview_label_pady = 20
 
     settings_window = ctk.CTkToplevel(root)
+    settings_window.withdraw()
     center_window(settings_window, win_width, win_height)
     settings_window.title(window_title)
     if win:
@@ -1632,7 +1633,10 @@ def open_settings_window():
         motion_quality_scale.set(motion_quality_scale.get())
         lossy_quality_scale.set(lossy_quality_scale.get())
 
-    settings_window.after_idle(_resync_slider_visuals)
+    settings_window.update_idletasks()
+    _resync_slider_visuals()
+    settings_window.update_idletasks()
+    settings_window.deiconify()
 
     settings_window.protocol("WM_DELETE_WINDOW", lambda: on_settings_window_close())
     root.withdraw()
