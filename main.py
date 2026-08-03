@@ -831,7 +831,7 @@ def open_settings_window():
         preview_label_text = (
             "Multiple videos detected!\nAdjust the settings to apply\n" "the same configuration to all GIFs converted!"
         )
-        export_label = "Export"
+        export_label = "Export All"
         preview_label_pady = 20
 
     settings_window = ctk.CTkToplevel(root)
@@ -1061,7 +1061,7 @@ def open_settings_window():
         text="",
         command=lambda: threading.Thread(target=apply_settings, args=("final",), daemon=True).start(),
     )
-    apply_emoji(apply_button, "💾", text=f"{export_label}")
+    apply_emoji(apply_button, "📤", text=f"{export_label}")
 
     apply_button.pack(pady=5)
 
@@ -1303,12 +1303,10 @@ def open_settings_window():
         motion_var.set(settings["motion_enabled"])
         motion_quality_scale.set(settings["motion_quality"])
         update_checkbox_state(motion_var, motion_quality_scale, cmode="quality", set_disabled_fn=motion_set_disabled)
-        motion_update(settings["motion_quality"])
 
         lossy_var.set(settings["lossy_enabled"])
         lossy_quality_scale.set(settings["lossy_quality"])
         update_checkbox_state(lossy_var, lossy_quality_scale, cmode="quality", set_disabled_fn=lossy_set_disabled)
-        lossy_update(settings["lossy_quality"])
 
         extra_var.set(settings["extra"])
         fast_var.set(settings["fast"])
@@ -1340,8 +1338,11 @@ def open_settings_window():
         page_preview_cache.pop(filename, None)  # stale — settings changed, old render no longer matches
 
         stop_gif_animation(preview_label)
-        preview_label.configure(text="Settings applied.\nClick Load Preview to see it.", image="")
-        play_gif_button.configure(state="normal", text="Load Preview", command=_load_preview_current_page)
+        preview_label.configure(text="", image="")
+        apply_emoji(preview_label, "✅", text="Settings applied.\nClick Load Preview to see it.")
+
+        play_gif_button.configure(state="normal", text="", command=_load_preview_current_page)
+        apply_emoji(play_gif_button, "▶️", text="Load Preview")
         save_current_button.configure(state="normal")
         fileSize_label.configure(text="")
         fileDimension_label.configure(text="")
@@ -1406,13 +1407,13 @@ def open_settings_window():
             preview_label.configure(text="")
             fileSize_label.configure(text=cached["filesize_text"])
             fileDimension_label.configure(text=cached["dimensions_text"])
-            play_gif_button.configure(
-                state="normal", text="Play GIF on Full Size", command=lambda p=cached["gif_path"]: play_gif(p)
-            )
+            play_gif_button.configure(state="normal", text="", command=lambda p=cached["gif_path"]: play_gif(p))
+            apply_emoji(play_gif_button, "▶️", text="Play GIF on Full Size")
             start_gif_animation(preview_label, loop=True, fps=cached["fps"], frames=cached["frames"])
         else:
             preview_label.configure(text="Click Load Preview to see it.", image="")
-            play_gif_button.configure(state="normal", text="Load Preview", command=_load_preview_current_page)
+            play_gif_button.configure(state="normal", text="", command=_load_preview_current_page)
+            apply_emoji(play_gif_button, "▶️", text="Load Preview")
             fileSize_label.configure(text="")
             fileDimension_label.configure(text="")
 
@@ -1439,7 +1440,7 @@ def open_settings_window():
                 for fname, _ in valid_files:
                     per_video_settings.setdefault(fname, _capture_page_settings())
 
-                page_label.pack(pady=(10, 0))
+                page_label.pack(pady=(2, 0))
                 prev_chevron.place(relx=0.0, rely=0.5, anchor="w")
                 next_chevron.place(relx=1.0, rely=0.5, anchor="e")
 
@@ -1449,7 +1450,7 @@ def open_settings_window():
                 scale_label.pack()
 
                 playframe.pack(pady=(10, 0))
-                play_gif_button.pack(pady=10)
+                play_gif_button.pack(pady=3)
 
                 advanced_button.pack_forget()
                 advanced_button.pack(pady=(30, 0))
@@ -1561,8 +1562,9 @@ def open_settings_window():
 
         playframe.pack(fill="x")
 
-        play_gif_button.pack(pady=10, side=ctk.BOTTOM, expand=True)
-        play_gif_button.configure(state="normal", text="Play GIF on Full Size")
+        play_gif_button.pack(pady=5, side=ctk.BOTTOM, expand=True)
+        play_gif_button.configure(state="normal", text="")
+        apply_emoji(play_gif_button, "▶️", text="Play GIF on Full Size")
 
         img = Image.open(output_file)
         imgW, imgH = img.size
