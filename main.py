@@ -1332,6 +1332,51 @@ def open_settings_window():
             alphaFrame.pack_forget()
             matteFrame.pack_forget()
 
+    def _apply_current_page():
+        if not advanced_mode:
+            return
+        filename = valid_files[current_video_index][0]
+        per_video_settings[filename] = _capture_page_settings()
+        page_preview_cache.pop(filename, None)  # stale — settings changed, old render no longer matches
+
+        stop_gif_animation(preview_label)
+        preview_label.configure(text="Settings applied.\nClick Load Preview to see it.", image="")
+        play_gif_button.configure(state="normal", text="Load Preview", command=_load_preview_current_page)
+        save_current_button.configure(state="normal")
+        fileSize_label.configure(text="")
+        fileDimension_label.configure(text="")
+        print(f"Applied settings for '{filename}'")
+
+    def _load_preview_current_page():
+        threading.Thread(target=preview_gif_window, daemon=True).start()
+
+    def _save_as_current_page():
+        def _do_save():
+            filename = valid_files[current_video_index][0]
+            current_settings = _capture_page_settings()
+            if per_video_settings.get(filename) != current_settings:
+                per_video_settings[filename] = current_settings
+                page_preview_cache.pop(filename, None)
+
+            if filename not in page_preview_cache:
+                preview_gif_window()  # no render exists yet for these settings — do it now, like Quick Export
+
+            apply_settings("advanced-save")
+
+        threading.Thread(target=_do_save, daemon=True).start()
+
+    def _export_all():
+        def _do_export():
+            if advanced_mode and valid_files:
+                filename = valid_files[current_video_index][0]
+                current_settings = _capture_page_settings()
+                if per_video_settings.get(filename) != current_settings:
+                    per_video_settings[filename] = current_settings
+                    page_preview_cache.pop(filename, None)
+            apply_settings("final")
+
+        threading.Thread(target=_do_export, daemon=True).start()
+
     def _load_page(index):
         global current_video_index
         stop_gif_animation(preview_label)
@@ -1364,16 +1409,12 @@ def open_settings_window():
             play_gif_button.configure(
                 state="normal", text="Play GIF on Full Size", command=lambda p=cached["gif_path"]: play_gif(p)
             )
-            save_current_button.configure(state="normal")
             start_gif_animation(preview_label, loop=True, fps=cached["fps"], frames=cached["frames"])
         else:
-            preview_label.configure(
-                text="Click the Apply & Preview button\nto load a GIF Preview.\n(Advanced Mode)", image=""
-            )
-            play_gif_button.configure(state="disabled", text="No GIF loaded")
+            preview_label.configure(text="Click Load Preview to see it.", image="")
+            play_gif_button.configure(state="normal", text="Load Preview", command=_load_preview_current_page)
             fileSize_label.configure(text="")
             fileDimension_label.configure(text="")
-            save_current_button.configure(state="disabled")
 
     def _navigate(delta):
         if not advanced_mode or len(valid_files) <= 1:
@@ -1403,13 +1444,21 @@ def open_settings_window():
                 next_chevron.place(relx=1.0, rely=0.5, anchor="e")
 
                 fileSize_label.pack(pady=2, side=ctk.BOTTOM)
-                fileDimension_label.pack(pady=5, side=ctk.BOTTOM)
+                fileDimension_label.pack(pady=2, side=ctk.BOTTOM)
                 scale_widget.pack(pady=(10, 0))
                 scale_label.pack()
 
+                playframe.pack(pady=(10, 0))
+                play_gif_button.pack(pady=10)
+
                 advanced_button.pack_forget()
                 advanced_button.pack(pady=(30, 0))
-                advanced_button.configure(text="Uniform Settings")
+                advanced_button.configure(text="")
+                apply_emoji(advanced_button, "🚀", text="Uniform Settings")
+
+                apply_emoji(test_button, "✅", text="Apply")
+                test_button.configure(command=_apply_current_page)
+                apply_button.configure(command=_export_all)
 
                 test_button.pack_forget()
                 save_current_button.pack_forget()
@@ -1417,11 +1466,22 @@ def open_settings_window():
                 test_button.pack(pady=5)
                 save_current_button.pack(pady=5)
                 apply_button.pack(pady=5)
-                apply_emoji(apply_button, "💾", text=f"Export All")
+                save_current_button.configure(state="normal")
 
                 _load_page(0)
+
                 settings_window.bind("<Left>", lambda e: _navigate(-1))
                 settings_window.bind("<Right>", lambda e: _navigate(1))
+                settings_window.bind("<space>", lambda e: _load_preview_current_page())
+
+                if win:
+                    settings_window.bind("<Control-s>", lambda e: _apply_current_page())
+                    settings_window.bind("<Control-S>", lambda e: _save_as_current_page())
+                    settings_window.bind("<Alt-s>", lambda e: _export_all())
+                elif mac:
+                    settings_window.bind("<Command-s>", lambda e: _apply_current_page())
+                    settings_window.bind("<Command-S>", lambda e: _save_as_current_page())
+                    settings_window.bind("<Control-s>", lambda e: _export_all())
             else:
                 preview_label.configure(
                     text="Multiple videos detected!\nAdjust the settings to apply\n"
@@ -1433,24 +1493,51 @@ def open_settings_window():
 
                 advanced_button.pack_forget()
                 advanced_button.pack(pady=(15, 0))
-                advanced_button.configure(text="Advanced Settings")
+                advanced_button.configure(text="")
+                apply_emoji(advanced_button, "⚙️", text="Advanced Settings")
 
                 fileSize_label.pack_forget()
                 fileDimension_label.pack_forget()
                 scale_widget.pack_forget()
                 scale_label.pack_forget()
+
+                stop_gif_animation(preview_label)
+                preview_label.configure(text=preview_label_text, image="")
                 playframe.pack_forget()
+                play_gif_button.configure(state="disabled", text="No GIF loaded")
+
                 test_button.pack_forget()
                 save_current_button.pack_forget()
                 apply_button.pack_forget()
                 apply_button.pack(side=ctk.TOP, pady=(20, 0))
-                apply_button.configure(text="Export All")
+                apply_button.configure(
+                    command=lambda: threading.Thread(target=apply_settings, args=("final",), daemon=True).start()
+                )
 
                 settings_window.unbind("<Left>")
                 settings_window.unbind("<Right>")
+                settings_window.unbind("<space>")
+                if win:
+                    settings_window.unbind("<Control-s>")
+                    settings_window.unbind("<Control-S>")
+                    settings_window.unbind("<Alt-s>")
+                elif mac:
+                    settings_window.unbind("<Command-s>")
+                    settings_window.unbind("<Command-S>")
+                    settings_window.unbind("<Control-s>")
 
-        advanced_button = Button(required_frame, text="Advanced Settings", command=_toggle_advanced)
+                settings_window.bind(
+                    "<Control-s>",
+                    lambda event: threading.Thread(target=apply_settings, args=("final",), daemon=True).start(),
+                )
+                settings_window.bind(
+                    "<Command-s>",
+                    lambda event: threading.Thread(target=apply_settings, args=("final",), daemon=True).start(),
+                )
+
+        advanced_button = Button(required_frame, text="", command=_toggle_advanced)
         advanced_button.pack(pady=(15, 0))
+        apply_emoji(advanced_button, "⚙️", text="Advanced Settings")
 
         root.update_idletasks()
 
