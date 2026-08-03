@@ -1482,6 +1482,7 @@ def open_settings_window():
                 apply_emoji(test_button, "✅", text="Apply")
                 test_button.configure(command=_apply_current_page)
                 apply_button.configure(command=_export_all)
+                save_current_button.configure(command=_save_as_current_page)
 
                 test_button.pack_forget()
                 save_current_button.pack_forget()
