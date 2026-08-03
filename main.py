@@ -108,6 +108,7 @@ running = False
 after_id = None
 loading_screen = None
 _last_frame_extraction_key = None
+_last_rendered_settings = None
 
 # --- TEMP PATHS
 temp_gif = os.path.join(temp_dir, "temp.gif")
@@ -1592,7 +1593,9 @@ def open_settings_window():
         fileDimension_label.configure(text=fileDimension_text)
 
         if len(valid_files) == 1:
-            apply_button.configure(text="", command=lambda: apply_settings("temp-final"))
+            global _last_rendered_settings
+            _last_rendered_settings = _capture_page_settings()
+            apply_button.configure(text="", command=lambda: threading.Thread(target=_save_as_solo, daemon=True).start())
             apply_emoji(apply_button, "💾", text="Save As...")
         else:
             save_current_button.configure(state="normal")
@@ -1615,6 +1618,12 @@ def open_settings_window():
             play_gif_button.configure(command=lambda p=cached_gif_path: play_gif(p))
 
         settings_window.update_idletasks()
+
+    def _save_as_solo():
+        current_settings = _capture_page_settings()
+        if current_settings != _last_rendered_settings:
+            preview_gif_window()
+        apply_settings("temp-final")
 
     def _resync_slider_visuals():
         gif_quality_scale.set(gif_quality_scale.get())
