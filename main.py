@@ -309,16 +309,12 @@ def video_to_frames_seq(input_file, framerate, apply_scale=None, preview=False):
         if should_scale:
             filtergraph.append(f"scale={scaled_width}:{scaled_height},setsar=1")
     else:
-        aspect_ratio = scaled_width / scaled_height
+        max_width = 350
+        max_height = 280 - (36 if advanced_mode else 0)
 
-        if scaled_width > scaled_height:  # Landscape
-            max_width = 350
-            target_width = min(scaled_width, max_width)
-            target_height = int(target_width / aspect_ratio)
-        else:  # Portrait or square
-            max_height = 280
-            target_height = min(scaled_height, max_height)
-            target_width = int(target_height * aspect_ratio)
+        scale_factor = min(max_width / scaled_width, max_height / scaled_height, 1.0)
+        target_width = int(scaled_width * scale_factor)
+        target_height = int(scaled_height * scale_factor)
 
         preview_height = target_height
         preview_weight = target_width
