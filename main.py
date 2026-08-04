@@ -1,6 +1,7 @@
 from tkinter import filedialog, ttk, colorchooser, PhotoImage
 import tkinter as tk
 import customtkinter as ctk
+from packaging.version import Version
 from tkinterdnd2 import DND_FILES
 from PIL import Image, ImageTk
 import subprocess
@@ -116,21 +117,25 @@ preview_folder = os.path.join(temp_dir, "preview")
 
 
 def Tooltip(widget, message, delay, **kwargs):
-    # NOTE: Due to Tk9.0 i will be temporarily disable this until CustomTkinter finds a way to restore transparency.
-    return
-    BG_COLOR = "#1e1e1e" if ctk.get_appearance_mode() == "Light" else "#ede5da"
-    FG_COLOR = "#ede5da" if ctk.get_appearance_mode() == "Light" else "#1e1e1e"
-    CTkToolTip(
-        widget=widget,
-        message=message,
-        delay=delay,
-        bg_color=BG_COLOR,
-        text_color=FG_COLOR,
-        border_color=FG_COLOR,
-        border_width=2,
-        corner_radius=40,
-        **kwargs,
-    )
+    # NOTE: Due to Tk9.0 this is temporarily disabled this until CustomTkinter finds a way to restore transparency or Tk fixes it.
+    tk_version = Version(widget.tk.call("info", "patchlevel"))
+
+    if tk_version >= Version("9.0"):
+        return
+    else:
+        BG_COLOR = "#1e1e1e" if ctk.get_appearance_mode() == "Light" else "#ede5da"
+        FG_COLOR = "#ede5da" if ctk.get_appearance_mode() == "Light" else "#1e1e1e"
+        CTkToolTip(
+            widget=widget,
+            message=message,
+            delay=delay,
+            bg_color=BG_COLOR,
+            text_color=FG_COLOR,
+            border_color=FG_COLOR,
+            border_width=2,
+            corner_radius=40,
+            **kwargs,
+        )
 
 
 def _extraction_key():
