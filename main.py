@@ -1318,6 +1318,9 @@ def open_settings_window():
 
         extra_var.set(settings["extra"])
         fast_var.set(settings["fast"])
+        update_checkbox_state(extra_var, extra_checkbox, fast_var, fast_checkbox, cmode="encode")
+        update_checkbox_state(fast_var, fast_checkbox, extra_var, extra_checkbox, cmode="encode")
+
         safeAlpha.set(settings["unpremultiply"])
         enableMatte.set(settings["matte_enabled"])
         matte_var = settings["matte_color"]
