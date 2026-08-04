@@ -8,7 +8,9 @@ Download and check the latest release [here](https://github.com/n8ventures/video
 
 or just directly download here without worry:
 
-[OSX (ARM/Apple Silicon)](https://github.com/n8ventures/video-to-gifski/releases/latest/download/MacOS-N8.s.Video.To.Gifski.Installer-5.0.1.zip)
+[OSX (ARM/Apple Silicon)](https://github.com/n8ventures/video-to-gifski/releases/latest/download/MacOS-arm64-N8.s.Video.To.Gifski.Installer-5.1.0.zip)
+
+[OSX (Intel/86_64x - Legacy)](https://github.com/n8ventures/video-to-gifski/releases/latest/download/MacOS-x86_64-N8.s.Video.To.Gifski.Installer-5.1.0.zip)
 
 [Windows](https://github.com/n8ventures/video-to-gifski/releases/latest/download/N8sVideoToGifski.exe)
 
