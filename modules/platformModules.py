@@ -138,8 +138,8 @@ if bundle_path:
         log_dir = os.path.expanduser(f"~/Library/Application Support/{__appname__}/Logs")
         config_dir = os.path.expanduser(f"~/Library/Application Support/{__appname__}/Config")
     elif win:
-        log_dir = os.path.join(os.environ["LOCALAPPDATA"], __appname__, "Logs")
-        config_dir = os.path.join(os.environ["LOCALAPPDATA"], __appname__, "Config")
+        log_dir = os.path.join(os.environ["LOCALAPPDATA"], "N8VENTURES", __appname__, "Logs")
+        config_dir = os.path.join(os.environ["LOCALAPPDATA"], "N8VENTURES", __appname__, "Config")
 
     temp_dir = os.path.join(tempfile.gettempdir(), __appname__)
     page_cache_dir = os.path.join(tempfile.gettempdir(), f"{__appname__}-PageCache")
